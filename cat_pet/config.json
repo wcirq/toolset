@@ -1,0 +1,20 @@
+{
+  "model": "yolo",
+  "yolo_model": "yolo26n-pose.pt",
+  "yolo_conf": 0.4,
+  "pose_kpt_conf": 0.85,
+  "dedup_iou": 0.55,
+  "trigger_count": 2,
+  "sustain_sec": 0.0,
+  "cat_scale": 0.6,
+  "camera_index": 0,
+  "target_exe": "devenv",
+  "target_title": "visual studio",
+  "hotkey": "Ctrl+Alt+V",
+  "hotkey_enabled": true,
+  "chat_enabled": false,
+  "debug_save": true,
+  "preview_scale": 0.65,
+  "cat_color": 1,
+  "settings_password_hash": "0a32a52e8e47074c6f74cf8dd74a82fc2ffe6df1dade66882096b6216a32292d"
+}
