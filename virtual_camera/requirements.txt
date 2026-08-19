@@ -1,0 +1,4 @@
+numpy>=1.26,<3
+opencv-python>=4.9,<5
+pyvirtualcam>=0.13,<1
+
