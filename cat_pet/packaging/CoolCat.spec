@@ -1,15 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+
+project_root = os.path.abspath(os.path.join(SPECPATH, ".."))
+
 
 a = Analysis(
-    ['main.py'],
-    pathex=[],
+    [os.path.join(project_root, 'main.py')],
+    pathex=[project_root],
     binaries=[],
     datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=['packaging\\rthook_torch.py'],
+    runtime_hooks=[os.path.join(SPECPATH, 'rthook_torch.py')],
     excludes=[],
     noarchive=False,
     optimize=0,
@@ -32,7 +36,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assets\\cat.ico'],
+    icon=[os.path.join(project_root, 'assets', 'cat.ico')],
 )
 coll = COLLECT(
     exe,

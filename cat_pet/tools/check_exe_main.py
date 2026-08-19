@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """检查 CoolCat.exe 内嵌的 main 模块是否包含新的贴边逻辑"""
+import os
 import sys
 from PyInstaller.archive.readers import CArchiveReader
 
-exe = r"D:\projects\temp\cat_pet\dist\CoolCat\CoolCat.exe"
+project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+exe = os.path.join(project_dir, "dist", "CoolCat", "CoolCat.exe")
 reader = CArchiveReader(exe)
 names = list(reader.toc.keys()) if hasattr(reader, "toc") else []
 print("TOC entries:", len(names))

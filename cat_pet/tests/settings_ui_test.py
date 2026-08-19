@@ -2,11 +2,12 @@
 """测试: 设置页分页布局 + 密码保护 (离屏)"""
 import os, sys, json
 os.environ['QT_QPA_PLATFORM'] = 'offscreen'
-sys.path.insert(0, '.')
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_DIR)
 
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtCore import Qt
-import main as m
+import coolcat as m
 
 app = QApplication([])
 fails = []

@@ -2,10 +2,11 @@
 """测试: 颜色记忆 + 开机启动注册表读写 (测试后恢复原状)"""
 import os, sys, json
 os.environ['QT_QPA_PLATFORM'] = 'offscreen'
-sys.path.insert(0, '.')
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_DIR)
 
 import winreg
-import main as m
+import coolcat as m
 
 fails = []
 def check(name, cond):
@@ -65,7 +66,7 @@ cat.config = m.load_config()
 cat._say = lambda *a, **k: None
 cat._spawn_particles = lambda *a, **k: None
 cat.color_idx = 1
-from main import COLORS
+from coolcat import COLORS
 # 模拟: 当前 idx=1(黑猫), 换色 → 2(白猫) 并写配置
 cat._change_color()
 check("换色后 idx=2", cat.color_idx == 2)

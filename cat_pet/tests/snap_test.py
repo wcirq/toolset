@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """自动测试贴边效果: 强制吸附后截屏保存"""
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_DIR)
+os.chdir(PROJECT_DIR)
 
 try:
     import torch  # noqa: 必须在 PyQt5 之前
@@ -12,7 +13,7 @@ except Exception:
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 
-import main as m
+import coolcat as m
 
 app = QApplication(sys.argv)
 

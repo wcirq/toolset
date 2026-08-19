@@ -5,9 +5,10 @@ import numpy as np
 import cv2
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_DIR)
 
-import main as m
+import coolcat as m
 
 # ---- 构造 CameraThread 实例 (不 start) ----
 cam = m.CameraThread.__new__(m.CameraThread)

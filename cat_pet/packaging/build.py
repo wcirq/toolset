@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
 构建脚本 - 生成图标 + 打包 EXE
-用法: python build.py
+用法: 在项目目录运行 python packaging/build.py
 """
 import os
 import sys
 import subprocess
 
 def main():
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = (os.path.dirname(script_dir)
+                   if os.path.basename(script_dir) == "packaging" else script_dir)
+    os.chdir(project_dir)
     python = sys.executable
 
     print("=" * 40)
@@ -17,7 +20,8 @@ def main():
 
     # 1. 生成图标
     print("\n[1/3] 生成图标...")
-    ret = subprocess.call([python, "make_icon.py"])
+    ret = subprocess.call([python, os.path.join("tools", "make_icon.py"),
+                           os.path.join("assets", "cat.ico")])
     if ret != 0:
         print("图标生成失败, 将使用默认图标构建")
 
@@ -43,11 +47,12 @@ def main():
         "--noconsole",
         "-y",
         "--workpath", workdir,  # 每次全新工作目录, 避免删除旧文件被沙箱拦截
-        "--runtime-hook", "rthook_torch.py",  # 在内置 PyQt5 钩子前预加载 torch (修 c10.dll 1114)
+        "--runtime-hook", os.path.join("packaging", "rthook_torch.py"),
         "--name", "CoolCat",
     ]
-    if os.path.exists("cat.ico"):
-        cmd += ["--icon", "cat.ico"]
+    icon_path = os.path.join("assets", "cat.ico")
+    if os.path.exists(icon_path):
+        cmd += ["--icon", icon_path]
     cmd.append("main.py")
 
     ret = subprocess.call(cmd)
@@ -59,10 +64,19 @@ def main():
     print("\n[3/4] 复制 YOLO 权重和配置...")
     import shutil
     out_dir = os.path.join("dist", "CoolCat")
-    for fname in ("yolo26n.pt", "yolo26n-pose.pt", "config.json"):
-        if os.path.exists(fname):
-            shutil.copy2(fname, os.path.join(out_dir, fname))
-            print(f"已复制: {fname}")
+    resources = [
+        (os.path.join("assets", "models", "yolo26n.pt"),
+         os.path.join("assets", "models", "yolo26n.pt")),
+        (os.path.join("assets", "models", "yolo26n-pose.pt"),
+         os.path.join("assets", "models", "yolo26n-pose.pt")),
+        (os.path.join("config", "config.json"), "config.json"),
+    ]
+    for source, target in resources:
+        if os.path.exists(source):
+            target_path = os.path.join(out_dir, target)
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            shutil.copy2(source, target_path)
+            print(f"已复制: {source}")
 
     # 4. 完成
     exe_path = os.path.join("dist", "CoolCat", "CoolCat.exe")

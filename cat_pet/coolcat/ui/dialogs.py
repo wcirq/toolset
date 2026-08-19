@@ -1,0 +1,972 @@
+from ..common import *
+
+# ======================== 无边框对话框标题栏 ========================
+class DialogTitleBar(QWidget):
+    """统一的自绘标题栏: 支持拖动窗口和关闭。"""
+    def __init__(self, title, dialog):
+        super().__init__(dialog)
+        self.dialog = dialog
+        self._drag_offset = None
+        self.setFixedHeight(38)
+        self.setStyleSheet("background: transparent;")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 4, 6, 2)
+        self.title_label = QLabel(title)
+        self.title_label.setStyleSheet(
+            "color: #B8B8C8; font-size: 12px; font-weight: bold;")
+        layout.addWidget(self.title_label)
+        layout.addStretch()
+
+        close_btn = QPushButton("×")
+        close_btn.setFixedSize(30, 28)
+        close_btn.setToolTip("关闭")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent; color: #A8A8B8;
+                border: none; border-radius: 6px;
+                padding: 0; font-size: 20px; font-weight: normal;
+            }
+            QPushButton:hover { background: #D94B5B; color: white; }
+            QPushButton:pressed { background: #B83B49; }
+        """)
+        close_btn.clicked.connect(dialog.reject)
+        layout.addWidget(close_btn)
+
+    def setTitle(self, title):
+        self.title_label.setText(title)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_offset = event.globalPos() - self.dialog.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self._drag_offset is not None and event.buttons() & Qt.LeftButton:
+            self.dialog.move(event.globalPos() - self._drag_offset)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        self._drag_offset = None
+        event.accept()
+
+
+# ======================== 统一消息对话框 ========================
+class StyledMessageDialog(QDialog):
+    """替代 QMessageBox 的无边框中文提示/确认窗口。"""
+    STYLE = """
+        QDialog {
+            background: #1E1E2A; color: #EEEEF4;
+            border: 1px solid #3B3B50; border-radius: 11px;
+            font-family: 'Microsoft YaHei'; font-size: 13px;
+        }
+        QLabel#message { color: #D8D8E2; font-size: 14px; }
+        QLabel#mark {
+            background: #3A3040; color: #FFB347;
+            border-radius: 20px; font-size: 22px; font-weight: bold;
+        }
+        QPushButton {
+            background: #343449; color: #E8E8EF;
+            border: none; border-radius: 7px; padding: 8px 20px;
+            min-width: 72px;
+        }
+        QPushButton:hover { background: #45455D; }
+        QPushButton#primary { background: #E89530; color: white; font-weight: bold; }
+        QPushButton#primary:hover { background: #FFB347; }
+        QPushButton#danger { background: #56313A; color: #FFB1B8; }
+        QPushButton#danger:hover { background: #70404B; }
+    """
+
+    def __init__(self, title, message, buttons, parent=None, mark="!"):
+        super().__init__(parent)
+        self.choice = None
+        self._cancel_key = next((key for _text, key, _kind in buttons
+                                 if key == "cancel"), buttons[0][1])
+        self.setWindowFlags(
+            Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setFixedWidth(390)
+        self.setStyleSheet(self.STYLE)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(14, 6, 14, 18)
+        root.setSpacing(12)
+        root.addWidget(DialogTitleBar(title, self))
+
+        content = QHBoxLayout()
+        content.setContentsMargins(12, 8, 12, 8)
+        badge = QLabel(mark)
+        badge.setObjectName("mark")
+        badge.setAlignment(Qt.AlignCenter)
+        badge.setFixedSize(42, 42)
+        content.addWidget(badge, 0, Qt.AlignTop)
+        label = QLabel(message)
+        label.setObjectName("message")
+        label.setWordWrap(True)
+        label.setMinimumHeight(44)
+        content.addWidget(label, 1)
+        root.addLayout(content)
+
+        row = QHBoxLayout()
+        row.addStretch()
+        for text, key, kind in buttons:
+            btn = QPushButton(text)
+            if kind in ("primary", "danger"):
+                btn.setObjectName(kind)
+            btn.clicked.connect(lambda _checked=False, k=key: self._choose(k))
+            row.addWidget(btn)
+        root.addLayout(row)
+
+    def _choose(self, key):
+        self.choice = key
+        super().accept()
+
+    def reject(self):
+        self.choice = self._cancel_key
+        super().reject()
+
+    @classmethod
+    def warning(cls, parent, title, message):
+        dlg = cls(title, message, [("知道了", "ok", "primary")], parent, "!")
+        dlg.exec_()
+
+    @classmethod
+    def ask_save(cls, parent, message):
+        buttons = [
+            ("取消", "cancel", "normal"),
+            ("不保存", "discard", "danger"),
+            ("保存", "save", "primary"),
+        ]
+        dlg = cls("未保存的设置", message, buttons, parent, "?")
+        dlg.exec_()
+        return dlg.choice or "cancel"
+
+
+# ======================== 设置身份验证 ========================
+class AuthDialog(QDialog):
+    """与小猫设置页统一风格的密码验证窗口。"""
+    STYLE = """
+        QDialog {
+            background: #1E1E2A;
+            color: #F4F4F8;
+            border: 1px solid #3B3B50;
+            border-radius: 12px;
+            font-family: 'Microsoft YaHei';
+            font-size: 13px;
+        }
+        QLabel#badge {
+            background: #343044;
+            color: #FFB347;
+            border: 1px solid #4A445B;
+            border-radius: 25px;
+            font-size: 25px;
+        }
+        QLabel#title {
+            color: #FFFFFF;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        QLabel#subtitle { color: #9999AA; font-size: 12px; }
+        QLabel#error {
+            color: #FF7B86;
+            background: #3A252F;
+            border-radius: 5px;
+            padding: 6px 10px;
+        }
+        QLineEdit {
+            background: #29293A;
+            color: #FFFFFF;
+            border: 1px solid #48485D;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            selection-background-color: #E89530;
+        }
+        QLineEdit:focus { border: 1px solid #FFB347; }
+        QCheckBox { color: #AAAABB; spacing: 7px; }
+        QPushButton {
+            background: #343449;
+            color: #E8E8EF;
+            border: none;
+            border-radius: 7px;
+            padding: 9px 22px;
+        }
+        QPushButton:hover { background: #414159; }
+        QPushButton#unlock {
+            background: #E89530;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+        QPushButton#unlock:hover { background: #FFB347; }
+        QPushButton#unlock:pressed { background: #D78128; }
+    """
+
+    def __init__(self, expected_hash, parent=None):
+        super().__init__(parent)
+        self.expected_hash = expected_hash
+        self.setWindowTitle("身份验证")
+        self.setWindowFlags(
+            Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setFixedWidth(420)
+        self.setStyleSheet(self.STYLE)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(20, 6, 20, 24)
+        root.setSpacing(12)
+
+        self.title_bar = DialogTitleBar("身份验证", self)
+        root.addWidget(self.title_bar)
+
+        badge = QLabel("♥")
+        badge.setObjectName("badge")
+        badge.setAlignment(Qt.AlignCenter)
+        badge.setFixedSize(52, 52)
+        root.addWidget(badge, 0, Qt.AlignHCenter)
+
+        title = QLabel("进入小猫设置")
+        title.setObjectName("title")
+        title.setAlignment(Qt.AlignCenter)
+        root.addWidget(title)
+
+        subtitle = QLabel("设置中包含摄像头检测与目标程序配置\n请输入访问密码继续")
+        subtitle.setObjectName("subtitle")
+        subtitle.setAlignment(Qt.AlignCenter)
+        root.addWidget(subtitle)
+        root.addSpacing(4)
+
+        self.password_edit = QLineEdit()
+        self.password_edit.setEchoMode(QLineEdit.Password)
+        self.password_edit.setPlaceholderText("输入设置访问密码")
+        self.password_edit.returnPressed.connect(self.accept)
+        self.password_edit.textChanged.connect(self._clear_error)
+        self.password_visible = False
+        self.toggle_password_action = QAction(self)
+        self.toggle_password_action.setToolTip("显示密码")
+        self.toggle_password_action.setIcon(self._make_eye_icon(False))
+        self.toggle_password_action.triggered.connect(self._toggle_password)
+        self.password_edit.addAction(
+            self.toggle_password_action, QLineEdit.TrailingPosition)
+        root.addWidget(self.password_edit)
+
+        self.error_label = QLabel("")
+        self.error_label.setObjectName("error")
+        self.error_label.setAlignment(Qt.AlignCenter)
+        self.error_label.hide()
+        root.addWidget(self.error_label)
+
+        buttons = QHBoxLayout()
+        buttons.addStretch()
+        cancel_btn = QPushButton("取消")
+        cancel_btn.clicked.connect(self.reject)
+        unlock_btn = QPushButton("解锁设置")
+        unlock_btn.setObjectName("unlock")
+        unlock_btn.setDefault(True)
+        unlock_btn.clicked.connect(self.accept)
+        buttons.addWidget(cancel_btn)
+        buttons.addWidget(unlock_btn)
+        root.addLayout(buttons)
+
+        self.password_edit.setFocus()
+
+    @staticmethod
+    def _make_eye_icon(opened):
+        """绘制密码框右侧的睁眼/闭眼图标。"""
+        pix = QPixmap(24, 24)
+        pix.fill(Qt.transparent)
+        p = QPainter(pix)
+        p.setRenderHint(QPainter.Antialiasing)
+        pen = QPen(QColor("#B8B8C8"), 1.8, Qt.SolidLine, Qt.RoundCap)
+        p.setPen(pen)
+        p.setBrush(Qt.NoBrush)
+        if opened:
+            eye = QPainterPath()
+            eye.moveTo(3, 12)
+            eye.quadTo(12, 4, 21, 12)
+            eye.quadTo(12, 20, 3, 12)
+            p.drawPath(eye)
+            p.setBrush(QBrush(QColor("#B8B8C8")))
+            p.setPen(Qt.NoPen)
+            p.drawEllipse(QPointF(12, 12), 3.2, 3.2)
+        else:
+            lid = QPainterPath()
+            lid.moveTo(3, 10)
+            lid.quadTo(12, 17, 21, 10)
+            p.drawPath(lid)
+            p.drawLine(QPointF(5, 6), QPointF(19, 19))
+        p.end()
+        return QIcon(pix)
+
+    def _toggle_password(self):
+        self.password_visible = not self.password_visible
+        self.password_edit.setEchoMode(
+            QLineEdit.Normal if self.password_visible else QLineEdit.Password)
+        self.toggle_password_action.setIcon(
+            self._make_eye_icon(self.password_visible))
+        self.toggle_password_action.setToolTip(
+            "隐藏密码" if self.password_visible else "显示密码")
+
+    def _clear_error(self):
+        if self.error_label.isVisible():
+            self.error_label.hide()
+            self.password_edit.setStyleSheet("")
+
+    def accept(self):
+        if _hash_password(self.password_edit.text()) != self.expected_hash:
+            self.error_label.setText("密码不正确, 请重新输入")
+            self.error_label.show()
+            self.password_edit.setStyleSheet("border: 1px solid #FF6575;")
+            self.password_edit.selectAll()
+            self.password_edit.setFocus()
+            return
+        super().accept()
+
+
+# ======================== 设置对话框 ========================
+class SettingsDialog(QDialog):
+    """
+    配置页面: 检测模型 / 触发规则 / 小猫尺寸 / 摄像头。
+    保存后通过 get_config() 返回新配置, 由 CatWindow 应用并持久化。
+    """
+    STYLE = """
+        QDialog {
+            background: #1E1E2A;
+            color: #E8E8F0;
+            border: 1px solid #3B3B50;
+            border-radius: 10px;
+            font-family: 'Microsoft YaHei';
+            font-size: 13px;
+        }
+        QGroupBox {
+            border: 1px solid #3A3A4E;
+            border-radius: 8px;
+            margin-top: 14px;
+            padding: 14px 10px 10px 10px;
+            font-weight: bold;
+            color: #FFB347;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 12px;
+            padding: 0 6px;
+        }
+        QLabel { color: #C8C8D4; }
+        QComboBox, QSpinBox, QDoubleSpinBox {
+            background: #2A2A3C;
+            color: #FFFFFF;
+            border: 1px solid #4A4A60;
+            border-radius: 5px;
+            padding: 4px 8px;
+            min-width: 140px;
+        }
+        QLineEdit {
+            background: #2A2A3C;
+            color: #FFFFFF;
+            border: 1px solid #4A4A60;
+            border-radius: 5px;
+            padding: 4px 8px;
+            min-width: 140px;
+        }
+        QComboBox QAbstractItemView {
+            background: #2A2A3C;
+            color: #FFFFFF;
+            selection-background-color: #4A5A80;
+        }
+        QSlider::groove:horizontal {
+            height: 6px;
+            background: #3A3A4E;
+            border-radius: 3px;
+        }
+        QSlider::handle:horizontal {
+            width: 16px; height: 16px;
+            margin: -5px 0;
+            border-radius: 8px;
+            background: #FFB347;
+        }
+        QPushButton {
+            background: #3A3A55;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 22px;
+        }
+        QPushButton:hover { background: #4A4A70; }
+        QPushButton#okBtn {
+            background: #E89530;
+            font-weight: bold;
+        }
+        QPushButton#okBtn:hover { background: #FFB347; }
+        QCheckBox { color: #C8C8D4; }
+        QTabWidget::pane {
+            border: 1px solid #3A3A4E;
+            border-radius: 6px;
+            top: -1px;
+        }
+        QTabBar::tab {
+            background: #2A2A3C;
+            color: #C8C8D4;
+            padding: 7px 18px;
+            margin-right: 3px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }
+        QTabBar::tab:selected {
+            background: #3A3A55;
+            color: #FFB347;
+            font-weight: bold;
+        }
+        QTabBar::tab:hover { background: #34344A; }
+    """
+
+    def __init__(self, cfg, yolo_available, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("小猫设置")
+        self.setWindowFlags(
+            Qt.Dialog | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setStyleSheet(self.STYLE)
+        self.setMinimumWidth(420)
+        self._yolo_available = yolo_available
+        self._cfg = dict(cfg)   # 上次已保存的配置快照
+        self._preview_was_visible = bool(
+            parent and hasattr(parent, "preview") and parent.preview.isVisible())
+
+        root = QVBoxLayout(self)
+
+        self.title_bar = DialogTitleBar("小猫设置", self)
+        root.addWidget(self.title_bar)
+
+        # ---------- 分页容器 ----------
+        self.tabs = QTabWidget()
+        root.addWidget(self.tabs, 1)
+
+        # ========== Tab 1: 检测与触发 ==========
+        page1 = QWidget()
+        l1 = QVBoxLayout(page1)
+        l1.setContentsMargins(8, 8, 8, 8)
+
+        # ---------- 检测模型 ----------
+        g1 = QGroupBox("检测模型")
+        f1 = QFormLayout(g1)
+        self.model_combo = QComboBox()
+        self.model_combo.addItem("HOG+Haar 传统检测 (快速, 无额外依赖)", "hog")
+        yolo_text = "YOLOv26 深度学习 (精准)" if yolo_available else \
+                    "YOLOv26 深度学习 (未安装 ultralytics, 选中将回退)"
+        self.model_combo.addItem(yolo_text, "yolo")
+        f1.addRow("检测模型:", self.model_combo)
+
+        self.yolo_model_combo = QComboBox()
+        self.yolo_model_combo.setEditable(True)
+        for name in ["yolo26n.pt", "yolo26n-pose.pt", "yolo26s.pt",
+                     "yolo11n.pt", "yolo11n-pose.pt", "yolov8n-pose.pt"]:
+            self.yolo_model_combo.addItem(name)
+        f1.addRow("YOLO 权重:", self.yolo_model_combo)
+
+        self.conf_spin = QDoubleSpinBox()
+        self.conf_spin.setRange(0.05, 0.95)
+        self.conf_spin.setSingleStep(0.05)
+        f1.addRow("置信度阈值:", self.conf_spin)
+
+        self.kpt_conf_spin = QDoubleSpinBox()
+        self.kpt_conf_spin.setRange(0.1, 0.95)
+        self.kpt_conf_spin.setSingleStep(0.05)
+        self.kpt_conf_spin.setToolTip("pose 模型: 头部关键点(鼻/眼/耳)置信度达到该值才算一个出现的头部")
+        f1.addRow("头部关键点置信度:", self.kpt_conf_spin)
+
+        pose_hint = QLabel("提示: 权重名含 -pose 时为姿态模型, 触发按\"出现头部数\"计算 (身体被挡也能数到)")
+        pose_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        pose_hint.setWordWrap(True)
+        f1.addRow("", pose_hint)
+        l1.addWidget(g1)
+
+        # ---------- 触发规则 ----------
+        g2 = QGroupBox("触发规则 (检测到多人时自动切换到目标程序)")
+        f2 = QFormLayout(g2)
+        self.count_spin = QSpinBox()
+        self.count_spin.setRange(2, 10)
+        self.count_spin.setSuffix(" 人")
+        self.count_label = QLabel("触发人数 ≥:")
+        f2.addRow(self.count_label, self.count_spin)
+
+        self.sustain_spin = QDoubleSpinBox()
+        self.sustain_spin.setRange(0.0, 10.0)
+        self.sustain_spin.setSingleStep(0.5)
+        self.sustain_spin.setSuffix(" 秒")
+        self.sustain_spin.setSpecialValueText("立即触发 (0秒)")
+        f2.addRow("持续检出时间:", self.sustain_spin)
+
+        self.cooldown_spin = QDoubleSpinBox()
+        self.cooldown_spin.setRange(0.0, 3600.0)
+        self.cooldown_spin.setSingleStep(1.0)
+        self.cooldown_spin.setSuffix(" 秒")
+        self.cooldown_spin.setSpecialValueText("不冷却 (0秒)")
+        self.cooldown_spin.setToolTip("自动触发切换后, 在该时间内忽略新的多人触发")
+        f2.addRow("触发冷却时间:", self.cooldown_spin)
+
+        self.auto_pause_fullscreen_check = QCheckBox(
+            "全屏游戏、会议、演示时自动暂停监控")
+        self.auto_pause_fullscreen_check.setToolTip(
+            "当前台程序覆盖整个显示器时释放摄像头; 退出全屏后自动恢复")
+        f2.addRow("", self.auto_pause_fullscreen_check)
+
+        self.dedup_spin = QDoubleSpinBox()
+        self.dedup_spin.setRange(0.2, 0.95)
+        self.dedup_spin.setSingleStep(0.05)
+        self.dedup_spin.setValue(0.55)
+        f2.addRow("重复框合并阈值:", self.dedup_spin)
+        dedup_hint = QLabel("重叠率超过该值的两个框视为同一人 (解决一人被识别成两人); 值越小合并越激进")
+        dedup_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        dedup_hint.setWordWrap(True)
+        f2.addRow("", dedup_hint)
+        l1.addWidget(g2)
+        l1.addStretch()
+        self.tabs.addTab(page1, "检测与触发")
+
+        # ========== Tab 2: 目标与快捷键 ==========
+        page2 = QWidget()
+        l2 = QVBoxLayout(page2)
+        l2.setContentsMargins(8, 8, 8, 8)
+
+        # ---------- 小猫尺寸 ----------
+        g3 = QGroupBox("小猫尺寸")
+        f3 = QFormLayout(g3)
+        self.scale_slider = QSlider(Qt.Horizontal)
+        self.scale_slider.setRange(60, 200)
+        self.scale_slider.setTickInterval(10)
+        self.scale_label = QLabel("100%")
+        self.scale_label.setMinimumWidth(48)
+        row = QHBoxLayout()
+        row.addWidget(self.scale_slider)
+        row.addWidget(self.scale_label)
+        f3.addRow("大小:", row)
+
+        self.cat_style_combo = QComboBox()
+        for i, style in enumerate(CAT_STYLES):
+            self.cat_style_combo.addItem(style["name"], i)
+        f3.addRow("猫品种:", self.cat_style_combo)
+
+        self.cat_color_combo = QComboBox()
+        for i, color in enumerate(COLORS):
+            self.cat_color_combo.addItem(color["name"], i)
+        f3.addRow("配色:", self.cat_color_combo)
+        hint = QLabel("提示: 也可以用右键菜单中的 +/- 快速调整")
+        hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        f3.addRow("", hint)
+        l2.addWidget(g3)
+
+        # ---------- 摄像头 ----------
+        g4 = QGroupBox("摄像头")
+        f4 = QFormLayout(g4)
+        self.cam_spin = QSpinBox()
+        self.cam_spin.setRange(0, 5)
+        f4.addRow("摄像头编号:", self.cam_spin)
+
+        self.debug_check = QCheckBox("调试模式: 满足切换条件时保存检测图片 (debug_shots/)")
+        f4.addRow("", self.debug_check)
+        dbg_hint = QLabel("图片按天分目录保存, 自动保留最近 3 天; 默认关闭")
+        dbg_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        dbg_hint.setWordWrap(True)
+        f4.addRow("", dbg_hint)
+
+        def add_opacity_row(title, initial):
+            slider = QSlider(Qt.Horizontal)
+            slider.setRange(20, 100)
+            slider.setTickInterval(10)
+            label = QLabel(f"{initial}%")
+            label.setMinimumWidth(48)
+            row = QHBoxLayout()
+            row.addWidget(slider)
+            row.addWidget(label)
+            f4.addRow(title, row)
+            slider.valueChanged.connect(lambda v, out=label: out.setText(f"{v}%"))
+            return slider
+
+        self.preview_window_opacity_slider = add_opacity_row("窗口透明度:", 85)
+        self.preview_video_opacity_slider = add_opacity_row("摄像头画面:", 85)
+        self.preview_overlay_opacity_slider = add_opacity_row("检测标注:", 100)
+        opacity_hint = QLabel("窗口、视频画面、人体框/关键点/标签可分别调整")
+        opacity_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        opacity_hint.setWordWrap(True)
+        f4.addRow("", opacity_hint)
+        l2.addWidget(g4)
+        l2.addStretch()
+        self.tabs.addTab(page2, "小猫与摄像头")
+
+        # ========== Tab 3: 目标程序与快捷键 ==========
+        page3 = QWidget()
+        l3 = QVBoxLayout(page3)
+        l3.setContentsMargins(8, 8, 8, 8)
+
+        # ---------- 目标程序切换 ----------
+        g5 = QGroupBox("目标程序 (检测到多人自动切换 / 按快捷键手动切换)")
+        f5 = QFormLayout(g5)
+
+        self.target_combo = QComboBox()
+        self.target_combo.setEditable(True)
+        self.target_combo.lineEdit().setPlaceholderText("选择运行中的程序, 或手动输入程序名")
+        f5.addRow("目标程序:", self.target_combo)
+
+        refresh_btn = QPushButton("刷新程序列表")
+        refresh_btn.clicked.connect(self._refresh_windows)
+        f5.addRow("", refresh_btn)
+
+        self.target_title_edit = QLineEdit()
+        self.target_title_edit.setPlaceholderText("窗口标题关键字, 如 visual studio (可留空)")
+        f5.addRow("标题关键字:", self.target_title_edit)
+
+        self.maximize_target_check = QCheckBox("切换时最大化目标程序")
+        f5.addRow("", self.maximize_target_check)
+
+        self.auto_return_check = QCheckBox("人员离开后自动切回原窗口")
+        f5.addRow("", self.auto_return_check)
+        self.auto_return_delay_spin = QDoubleSpinBox()
+        self.auto_return_delay_spin.setRange(1.0, 300.0)
+        self.auto_return_delay_spin.setSingleStep(1.0)
+        self.auto_return_delay_spin.setSuffix(" 秒")
+        self.auto_return_delay_spin.setToolTip(
+            "人数低于触发阈值后等待该时间再切回; 再次检测到人员会取消")
+        f5.addRow("离开后等待:", self.auto_return_delay_spin)
+
+        hint2 = QLabel("列表中程序员工具 (VS/VSCode/IDEA 等) 已排在前面; 也可手动输入如 devenv / Code")
+        hint2.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        hint2.setWordWrap(True)
+        f5.addRow("", hint2)
+        l3.addWidget(g5)
+
+        # ---------- 全局快捷键 ----------
+        g6 = QGroupBox("全局快捷键 (任意界面按下 → 快速切换到目标程序)")
+        f6 = QFormLayout(g6)
+        hrow = QHBoxLayout()
+        self.hk_ctrl = QCheckBox("Ctrl")
+        self.hk_alt = QCheckBox("Alt")
+        self.hk_shift = QCheckBox("Shift")
+        self.hk_win = QCheckBox("Win")
+        self.hk_key = QComboBox()
+        for k in (list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                  + [str(d) for d in range(10)]
+                  + [f"F{i}" for i in range(1, 13)]):
+            self.hk_key.addItem(k)
+        self.hk_key.setMinimumWidth(70)
+        hrow.addWidget(self.hk_ctrl)
+        hrow.addWidget(self.hk_alt)
+        hrow.addWidget(self.hk_shift)
+        hrow.addWidget(self.hk_win)
+        hrow.addSpacing(6)
+        hrow.addWidget(self.hk_key)
+        hrow.addStretch()
+        f6.addRow("组合键:", hrow)
+
+        self.hk_enabled = QCheckBox("启用全局快捷键")
+        f6.addRow("", self.hk_enabled)
+        l3.addWidget(g6)
+        l3.addStretch()
+        self.tabs.addTab(page3, "目标与快捷键")
+
+        # ========== Tab 4: 安全 ==========
+        page4 = QWidget()
+        l4 = QVBoxLayout(page4)
+        l4.setContentsMargins(8, 8, 8, 8)
+
+        g7 = QGroupBox("设置页面密码 (打开设置需要输入)")
+        f7 = QFormLayout(g7)
+        self.pwd_old_edit = QLineEdit()
+        self.pwd_old_edit.setEchoMode(QLineEdit.Password)
+        self.pwd_old_edit.setPlaceholderText("留空表示不修改密码")
+        f7.addRow("当前密码:", self.pwd_old_edit)
+        self.pwd_new_edit = QLineEdit()
+        self.pwd_new_edit.setEchoMode(QLineEdit.Password)
+        self.pwd_new_edit.setPlaceholderText("留空表示不修改密码")
+        f7.addRow("新密码:", self.pwd_new_edit)
+        self.pwd_new2_edit = QLineEdit()
+        self.pwd_new2_edit.setEchoMode(QLineEdit.Password)
+        self.pwd_new2_edit.setPlaceholderText("再输入一遍新密码")
+        f7.addRow("确认新密码:", self.pwd_new2_edit)
+        pwd_hint = QLabel("修改后点击下方\"保存并应用\"生效; 密码以 SHA-256 哈希存储, 配置文件不含明文; 忘记密码可删除配置文件中的 settings_password_hash 恢复默认")
+        pwd_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        pwd_hint.setWordWrap(True)
+        f7.addRow("", pwd_hint)
+        l4.addWidget(g7)
+        l4.addStretch()
+        self.tabs.addTab(page4, "安全")
+
+        # ---------- 按钮 ----------
+        btns = QHBoxLayout()
+        reset_btn = QPushButton("恢复默认")
+        reset_btn.clicked.connect(self._reset)
+        exit_btn = QPushButton("退出设置")
+        exit_btn.clicked.connect(self.reject)
+        ok_btn = QPushButton("保存并应用")
+        ok_btn.setObjectName("okBtn")
+        ok_btn.clicked.connect(self._save_and_apply)
+        btns.addWidget(reset_btn)
+        btns.addStretch()
+        btns.addWidget(ok_btn)
+        btns.addWidget(exit_btn)
+        root.addLayout(btns)
+
+        self.scale_slider.valueChanged.connect(
+            lambda v: self.scale_label.setText(f"{v}%"))
+
+        # ---------- 载入当前配置 ----------
+        self.model_combo.setCurrentIndex(1 if cfg["model"] == "yolo" else 0)
+        self.yolo_model_combo.setCurrentText(cfg["yolo_model"])
+        self.conf_spin.setValue(cfg["yolo_conf"])
+        self.kpt_conf_spin.setValue(cfg.get("pose_kpt_conf", 0.5))
+        self.count_spin.setValue(cfg["trigger_count"])
+        self.sustain_spin.setValue(cfg["sustain_sec"])
+        self.cooldown_spin.setValue(cfg.get("trigger_cooldown_sec", 10.0))
+        self.auto_pause_fullscreen_check.setChecked(
+            bool(cfg.get("auto_pause_fullscreen", False)))
+        self.dedup_spin.setValue(cfg.get("dedup_iou", 0.55))
+        self.scale_slider.setValue(int(cfg["cat_scale"] * 100))
+        self.cat_style_combo.setCurrentIndex(max(0, min(
+            len(CAT_STYLES) - 1, int(cfg.get("cat_style", 0)))))
+        self.cat_color_combo.setCurrentIndex(max(0, min(
+            len(COLORS) - 1, int(cfg.get("cat_color", 0)))))
+        self.cam_spin.setValue(cfg["camera_index"])
+        self.debug_check.setChecked(bool(cfg.get("debug_save", False)))
+        self.preview_window_opacity_slider.setValue(
+            int(float(cfg.get("preview_window_opacity", 0.85)) * 100))
+        self.preview_video_opacity_slider.setValue(
+            int(float(cfg.get("preview_video_opacity",
+                              cfg.get("preview_opacity", 0.85))) * 100))
+        self.preview_overlay_opacity_slider.setValue(
+            int(float(cfg.get("preview_overlay_opacity", 1.0)) * 100))
+
+        # pose 模型联动: 触发标签/单位改为"头部"
+        self._update_count_label()
+        self.yolo_model_combo.currentTextChanged.connect(
+            lambda _t: self._update_count_label())
+
+        # 目标程序
+        self._refresh_windows()
+        idx = self.target_combo.findData(cfg.get("target_exe", ""))
+        if idx >= 0:
+            self.target_combo.setCurrentIndex(idx)
+        elif cfg.get("target_exe"):
+            self.target_combo.setEditText(cfg["target_exe"])
+        self.target_title_edit.setText(cfg.get("target_title", ""))
+        self.maximize_target_check.setChecked(bool(cfg.get("maximize_target", False)))
+        self.auto_return_check.setChecked(bool(cfg.get("auto_return_enabled", False)))
+        self.auto_return_delay_spin.setValue(
+            float(cfg.get("auto_return_delay_sec", 10.0)))
+
+        # 快捷键
+        mod, vk = parse_hotkey(cfg.get("hotkey", "Ctrl+Alt+V"))
+        self.hk_ctrl.setChecked(bool(mod & MOD_CONTROL))
+        self.hk_alt.setChecked(bool(mod & MOD_ALT))
+        self.hk_shift.setChecked(bool(mod & MOD_SHIFT))
+        self.hk_win.setChecked(bool(mod & MOD_WIN))
+        key_text = next((name for name, code in VK_MAP.items() if code == vk), "V")
+        ki = self.hk_key.findText(key_text)
+        self.hk_key.setCurrentIndex(ki if ki >= 0 else self.hk_key.findText("V"))
+        self.hk_enabled.setChecked(cfg.get("hotkey_enabled", True))
+
+        # 密码: 当前密码引用 + 修改后的新密码 (None = 未修改)
+        self._new_password = None
+
+        # 外观和预览设置实时反映到主窗口
+        for control in (
+                self.scale_slider, self.cat_style_combo, self.cat_color_combo,
+                self.preview_window_opacity_slider,
+                self.preview_video_opacity_slider,
+                self.preview_overlay_opacity_slider):
+            if isinstance(control, QSlider):
+                control.valueChanged.connect(self._apply_live_preview)
+            else:
+                control.currentIndexChanged.connect(self._apply_live_preview)
+
+    def accept(self):
+        """保留兼容: 等同于“保存并应用”, 但不关闭窗口。"""
+        self._save_and_apply()
+
+    def _validate_password_change(self):
+        """保存前校验密码修改输入"""
+        old_pwd = self.pwd_old_edit.text()
+        new_pwd = self.pwd_new_edit.text()
+        new_pwd2 = self.pwd_new2_edit.text()
+        if new_pwd or new_pwd2:
+            cur_hash = self._cfg.get("settings_password_hash",
+                                     DEFAULT_CONFIG["settings_password_hash"])
+            if _hash_password(old_pwd) != cur_hash:
+                StyledMessageDialog.warning(self, "密码错误", "当前密码不正确!")
+                self.tabs.setCurrentWidget(self.tabs.widget(3))
+                self.pwd_old_edit.setFocus()
+                return False
+            if new_pwd != new_pwd2:
+                StyledMessageDialog.warning(self, "密码不一致", "两次输入的新密码不一致!")
+                self.tabs.setCurrentWidget(self.tabs.widget(3))
+                self.pwd_new_edit.setFocus()
+                return False
+            if not new_pwd:
+                StyledMessageDialog.warning(self, "密码为空", "新密码不能为空!")
+                return False
+            self._new_password = new_pwd
+        return True
+
+    def _apply_live_preview(self, _value=None):
+        cat = self.parent()
+        if cat is None or not hasattr(cat, "_apply_visual_settings"):
+            return
+        cat._apply_visual_settings(self.get_config(), show_preview=True)
+
+    def _save_and_apply(self):
+        if not self._validate_password_change():
+            return False
+        cfg = self.get_config()
+        cat = self.parent()
+        if cat is not None and hasattr(cat, "_apply_settings_config"):
+            cat._apply_settings_config(cfg)
+        else:
+            save_config(cfg)
+        self._cfg = dict(cfg)
+        self._new_password = None
+        self.pwd_old_edit.clear()
+        self.pwd_new_edit.clear()
+        self.pwd_new2_edit.clear()
+        self.title_bar.setTitle("小猫设置 — 已保存")
+        QTimer.singleShot(1200, lambda: self.title_bar.setTitle("小猫设置"))
+        return True
+
+    def _has_unsaved_changes(self):
+        current = self.get_config()
+        changed = any(self._cfg.get(k, DEFAULT_CONFIG.get(k)) != v
+                      for k, v in current.items())
+        return changed or bool(self.pwd_old_edit.text() or
+                               self.pwd_new_edit.text() or
+                               self.pwd_new2_edit.text())
+
+    def _finish_close(self):
+        cat = self.parent()
+        if cat is not None and hasattr(cat, "preview") and not self._preview_was_visible:
+            cat.preview.hide()
+        super().reject()
+
+    def reject(self):
+        if self._has_unsaved_changes():
+            choice = StyledMessageDialog.ask_save(
+                self, "设置已修改, 是否保存后退出?")
+            if choice == "cancel":
+                return
+            if choice == "save":
+                if not self._save_and_apply():
+                    return
+            else:
+                cat = self.parent()
+                if cat is not None and hasattr(cat, "_apply_visual_settings"):
+                    cat._apply_visual_settings(self._cfg, show_preview=False)
+        self._finish_close()
+
+    def closeEvent(self, event):
+        event.ignore()
+        self.reject()
+
+    def _update_count_label(self):
+        """当前权重是否为 pose 模型 → 切换触发计数标签 (人数/头部数)"""
+        if self.count_label is None:
+            return
+        text = self.yolo_model_combo.currentText().lower()
+        if "pose" in text:
+            self.count_label.setText("触发头部数 ≥:")
+            self.count_spin.setSuffix(" 头")
+        else:
+            self.count_label.setText("触发人数 ≥:")
+            self.count_spin.setSuffix(" 人")
+
+    def _refresh_windows(self):
+        """枚举当前运行的程序填充下拉框 (程序员工具优先)"""
+        self.target_combo.blockSignals(True)
+        try:
+            self.target_combo.clear()
+            for _hwnd, title, exe in list_windows():
+                label = f"{exe or 'unknown'}  -  {title[:40]}"
+                self.target_combo.addItem(label, exe)
+        except Exception as e:
+            _log(f"刷新程序列表失败: {e}")
+        finally:
+            self.target_combo.blockSignals(False)
+
+    def _reset(self):
+        self.model_combo.setCurrentIndex(0)
+        self.yolo_model_combo.setCurrentText(DEFAULT_CONFIG["yolo_model"])
+        self.conf_spin.setValue(DEFAULT_CONFIG["yolo_conf"])
+        self.kpt_conf_spin.setValue(DEFAULT_CONFIG["pose_kpt_conf"])
+        self.count_spin.setValue(DEFAULT_CONFIG["trigger_count"])
+        self.sustain_spin.setValue(DEFAULT_CONFIG["sustain_sec"])
+        self.cooldown_spin.setValue(DEFAULT_CONFIG["trigger_cooldown_sec"])
+        self.auto_pause_fullscreen_check.setChecked(
+            DEFAULT_CONFIG["auto_pause_fullscreen"])
+        self.dedup_spin.setValue(DEFAULT_CONFIG["dedup_iou"])
+        self.scale_slider.setValue(100)
+        self.cat_style_combo.setCurrentIndex(DEFAULT_CONFIG["cat_style"])
+        self.cat_color_combo.setCurrentIndex(DEFAULT_CONFIG["cat_color"])
+        self.cam_spin.setValue(0)
+        self.debug_check.setChecked(DEFAULT_CONFIG["debug_save"])
+        self.preview_window_opacity_slider.setValue(
+            int(DEFAULT_CONFIG["preview_window_opacity"] * 100))
+        self.preview_video_opacity_slider.setValue(
+            int(DEFAULT_CONFIG["preview_video_opacity"] * 100))
+        self.preview_overlay_opacity_slider.setValue(
+            int(DEFAULT_CONFIG["preview_overlay_opacity"] * 100))
+        self.target_title_edit.setText(DEFAULT_CONFIG["target_title"])
+        self.maximize_target_check.setChecked(DEFAULT_CONFIG["maximize_target"])
+        self.auto_return_check.setChecked(DEFAULT_CONFIG["auto_return_enabled"])
+        self.auto_return_delay_spin.setValue(DEFAULT_CONFIG["auto_return_delay_sec"])
+        self.hk_ctrl.setChecked(True)
+        self.hk_alt.setChecked(True)
+        self.hk_shift.setChecked(False)
+        self.hk_win.setChecked(False)
+        self.hk_key.setCurrentIndex(self.hk_key.findText("V"))
+        self.hk_enabled.setChecked(True)
+        # 密码输入框清空 (不重置密码本身)
+        self.pwd_old_edit.clear()
+        self.pwd_new_edit.clear()
+        self.pwd_new2_edit.clear()
+
+    def get_config(self):
+        # 目标程序: 优先取列表项数据, 手动输入则取输入内容
+        exe = self.target_combo.currentData()
+        if not exe:
+            text = self.target_combo.currentText().strip()
+            exe = text.split(" ")[0].lower() if text else ""
+        # 快捷键
+        mods = []
+        if self.hk_ctrl.isChecked():
+            mods.append("Ctrl")
+        if self.hk_alt.isChecked():
+            mods.append("Alt")
+        if self.hk_shift.isChecked():
+            mods.append("Shift")
+        if self.hk_win.isChecked():
+            mods.append("Win")
+        hotkey = "+".join(mods + [self.hk_key.currentText()]) if mods else ""
+        return {
+            "model": self.model_combo.currentData(),
+            "yolo_model": self.yolo_model_combo.currentText().strip() or "yolo26n.pt",
+            "yolo_conf": round(self.conf_spin.value(), 2),
+            "pose_kpt_conf": round(self.kpt_conf_spin.value(), 2),
+            "trigger_count": self.count_spin.value(),
+            "sustain_sec": round(self.sustain_spin.value(), 1),
+            "trigger_cooldown_sec": round(self.cooldown_spin.value(), 1),
+            "auto_pause_fullscreen": self.auto_pause_fullscreen_check.isChecked(),
+            "dedup_iou": round(self.dedup_spin.value(), 2),
+            "cat_scale": self.scale_slider.value() / 100.0,
+            "cat_style": self.cat_style_combo.currentData(),
+            "cat_color": self.cat_color_combo.currentData(),
+            "camera_index": self.cam_spin.value(),
+            "target_exe": (exe or "").lower(),
+            "target_title": self.target_title_edit.text().strip(),
+            "maximize_target": self.maximize_target_check.isChecked(),
+            "auto_return_enabled": self.auto_return_check.isChecked(),
+            "auto_return_delay_sec": round(self.auto_return_delay_spin.value(), 1),
+            "hotkey": hotkey or "Ctrl+Alt+V",
+            "hotkey_enabled": self.hk_enabled.isChecked() and bool(mods),
+            "chat_enabled": False,   # 聊天输入功能暂时禁用
+            "debug_save": self.debug_check.isChecked(),
+            # 非 UI 项原样保留 (预览窗口缩放等由滚轮实时修改)
+            "preview_scale": self._cfg.get("preview_scale", 1.0),
+            "preview_window_opacity": self.preview_window_opacity_slider.value() / 100.0,
+            "preview_video_opacity": self.preview_video_opacity_slider.value() / 100.0,
+            "preview_overlay_opacity": self.preview_overlay_opacity_slider.value() / 100.0,
+            # 密码: 未修改则保留原哈希; 修改过则存新密码的哈希
+            "settings_password_hash": _hash_password(self._new_password) if self._new_password
+                else self._cfg.get("settings_password_hash",
+                                   DEFAULT_CONFIG["settings_password_hash"]),
+        }

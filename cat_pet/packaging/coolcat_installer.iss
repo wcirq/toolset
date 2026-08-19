@@ -1,8 +1,8 @@
 ; CoolCat 安装包脚本 - Inno Setup
-; 用法: ISCC.exe coolcat_installer.iss
+; 用法: ISCC.exe packaging\coolcat_installer.iss
 
 #define MyAppName "CoolCat"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.0"
 #define MyAppPublisher "CoolCat"
 #define MyAppExeName "CoolCat.exe"
 
@@ -14,7 +14,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-OutputDir=installer_output
+OutputDir=..\installer_output
 OutputBaseFilename=CoolCat_Setup_v{#MyAppVersion}
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -24,22 +24,22 @@ PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\{#MyAppExeName}
 UninstallDisplayName=CoolCat 悬浮小猫
 WizardStyle=modern
-SetupIconFile=cat.ico
+SetupIconFile=..\assets\cat.ico
 
 [Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimpli.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加选项:"
 
 [Files]
 ; 打包 dist\CoolCat 整个目录
-Source: "dist\CoolCat\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\CoolCat\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"
 Name: "{group}\卸载 {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "立即启动 CoolCat"; Flags: nowait postinstall skipifsilent

@@ -5,6 +5,7 @@
 """
 import sys
 import math
+import os
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QPainter, QPixmap, QColor, QBrush, QPainterPath, QPen
 from PyQt5.QtCore import Qt, QRectF, QPointF
@@ -128,4 +129,6 @@ def make_icon(path="cat.ico"):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    make_icon("cat.ico")
+    output = sys.argv[1] if len(sys.argv) > 1 else "cat.ico"
+    os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
+    make_icon(output)
