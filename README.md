@@ -12,13 +12,7 @@
 
 ## 环境准备
 
-项目当前使用的 Python 环境为：
-
-```text
-C:\Users\sskj\.workbuddy\binaries\python\envs\default
-```
-
-也可以自行创建 Python 3.13 虚拟环境：
+自行创建 Python 3.13 虚拟环境：
 
 ```bash
 python -m venv venv
