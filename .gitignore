@@ -5,6 +5,8 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+.pytest_cache/
+.mypy_cache/
 .venv/
 venv/
 env/
@@ -19,6 +21,10 @@ env/
 build/
 dist/
 *.spec.bak
+
+# ===== 安装包产物 (Inno Setup) =====
+installer_output/
+*.iss.bak
 
 # ===== 日志与调试文件 =====
 *.log
