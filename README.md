@@ -83,6 +83,35 @@ python build.py
 
 > 若提示无法删除旧输出目录,说明 `CoolCat.exe` 正在运行,先退出再重跑 `build.py`。
 
+### 制作安装包(Inno Setup)
+
+把 `dist/CoolCat` 目录打成单文件安装程序 `CoolCat_Setup_vX.X.X.exe`(含桌面快捷方式、卸载程序、卸载时自动清理开机启动注册表项)。
+
+**一次性准备:安装 Inno Setup**
+
+```bash
+winget install JRSoftware.InnoSetup
+```
+
+装到 `%LOCALAPPDATA%\Programs\Inno Setup 6`(用户目录,无需管理员)。脚本 `coolcat_installer.iss` 已在 `cat_pet/` 目录。
+
+**打包命令**
+
+```bash
+cd cat_pet
+"C:\Users\<用户名>\AppData\Local\Programs\Inno Setup 6\ISCC.exe" coolcat_installer.iss
+```
+
+产物:`cat_pet/installer_output/CoolCat_Setup_v1.0.1.exe`(约 205MB)。
+
+**注意事项**
+
+- 先跑 `python build.py` 得到最新 `dist/CoolCat`,再打安装包(安装包只是压缩 `dist` 目录)
+- 编译耗时约 5 分钟;**结尾必须出现 `Successful compile` 才算成功**,中途停止的产物是半成品,运行会报 "setup files are corrupted"
+- 改版本号:编辑 `coolcat_installer.iss` 第 4 行 `#define MyAppVersion`
+- 安装界面为英文;中文语言文件(`ChineseSimplified.isl`)在官方仓库 Unofficial 目录,需手动下载放到 `Inno Setup 6\Languages\`,再把 `[Languages]` 段改回 `chinesesimp`
+- 压缩选项在 `[Setup]` 段:`Compression=lzma2/ultra64` + `SolidCompression=yes`,想打快包可改 `lzma2/fast`
+
 ### 模型文件
 
 `yolo26n.pt`、`yolo26n-pose.pt` 体积较大,未纳入版本管理。首次运行 ultralytics 会自动下载;也可手动将权重放到 `cat_pet/` 目录。
