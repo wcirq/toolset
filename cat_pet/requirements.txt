@@ -1,0 +1,17 @@
+# 酷炫小猫悬浮窗 - 运行与编译依赖
+# 环境: Python 3.13 / Windows
+# 安装: pip install -r requirements.txt -i https://pypi.doubanio.com/simple
+
+# ===== 运行必需 =====
+PyQt5==5.15.11
+opencv-python==4.10.0.84
+numpy==2.5.2
+
+# ===== YOLO 检测(可裁剪) =====
+# 不安装则自动回退到 HOG 检测;torch 为 Windows 默认 CPU 版
+torch==2.13.0
+torchvision==0.28.0
+ultralytics==8.4.121
+
+# ===== 编译 EXE 需要 =====
+pyinstaller==6.21.0
