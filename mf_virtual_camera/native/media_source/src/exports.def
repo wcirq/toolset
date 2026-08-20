@@ -1,0 +1,6 @@
+LIBRARY SSKJVirtualCameraMediaSource
+EXPORTS
+    DllCanUnloadNow
+    DllGetClassObject
+    DllRegisterServer
+    DllUnregisterServer

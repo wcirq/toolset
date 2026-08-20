@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sskj-mf-virtual-camera"
+version = "0.1.0"
+description = "Media sender for the SSKJ Media Foundation virtual camera"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26,<3",
+    "opencv-python>=4.9,<5",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+
+[project.scripts]
+mfvc-send = "mf_virtual_camera.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mf_virtual_camera*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

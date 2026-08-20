@@ -1,15 +1,26 @@
-# ===== WorkBuddy 项目数据 =====
+# ===== 项目本地数据 =====
 .workbuddy/
 
 # ===== Python =====
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
+.eggs/
+.python-version
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.pyright/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
 .venv/
 venv/
 env/
+ENV/
 
 # ===== 模型权重（大文件，不入库）=====
 *.pt
@@ -17,9 +28,30 @@ env/
 *.onnx
 *.engine
 
-# ===== 构建 / 打包产物 =====
+# ===== CMake / C++ 构建产物 =====
 build/
+build-*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+install_manifest.txt
+*.obj
+*.o
+*.pch
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.exe
+
+# ===== Python 构建 / 打包产物 =====
 dist/
+wheelhouse/
 *.spec.bak
 
 # ===== 安装包产物 (Inno Setup) =====
@@ -28,11 +60,28 @@ installer_output/
 
 # ===== 日志与调试文件 =====
 *.log
+*.dmp
+*.tmp
+*.temp
 debug_shots/
 
-# ===== IDE / 系统 =====
+# ===== IDE / 编辑器 =====
+.vs/
 .idea/
 .vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 *.swp
+*.swo
+*~
+
+# ===== 操作系统文件 =====
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# ===== 本地测试输入（不属于源码）=====
+/virtual_camera/00.jpg
+/virtual_camera/00.mp4

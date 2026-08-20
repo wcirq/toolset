@@ -9,6 +9,7 @@
 |---|---|---|
 | `cat_pet` | 桌面悬浮宠物，支持摄像头人体/姿态检测和专注提醒 | [查看说明](cat_pet/README.md) |
 | `virtual_camera` | 将图片或视频输出为 Windows 虚拟摄像头，便于测试视觉应用 | [查看说明](virtual_camera/README.md) |
+| `mf_virtual_camera` | Windows 11 原生 Media Foundation 虚拟摄像头，可输入图片或视频 | [查看说明](mf_virtual_camera/README.md) |
 
 ## 仓库约定
 
@@ -24,6 +25,8 @@
 cd cat_pet
 # 或
 cd virtual_camera
+# 或
+cd mf_virtual_camera
 ```
 
 当前项目主要面向 Windows；具体 Python 版本和系统组件要求以各子项目文档为准。
