@@ -4,6 +4,7 @@
 #include <mfreadwrite.h>
 
 #include <iostream>
+#include <sstream>
 #include <string>
 
 #include "mfvc/com_ptr.h"
@@ -28,10 +29,26 @@ bool contains_sskj(IMFActivate* device, std::wstring& name) {
     return name.find(L"SSKJ") != std::wstring::npos;
 }
 
+std::string printable_name(std::wstring_view name) {
+    std::ostringstream output;
+    for (const wchar_t character : name) {
+        if (character >= 0x20 && character <= 0x7e) {
+            output << static_cast<char>(character);
+        } else {
+            output << "\\u" << std::hex << std::uppercase;
+            output.width(4);
+            output.fill('0');
+            output << static_cast<unsigned int>(character) << std::dec;
+        }
+    }
+    return output.str();
+}
+
 }  // namespace
 
 int wmain(int argc, wchar_t** argv) {
     const bool direct = argc == 2 && std::wstring_view(argv[1]) == L"--direct";
+    const bool list_only = argc == 2 && std::wstring_view(argv[1]) == L"--list";
     HRESULT result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     if (FAILED(result)) { print_hresult(L"CoInitializeEx", result); return 1; }
     result = MFStartup(MF_VERSION, MFSTARTUP_FULL);
@@ -55,12 +72,13 @@ int wmain(int argc, wchar_t** argv) {
         return 1;
     }
 
-    std::wcout << L"Video capture devices: " << count << L"\n";
+    std::cout << "Video capture devices: " << count << "\n";
     IMFActivate* selected = nullptr;
     for (UINT32 index = 0; index < count; ++index) {
         std::wstring name;
         const bool match = contains_sskj(devices[index], name);
-        std::wcout << L"  [" << index << L"] " << (name.empty() ? L"<unnamed>" : name) << L"\n";
+        std::cout << "  [" << index << "] "
+                  << (name.empty() ? "<unnamed>" : printable_name(name)) << "\n";
         if (match && !selected) {
             selected = devices[index];
             selected->AddRef();
@@ -68,6 +86,13 @@ int wmain(int argc, wchar_t** argv) {
     }
     for (UINT32 index = 0; index < count; ++index) devices[index]->Release();
     CoTaskMemFree(devices);
+
+    if (list_only) {
+        if (selected) selected->Release();
+        MFShutdown();
+        CoUninitialize();
+        return 0;
+    }
 
     if (!selected) {
         std::wcerr << L"SSKJ virtual camera was not found.\n";

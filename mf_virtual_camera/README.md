@@ -14,6 +14,7 @@ OBS Virtual Camera 或 `pyvirtualcam`。
 
 - 输入：常见图片和 OpenCV 能解码的视频文件。
 - 输出设备：`SSKJ (Windows Virtual Camera)`。
+- 企业微信兼容设备：`SSKJ DirectShow Camera`（x86 DirectShow）。
 - 输出媒体类型：固定 `NV12`、`1280×720`、`30 FPS`。
 - 播放：默认循环，支持水平镜像和指定输入发送节奏。
 - 安装范围：虚拟相机的生命周期是系统级，访问范围是当前 Windows 用户。
@@ -117,6 +118,7 @@ mf_virtual_camera/
 │   ├── common/                    # 公共 GUID、COM 辅助代码
 │   ├── protocol/                  # C++ IPC 协议定义
 │   ├── media_source/              # Media Foundation COM DLL
+│   ├── directshow_source/         # x86/x64 DirectShow Source Filter
 │   └── registrar/                 # 创建、启动、停止、移除设备
 ├── python/
 │   ├── mf_virtual_camera/         # 图片/视频发送端
@@ -229,6 +231,47 @@ mfvc-send --help
 浏览器第一次访问摄像头时需要授予权限。若设备列表在安装前已经打开，请关闭并
 重新打开设置或重启目标应用。按 `Ctrl+C` 只会停止发送端，不会卸载设备。
 
+### 企业微信 DirectShow 兼容层
+
+企业微信 5.0 的主程序和会议模块是 x86，并使用传统 DirectShow 摄像头枚举。安装
+32 位兼容层需要在管理员 PowerShell 中执行：
+
+```powershell
+.\scripts\build-directshow.ps1
+.\scripts\install-directshow.ps1 -SkipBuild -PruneOldVersions
+```
+
+安装后用与企业微信相同的 x86 DirectShow 路径进行枚举和建图验证：
+
+```powershell
+.\build\windows-x86\tools\directshow_probe\Release\SSKJDirectShowProbe.exe
+.\build\windows-x86\tools\directshow_probe\Release\SSKJDirectShowProbe.exe --open
+```
+
+预期设备名称为：
+
+```text
+SSKJ DirectShow Camera
+```
+
+`--open` 会把摄像头 Capture Pin 连接到 Null Renderer 并运行 1.2 秒，可验证 COM
+激活、YUY2 协商、缓冲区分配、工作线程和真实推帧路径。当前 DirectShow 层支持：
+
+- YUY2、1280×720、30 FPS。
+- YUY2、640×480、30 FPS。
+
+它和 Media Foundation 相机读取同一个 `frames.v1.bin`，所以不需要启动第二个 Python
+发送端。安装完成后必须完全退出企业微信及其托盘进程，再重新启动并选择
+`SSKJ DirectShow Camera`。
+
+卸载兼容层：
+
+```powershell
+.\scripts\uninstall-directshow.ps1 -RemoveDeployedFiles
+```
+
+该命令不会移除 Media Foundation 的 `SSKJ (Windows Virtual Camera)`。
+
 ## 验证
 
 独立枚举和取帧：
@@ -258,6 +301,45 @@ mfvc-send --help
 ```
 
 日志写入 `build\verify.log`。
+
+### 企业微信设备枚举排除测试
+
+如果浏览器和系统相机能使用 SSKJ，但企业微信不能，可以额外注册一台拥有独立
+MediaSource CLSID 的诊断设备。在管理员 PowerShell 中执行：
+
+```powershell
+.\scripts\wecom-enumeration-test.ps1 -RefreshFrameServer
+```
+
+系统设备列表中应新增：
+
+```text
+SSKJ WeCom Detection Test (Windows Virtual Camera)
+```
+
+只检查系统枚举、不打开摄像头：
+
+```powershell
+.\build\windows-x64\tools\frame_probe\Release\SSKJVirtualCameraProbe.exe --list
+```
+
+然后完全退出企业微信，包括右下角托盘进程，再重新启动并查看摄像头列表。按结果判断：
+
+| 系统结果 | 企业微信结果 | 说明 |
+|---|---|---|
+| 同时看到两台 SSKJ | 同时看到两台 | 企业微信能够刷新并枚举 MF 虚拟相机，问题更可能在媒体格式或启动过程 |
+| 同时看到两台 SSKJ | 仍只看到原 SSKJ | 企业微信可能缓存设备列表，或按自身规则去重 |
+| 同时看到两台 SSKJ | 两台都看不到 | 企业微信可能过滤 Windows 软件虚拟相机或走不兼容的枚举路径 |
+| 能选择测试相机但黑屏 | — | 枚举已经成功，应继续排查 NV12、分辨率、帧率和首帧时序 |
+
+测试设备和原设备读取同一个 `frames.v1.bin`，因此运行一次 Python 发送端即可为两台
+设备提供相同画面。验证完成后移除测试设备：
+
+```powershell
+.\scripts\wecom-enumeration-test.ps1 -Remove -RefreshFrameServer
+```
+
+该操作不会移除正式的 `SSKJ (Windows Virtual Camera)`。
 
 ## 更新开发版本
 
@@ -618,3 +700,31 @@ pytest 临时目录；不要在项目脚本中递归删除整个用户 Temp。
 
 发布或修改 MediaSource、IPC、ACL、安装脚本后，都应执行这套系统级验证，而不能只
 运行某一侧的单元测试。
+
+### 15. 企业微信看不到设备并不只是 x86/x64 位数问题
+
+**现象**
+
+Windows 相机和浏览器能看到 SSKJ，企业微信 5.0.10.6015 只显示物理的 FHD Camera。
+企业微信主程序及其会议模块确实是 x86，因此最初容易怀疑它无法使用 x64 虚拟相机。
+
+**排除过程**
+
+1. 把 Media Foundation `frame_probe` 单独编译为 x86；它仍能枚举正式 SSKJ，证明
+   32 位应用可以通过 Windows Frame Server 看到该 MF 虚拟相机。
+2. 编写 `tools/directshow_probe`，分别构建 x86 和 x64 版本。
+3. 两种位数的 DirectShow 探针都只枚举到 FHD Camera，与企业微信设备列表完全一致。
+
+**结论**
+
+根因是采集 API 路径而不是单纯位数：当前 SSKJ 只注册为 Windows 11 Media Foundation
+虚拟相机，没有注册到 DirectShow 的 `CLSID_VideoInputDeviceCategory`。企业微信会议
+模块很可能使用 32 位 DirectShow 枚举，所以完全看不到这两台 MF 测试设备。
+
+**解决方案与实施结果**
+
+项目现已增加 32 位 DirectShow Source Filter，并注册到
+`CLSID_VideoInputDeviceCategory`。它继续读取现有 `frames.v1.bin`，把 NV12 转换为
+企业微信更常用的 YUY2，支持 1280×720 和 640×480。x86 探针已验证设备枚举成功，
+并能完成 Capture Graph 建图和持续推帧。x64 DLL也能构建，正式安装包阶段可再把两种
+位数统一纳入安装和卸载流程。

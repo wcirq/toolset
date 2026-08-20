@@ -6,6 +6,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <string>
 #include <string_view>
 
 #include "mfvc/com_ptr.h"
@@ -32,22 +33,26 @@ void print_error(std::wstring_view operation, HRESULT result) {
                << static_cast<unsigned long>(result) << L")\n";
 }
 
-HRESULT open_camera(mfvc::ComPtr<IMFVirtualCamera>& camera) {
+HRESULT open_camera(std::wstring_view friendly_name, std::wstring_view source_id,
+                    mfvc::ComPtr<IMFVirtualCamera>& camera) {
     constexpr GUID categories[] = {KSCATEGORY_VIDEO_CAMERA, KSCATEGORY_CAPTURE};
+    const std::wstring friendly_name_string(friendly_name);
+    const std::wstring source_id_string(source_id);
     return MFCreateVirtualCamera(
         MFVirtualCameraType_SoftwareCameraSource,
         MFVirtualCameraLifetime_System,
         MFVirtualCameraAccess_CurrentUser,
-        mfvc::kFriendlyName,
-        mfvc::kMediaSourceClsid,
+        friendly_name_string.c_str(),
+        source_id_string.c_str(),
         categories,
         static_cast<ULONG>(std::size(categories)),
         camera.put());
 }
 
-HRESULT verify_media_source_registered() {
+HRESULT verify_media_source_registered(std::wstring_view source_id) {
     CLSID source_clsid{};
-    HRESULT result = CLSIDFromString(mfvc::kMediaSourceClsid, &source_clsid);
+    const std::wstring source_id_string(source_id);
+    HRESULT result = CLSIDFromString(source_id_string.c_str(), &source_clsid);
     if (FAILED(result)) {
         return result;
     }
@@ -73,8 +78,17 @@ int run(std::wstring_view command) {
         return 2;
     }
 
-    if (command == L"install" || command == L"start") {
-        result = verify_media_source_registered();
+    const bool is_test_camera =
+        command == L"install-wecom-test" || command == L"start-wecom-test" ||
+        command == L"stop-wecom-test" || command == L"remove-wecom-test";
+    const bool is_legacy_test_camera = command == L"remove-wecom-test-legacy";
+    const bool is_install_or_start =
+        command == L"install" || command == L"start" ||
+        command == L"install-wecom-test" || command == L"start-wecom-test";
+
+    if (is_install_or_start) {
+        result = verify_media_source_registered(
+            is_test_camera ? mfvc::kWeComTestMediaSourceClsid : mfvc::kMediaSourceClsid);
         if (FAILED(result)) {
             std::wcerr << L"MediaSource COM component is not registered or cannot be loaded.\n";
             print_error(L"CoGetClassObject", result);
@@ -83,17 +97,23 @@ int run(std::wstring_view command) {
     }
 
     mfvc::ComPtr<IMFVirtualCamera> camera;
-    result = open_camera(camera);
+    result = open_camera(
+        (is_test_camera || is_legacy_test_camera) ? mfvc::kWeComTestFriendlyName
+                                                   : mfvc::kFriendlyName,
+        is_test_camera ? mfvc::kWeComTestMediaSourceClsid : mfvc::kMediaSourceClsid,
+        camera);
     if (FAILED(result)) {
         print_error(L"MFCreateVirtualCamera", result);
         return 1;
     }
 
-    if (command == L"install" || command == L"start") {
+    if (command == L"install" || command == L"start" ||
+        command == L"install-wecom-test" || command == L"start-wecom-test") {
         result = camera->Start(nullptr);
-    } else if (command == L"stop") {
+    } else if (command == L"stop" || command == L"stop-wecom-test") {
         result = camera->Stop();
-    } else if (command == L"remove") {
+    } else if (command == L"remove" || command == L"remove-wecom-test" ||
+               command == L"remove-wecom-test-legacy") {
         result = camera->Remove();
     } else {
         std::wcerr << L"Unknown command: " << command << L"\n";
@@ -112,7 +132,10 @@ int run(std::wstring_view command) {
 
 int wmain(int argc, wchar_t* argv[]) {
     if (argc != 2) {
-        std::wcerr << L"Usage: SSKJVirtualCameraRegistrar <install|start|stop|remove>\n";
+        std::wcerr << L"Usage: SSKJVirtualCameraRegistrar "
+                      L"<install|start|stop|remove|install-wecom-test|"
+                      L"start-wecom-test|stop-wecom-test|remove-wecom-test|"
+                      L"remove-wecom-test-legacy>\n";
         return 2;
     }
 

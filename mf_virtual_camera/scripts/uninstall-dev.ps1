@@ -17,6 +17,11 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 if (Test-Path -LiteralPath $registrar) {
+    & $registrar remove-wecom-test
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "WeCom test camera removal returned exit code $LASTEXITCODE; continuing."
+    }
+    & $registrar remove-wecom-test-legacy
     & $registrar remove
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "Virtual camera removal returned exit code $LASTEXITCODE; continuing COM cleanup."

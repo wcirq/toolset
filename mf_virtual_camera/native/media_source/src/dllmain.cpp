@@ -38,7 +38,9 @@ extern "C" HRESULT __stdcall DllCanUnloadNow() {
 extern "C" HRESULT __stdcall DllGetClassObject(REFCLSID clsid, REFIID iid, void** object) {
     if (!object) return E_POINTER;
     *object = nullptr;
-    if (clsid != mfvc::kMediaSourceGuid) return CLASS_E_CLASSNOTAVAILABLE;
+    if (clsid != mfvc::kMediaSourceGuid && clsid != mfvc::kWeComTestMediaSourceGuid) {
+        return CLASS_E_CLASSNOTAVAILABLE;
+    }
     try { return winrt::make_self<mfvc::ClassFactory>()->QueryInterface(iid, object); }
     catch (...) { return winrt::to_hresult(); }
 }
@@ -48,20 +50,34 @@ extern "C" HRESULT __stdcall DllRegisterServer() {
     if (!GetModuleFileNameW(module_handle, module_path, MAX_PATH)) {
         return HRESULT_FROM_WIN32(GetLastError());
     }
-    const std::wstring clsid_path = L"Software\\Classes\\CLSID\\" +
-                                    std::wstring(mfvc::kMediaSourceClsid);
-    HRESULT result = set_registry_value(HKEY_LOCAL_MACHINE, clsid_path, nullptr, mfvc::kProductName);
-    if (FAILED(result)) return result;
-    result = set_registry_value(HKEY_LOCAL_MACHINE, clsid_path + L"\\InprocServer32", nullptr, module_path);
-    if (FAILED(result)) return result;
-    return set_registry_value(HKEY_LOCAL_MACHINE, clsid_path + L"\\InprocServer32",
-                              L"ThreadingModel", L"Both");
+    constexpr const wchar_t* class_ids[] = {
+        mfvc::kMediaSourceClsid,
+        mfvc::kWeComTestMediaSourceClsid,
+    };
+    for (const wchar_t* class_id : class_ids) {
+        const std::wstring clsid_path = L"Software\\Classes\\CLSID\\" + std::wstring(class_id);
+        HRESULT result = set_registry_value(HKEY_LOCAL_MACHINE, clsid_path, nullptr, mfvc::kProductName);
+        if (FAILED(result)) return result;
+        result = set_registry_value(HKEY_LOCAL_MACHINE, clsid_path + L"\\InprocServer32", nullptr, module_path);
+        if (FAILED(result)) return result;
+        result = set_registry_value(HKEY_LOCAL_MACHINE, clsid_path + L"\\InprocServer32",
+                                    L"ThreadingModel", L"Both");
+        if (FAILED(result)) return result;
+    }
+    return S_OK;
 }
 
 extern "C" HRESULT __stdcall DllUnregisterServer() {
-    const std::wstring clsid_path = L"Software\\Classes\\CLSID\\" +
-                                    std::wstring(mfvc::kMediaSourceClsid);
-    const LSTATUS removed = RegDeleteTreeW(HKEY_LOCAL_MACHINE, clsid_path.c_str());
-    return removed == ERROR_SUCCESS || removed == ERROR_FILE_NOT_FOUND
-               ? S_OK : HRESULT_FROM_WIN32(removed);
+    constexpr const wchar_t* class_ids[] = {
+        mfvc::kMediaSourceClsid,
+        mfvc::kWeComTestMediaSourceClsid,
+    };
+    for (const wchar_t* class_id : class_ids) {
+        const std::wstring clsid_path = L"Software\\Classes\\CLSID\\" + std::wstring(class_id);
+        const LSTATUS removed = RegDeleteTreeW(HKEY_LOCAL_MACHINE, clsid_path.c_str());
+        if (removed != ERROR_SUCCESS && removed != ERROR_FILE_NOT_FOUND) {
+            return HRESULT_FROM_WIN32(removed);
+        }
+    }
+    return S_OK;
 }

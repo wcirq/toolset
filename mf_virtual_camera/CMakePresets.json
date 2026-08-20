@@ -17,6 +17,18 @@
         "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
         "BUILD_TESTING": "ON"
       }
+    },
+    {
+      "name": "windows-x86",
+      "displayName": "Windows x86 DirectShow",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/windows-x86",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_VERSION": "10.0.26100.0",
+        "CMAKE_MAKE_PROGRAM": "C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+        "BUILD_TESTING": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -28,6 +40,11 @@
     {
       "name": "release",
       "configurePreset": "windows-x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "directshow-release-x86",
+      "configurePreset": "windows-x86",
       "configuration": "Release"
     }
   ],
