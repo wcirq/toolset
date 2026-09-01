@@ -448,14 +448,13 @@ class SettingsDialog(QDialog):
         self.model_combo = QComboBox()
         self.model_combo.addItem("HOG+Haar 传统检测 (快速, 无额外依赖)", "hog")
         yolo_text = "YOLOv26 深度学习 (精准)" if yolo_available else \
-                    "YOLOv26 深度学习 (未安装 ultralytics, 选中将回退)"
+                    "YOLOv26 ONNX (未安装 onnxruntime, 选中将回退)"
         self.model_combo.addItem(yolo_text, "yolo")
         f1.addRow("检测模型:", self.model_combo)
 
         self.yolo_model_combo = QComboBox()
         self.yolo_model_combo.setEditable(True)
-        for name in ["yolo26n.pt", "yolo26n-pose.pt", "yolo26s.pt",
-                     "yolo11n.pt", "yolo11n-pose.pt", "yolov8n-pose.pt"]:
+        for name in ["yolo26n.onnx", "yolo26n-pose.onnx"]:
             self.yolo_model_combo.addItem(name)
         f1.addRow("YOLO 权重:", self.yolo_model_combo)
 
@@ -700,10 +699,75 @@ class SettingsDialog(QDialog):
             "color: #8888A0; font-size: 11px; font-weight: normal;")
         f6_monitor.addRow("", effect_hint)
         l3.addWidget(g6_monitor)
+
+        # ---------- 截图快捷键与第三方 OCR ----------
+        g6_screenshot = QGroupBox("截图、OCR、翻译与贴图")
+        f6_screenshot = QFormLayout(g6_screenshot)
+        shrow = QHBoxLayout()
+        self.screenshot_hk_ctrl = QCheckBox("Ctrl")
+        self.screenshot_hk_alt = QCheckBox("Alt")
+        self.screenshot_hk_shift = QCheckBox("Shift")
+        self.screenshot_hk_win = QCheckBox("Win")
+        self.screenshot_hk_key = QComboBox()
+        for k in (list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                  + [str(d) for d in range(10)]
+                  + [f"F{i}" for i in range(1, 13)]):
+            self.screenshot_hk_key.addItem(k)
+        self.screenshot_hk_key.setMinimumWidth(70)
+        for control in (self.screenshot_hk_ctrl, self.screenshot_hk_alt,
+                        self.screenshot_hk_shift, self.screenshot_hk_win):
+            shrow.addWidget(control)
+        shrow.addSpacing(6); shrow.addWidget(self.screenshot_hk_key); shrow.addStretch()
+        f6_screenshot.addRow("截图快捷键:", shrow)
+        self.screenshot_hk_enabled = QCheckBox("启用全局截图快捷键")
+        f6_screenshot.addRow("", self.screenshot_hk_enabled)
+
+        self.screenshot_provider_combo = QComboBox()
+        self.screenshot_provider_combo.addItem("不启用 OCR/翻译", "disabled")
+        self.screenshot_provider_combo.addItem(
+            "OpenAI-compatible 第三方接口", "openai_compatible")
+        self.screenshot_provider_combo.addItem(
+            "本地 RapidOCR SMALL（进程内推理）", "rapidocr_local")
+        f6_screenshot.addRow("OCR 服务:", self.screenshot_provider_combo)
+        self.screenshot_result_mode_combo = QComboBox()
+        self.screenshot_result_mode_combo.addItem(
+            "在原图上擦除并重绘文字（默认）", "image")
+        self.screenshot_result_mode_combo.addItem(
+            "弹出文字结果窗口", "popup")
+        f6_screenshot.addRow("结果显示:", self.screenshot_result_mode_combo)
+        self.screenshot_endpoint_edit = QLineEdit()
+        self.screenshot_endpoint_edit.setPlaceholderText(
+            "https://服务地址/v1/chat/completions")
+        f6_screenshot.addRow("接口地址:", self.screenshot_endpoint_edit)
+        self.screenshot_api_key_edit = QLineEdit()
+        self.screenshot_api_key_edit.setEchoMode(QLineEdit.Password)
+        self.screenshot_api_key_edit.setPlaceholderText("Bearer API Key（保存在本机配置）")
+        f6_screenshot.addRow("API Key:", self.screenshot_api_key_edit)
+        self.screenshot_model_edit = QLineEdit()
+        self.screenshot_model_edit.setPlaceholderText("支持图片输入的模型名称")
+        f6_screenshot.addRow("模型:", self.screenshot_model_edit)
+        self.screenshot_language_edit = QLineEdit()
+        self.screenshot_language_edit.setPlaceholderText("如：简体中文、English、日本語")
+        f6_screenshot.addRow("翻译目标:", self.screenshot_language_edit)
+        screenshot_hint = QLabel(
+            "框选后可复制、OCR、翻译或贴图；贴图无边框且始终置顶。"
+            "RapidOCR SMALL 模型直接在当前进程离线识别，无需 EXE 或本地服务；"
+            "翻译仍需 OpenAI-compatible 图片接口。")
+        screenshot_hint.setWordWrap(True)
+        screenshot_hint.setStyleSheet(
+            "color:#8888A0;font-size:11px;font-weight:normal;")
+        f6_screenshot.addRow("", screenshot_hint)
         l3.addStretch()
         self.tabs.addTab(page3, "目标与快捷键")
 
-        # ========== Tab 4: 安全 ==========
+        screenshot_page = QWidget()
+        screenshot_layout = QVBoxLayout(screenshot_page)
+        screenshot_layout.setContentsMargins(8, 8, 8, 8)
+        screenshot_layout.addWidget(g6_screenshot)
+        screenshot_layout.addStretch()
+        self.tabs.addTab(screenshot_page, "截图与贴图")
+
+        # ========== Tab 5: 安全 ==========
         page4 = QWidget()
         l4 = QVBoxLayout(page4)
         l4.setContentsMargins(8, 8, 8, 8)
@@ -827,6 +891,34 @@ class SettingsDialog(QDialog):
             f"{self.monitor_effect_size_slider.value()} px")
         self.monitor_effect_size_slider.valueChanged.connect(
             self._preview_monitor_effect)
+
+        screenshot_mod, screenshot_vk = parse_hotkey(
+            cfg.get("screenshot_hotkey", "Alt+A"))
+        self.screenshot_hk_ctrl.setChecked(bool(screenshot_mod & MOD_CONTROL))
+        self.screenshot_hk_alt.setChecked(bool(screenshot_mod & MOD_ALT))
+        self.screenshot_hk_shift.setChecked(bool(screenshot_mod & MOD_SHIFT))
+        self.screenshot_hk_win.setChecked(bool(screenshot_mod & MOD_WIN))
+        screenshot_key_text = next(
+            (name for name, code in VK_MAP.items() if code == screenshot_vk), "A")
+        screenshot_ki = self.screenshot_hk_key.findText(screenshot_key_text)
+        self.screenshot_hk_key.setCurrentIndex(
+            screenshot_ki if screenshot_ki >= 0 else self.screenshot_hk_key.findText("A"))
+        self.screenshot_hk_enabled.setChecked(
+            cfg.get("screenshot_hotkey_enabled", True))
+        provider = cfg.get("screenshot_ocr_provider", "disabled")
+        if provider == "umi_ocr":
+            provider = "rapidocr_local"
+        provider_idx = self.screenshot_provider_combo.findData(provider)
+        self.screenshot_provider_combo.setCurrentIndex(provider_idx if provider_idx >= 0 else 0)
+        result_mode_idx = self.screenshot_result_mode_combo.findData(
+            cfg.get("screenshot_result_mode", "image"))
+        self.screenshot_result_mode_combo.setCurrentIndex(
+            result_mode_idx if result_mode_idx >= 0 else 0)
+        self.screenshot_endpoint_edit.setText(cfg.get("screenshot_api_endpoint", ""))
+        self.screenshot_api_key_edit.setText(cfg.get("screenshot_api_key", ""))
+        self.screenshot_model_edit.setText(cfg.get("screenshot_api_model", ""))
+        self.screenshot_language_edit.setText(
+            cfg.get("screenshot_translate_language", "简体中文"))
 
         self.character_category_combo.currentIndexChanged.connect(
             self._update_character_styles)
@@ -1023,6 +1115,19 @@ class SettingsDialog(QDialog):
         self.monitor_hk_enabled.setChecked(True)
         self.monitor_effect_size_slider.setValue(
             DEFAULT_CONFIG["monitor_effect_size"])
+        self.screenshot_hk_ctrl.setChecked(False)
+        self.screenshot_hk_alt.setChecked(True)
+        self.screenshot_hk_shift.setChecked(False)
+        self.screenshot_hk_win.setChecked(False)
+        self.screenshot_hk_key.setCurrentIndex(
+            self.screenshot_hk_key.findText("A"))
+        self.screenshot_hk_enabled.setChecked(True)
+        self.screenshot_provider_combo.setCurrentIndex(0)
+        self.screenshot_result_mode_combo.setCurrentIndex(0)
+        self.screenshot_endpoint_edit.clear()
+        self.screenshot_api_key_edit.clear()
+        self.screenshot_model_edit.clear()
+        self.screenshot_language_edit.setText("简体中文")
         # 密码输入框清空 (不重置密码本身)
         self.pwd_old_edit.clear()
         self.pwd_new_edit.clear()
@@ -1057,9 +1162,21 @@ class SettingsDialog(QDialog):
         monitor_hotkey = "+".join(
             monitor_mods + [self.monitor_hk_key.currentText()]
         ) if monitor_mods else ""
+        screenshot_mods = []
+        if self.screenshot_hk_ctrl.isChecked():
+            screenshot_mods.append("Ctrl")
+        if self.screenshot_hk_alt.isChecked():
+            screenshot_mods.append("Alt")
+        if self.screenshot_hk_shift.isChecked():
+            screenshot_mods.append("Shift")
+        if self.screenshot_hk_win.isChecked():
+            screenshot_mods.append("Win")
+        screenshot_hotkey = "+".join(
+            screenshot_mods + [self.screenshot_hk_key.currentText()]
+        ) if screenshot_mods else ""
         return {
             "model": self.model_combo.currentData(),
-            "yolo_model": self.yolo_model_combo.currentText().strip() or "yolo26n.pt",
+            "yolo_model": self.yolo_model_combo.currentText().strip() or "yolo26n.onnx",
             "yolo_conf": round(self.conf_spin.value(), 2),
             "pose_kpt_conf": round(self.kpt_conf_spin.value(), 2),
             "trigger_count": self.count_spin.value(),
@@ -1083,6 +1200,18 @@ class SettingsDialog(QDialog):
             "monitor_hotkey_enabled": (
                 self.monitor_hk_enabled.isChecked() and bool(monitor_mods)),
             "monitor_effect_size": self.monitor_effect_size_slider.value(),
+            "screenshot_hotkey": screenshot_hotkey or "Alt+A",
+            "screenshot_hotkey_enabled": (
+                self.screenshot_hk_enabled.isChecked() and bool(screenshot_mods)),
+            "screenshot_ocr_provider": (
+                self.screenshot_provider_combo.currentData() or "disabled"),
+            "screenshot_result_mode": (
+                self.screenshot_result_mode_combo.currentData() or "image"),
+            "screenshot_api_endpoint": self.screenshot_endpoint_edit.text().strip(),
+            "screenshot_api_key": self.screenshot_api_key_edit.text().strip(),
+            "screenshot_api_model": self.screenshot_model_edit.text().strip(),
+            "screenshot_translate_language": (
+                self.screenshot_language_edit.text().strip() or "简体中文"),
             "chat_enabled": False,   # 聊天输入功能暂时禁用
             "debug_save": self.debug_check.isChecked(),
             # 非 UI 项原样保留 (预览窗口缩放等由滚轮实时修改)

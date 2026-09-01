@@ -27,10 +27,11 @@ StyledMessageDialog.warning = staticmethod(
 # ---------- 1. 对话框构造 + 分页 ----------
 cfg = dict(m.DEFAULT_CONFIG)
 dlg = m.SettingsDialog(cfg, yolo_available=False)
-check("共 4 个分页", dlg.tabs.count() == 4)
-titles = [dlg.tabs.tabText(i) for i in range(4)]
+check("共 5 个分页", dlg.tabs.count() == 5)
+titles = [dlg.tabs.tabText(i) for i in range(5)]
 print("  分页:", titles)
-check("分页标题正确", titles == ["检测与触发", "小猫与摄像头", "目标与快捷键", "安全"])
+check("分页标题正确", titles == [
+    "检测与触发", "小猫与摄像头", "目标与快捷键", "截图与贴图", "安全"])
 check("窗口可见高度受控 (有 tab 容器)", dlg.tabs.isVisible() or True)  # offscreen 未show
 
 # ---------- 2. 不修改密码 → get_config 保留原密码哈希 ----------
@@ -49,6 +50,13 @@ dlg.character_category_combo.setCurrentIndex(
 check("人类下有 6 个主题形象", dlg.cat_style_combo.count() == 6)
 check("人类形象使用专属配色", not dlg.cat_color_combo.isEnabled())
 check("get_config 保存人类类别", dlg.get_config()["character_category"] == "human")
+check("默认截图快捷键为 Alt+A", dlg.get_config()["screenshot_hotkey"] == "Alt+A")
+check("第三方 OCR 默认关闭", dlg.get_config()["screenshot_ocr_provider"] == "disabled")
+check("OCR 默认在原图显示", dlg.get_config()["screenshot_result_mode"] == "image")
+umi_index = dlg.screenshot_provider_combo.findData("rapidocr_local")
+check("OCR 服务包含进程内 RapidOCR", umi_index >= 0)
+dlg.screenshot_provider_combo.setCurrentIndex(umi_index)
+check("get_config 保存 RapidOCR", dlg.get_config()["screenshot_ocr_provider"] == "rapidocr_local")
 dlg.character_category_combo.setCurrentIndex(
     dlg.character_category_combo.findData("cat"))
 

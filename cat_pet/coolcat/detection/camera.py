@@ -6,7 +6,7 @@ class CameraThread(QThread):
     后台线程: 持续读取摄像头视频流并运行人体检测。
     支持两种模型:
       - "hog":  HOG 行人 + Haar 人脸 (传统检测, 无需额外依赖)
-      - "yolo": YOLOv26 深度学习模型 (需要 ultralytics 包)
+      - "yolo": YOLOv26 ONNX 深度学习模型 (需要 onnxruntime)
     每帧发射 frame_ready(QImage, list) 信号;
     人数变化时发射 person_count_changed(int) 信号。
     检测结果: [(x, y, w, h, is_main), ...]  is_main=True 为最大框(主人)
@@ -20,7 +20,7 @@ class CameraThread(QThread):
     DETECT_INTERVAL = 3       # 每 N 帧检测一次
     MIN_BOX_AREA = 80 * 160   # 过滤太小的框 (HOG 模式)
 
-    def __init__(self, camera_index=0, model="hog", yolo_model="yolo26n.pt",
+    def __init__(self, camera_index=0, model="hog", yolo_model="yolo26n.onnx",
                  yolo_conf=0.4, trigger_count=2, sustain_sec=1.5,
                  pose_kpt_conf=0.5, debug_save=False, dedup_iou=0.55):
         super().__init__()
@@ -63,13 +63,12 @@ class CameraThread(QThread):
     def _init_yolo(self):
         """加载 YOLO 模型; 失败时返回错误信息"""
         try:
-            from ultralytics import YOLO
-            # 所有内置权重统一放在 assets/models。给 YOLO 传绝对路径后，
-            # Ultralytics 在文件缺失时也会直接下载到该路径，而不是当前目录。
+            from .onnx_yolo import YoloOnnx
             model_dir = os.path.join(BASE_DIR, "assets", "models")
-            os.makedirs(model_dir, exist_ok=True)
-            requested = os.path.basename(str(self.yolo_model).strip()) or "yolo26n.pt"
-            names = [requested, "yolo11n.pt", "yolov8n.pt"]
+            requested = os.path.basename(str(self.yolo_model).strip()) or "yolo26n.onnx"
+            if requested.lower().endswith(".pt"):
+                requested = os.path.splitext(requested)[0] + ".onnx"
+            names = [requested, "yolo26n-pose.onnx", "yolo26n.onnx"]
             candidates = [os.path.join(model_dir, name) for name in names]
             tried = []
             for name in candidates:
@@ -77,11 +76,10 @@ class CameraThread(QThread):
                     continue
                 tried.append(name)
                 try:
-                    self.yolo = YOLO(name)
-                    # 识别是否为 pose 模型 (任务类型或文件名判断)
-                    task = getattr(self.yolo, "task", "") or ""
-                    self.pose_mode = ("pose" in str(task).lower()
-                                      or "pose" in os.path.basename(str(name)).lower())
+                    if not os.path.isfile(name):
+                        continue
+                    self.yolo = YoloOnnx(name)
+                    self.pose_mode = self.yolo.pose
                     mode_text = " [pose 模式: 按头部关键点计数]" if self.pose_mode else ""
                     _log(f"YOLO 模型加载成功: {name}{mode_text}")
                     return None
@@ -89,7 +87,7 @@ class CameraThread(QThread):
                     _log(f"YOLO 权重 {name} 加载失败: {e}")
             return f"YOLO 模型均加载失败: {tried}"
         except ImportError:
-            return "未安装 ultralytics 包 (pip install ultralytics)"
+            return "未安装 onnxruntime 包 (pip install onnxruntime)"
         except Exception as e:
             return f"YOLO 初始化异常: {e}"
 
@@ -232,26 +230,16 @@ class CameraThread(QThread):
     def _detect_yolo(self, frame, orig_w, orig_h):
         """YOLOv26 人体检测 (class 0 = person); pose 模型按头部关键点过滤"""
         try:
-            scale = self.DETECT_WIDTH / orig_w
-            small = cv2.resize(frame, (self.DETECT_WIDTH,
-                                       int(orig_h * scale)))
             if self.pose_mode:
-                return self._detect_yolo_pose(small, scale)
-            results = self.yolo.predict(
-                small, classes=[0], conf=self.yolo_conf,
-                verbose=False, imgsz=self.DETECT_WIDTH
-            )
+                return self._detect_yolo_pose(frame)
+            results = self.yolo.predict(frame, confidence=self.yolo_conf)
             boxes = []
-            for r in results:
-                for b in r.boxes:
-                    x1, y1, x2, y2 = b.xyxy[0].tolist()
-                    conf = float(b.conf[0]) if b.conf is not None and len(b.conf) else -1.0
-                    bx = int(x1 / scale)
-                    by = int(y1 / scale)
-                    bw = int((x2 - x1) / scale)
-                    bh = int((y2 - y1) / scale)
-                    if bw > 10 and bh > 10:
-                        boxes.append([bx, by, bw, bh, conf])
+            for item in results:
+                x1, y1, x2, y2 = item["box"]
+                bx, by = int(x1), int(y1)
+                bw, bh = int(x2 - x1), int(y2 - y1)
+                if bw > 10 and bh > 10:
+                    boxes.append([bx, by, bw, bh, item["score"]])
             return boxes
         except Exception as e:
             _log(f"YOLO 检测异常: {e}")
@@ -260,62 +248,30 @@ class CameraThread(QThread):
     # COCO 17 关键点中的头部点: 0=鼻, 1=左眼, 2=右眼, 3=左耳, 4=右耳
     HEAD_KPT_IDS = (0, 1, 2, 3, 4)
 
-    def _detect_yolo_pose(self, small, scale):
+    def _detect_yolo_pose(self, frame):
         """
         pose 模型检测: 每个检出的人, 只有当其头部关键点(鼻/眼/耳)中
         置信度最高者 >= pose_kpt_conf 时才算一个"出现的头", 计入人数。
         身体被遮挡但头部可见的人也能被正确计数。
         """
-        results = self.yolo.predict(
-            small, conf=self.yolo_conf, verbose=False,
-            imgsz=self.DETECT_WIDTH
-        )
+        results = self.yolo.predict(frame, confidence=self.yolo_conf)
         boxes = []
-        for r in results:
-            kpts = getattr(r, "keypoints", None)
-            n = len(r.boxes)
-            for i in range(n):
-                head_ok = False
-                head_confs = []
-                if kpts is not None and kpts.data is not None and len(kpts.data) > i:
-                    try:
-                        # data: (17, 3) 每行 [x, y, conf]
-                        kdata = kpts.data[i]
-                        if kdata.shape[0] >= 5:
-                            head_confs = [float(kdata[k][2])
-                                          for k in self.HEAD_KPT_IDS]
-                            head_ok = (max(head_confs) >= self.pose_kpt_conf)
-                    except Exception as e:
-                        _log(f"关键点解析异常: {e}")
-                        head_ok = False
-                if not head_ok:
-                    # 不计数, 但保留框用于调试绘制 (灰色 SKIP)
-                    x1, y1, x2, y2 = r.boxes[i].xyxy[0].tolist()
-                    sk = (int(x1 / scale), int(y1 / scale),
-                          int((x2 - x1) / scale), int((y2 - y1) / scale),
-                          max(head_confs) if head_confs else -1.0)
-                    if sk[2] > 10 and sk[3] > 10:
-                        self._last_skipped.append(sk)
-                    continue   # 头部不可见/置信度低 → 不计数
-                # 标注用置信度 = 头部关键点最高置信度 (更有参考意义)
-                head_conf = max(head_confs) if head_confs else -1.0
-                # 头部关键点 (原图坐标) 用于调试绘制
-                for k in self.HEAD_KPT_IDS:
-                    try:
-                        kx = float(kdata[k][0]) / scale
-                        ky = float(kdata[k][1]) / scale
-                        kc = float(kdata[k][2])
-                        if kc > 0.01 and 0 <= kx and 0 <= ky:
-                            self._last_kpts.append((int(kx), int(ky), kc))
-                    except Exception:
-                        pass
-                x1, y1, x2, y2 = r.boxes[i].xyxy[0].tolist()
-                bx = int(x1 / scale)
-                by = int(y1 / scale)
-                bw = int((x2 - x1) / scale)
-                bh = int((y2 - y1) / scale)
-                if bw > 10 and bh > 10:
-                    boxes.append([bx, by, bw, bh, head_conf])
+        for item in results:
+            kdata = item["keypoints"]
+            head_confs = [kdata[k][2] for k in self.HEAD_KPT_IDS]
+            head_conf = max(head_confs) if head_confs else -1.0
+            x1, y1, x2, y2 = item["box"]
+            box = (int(x1), int(y1), int(x2 - x1), int(y2 - y1))
+            if head_conf < self.pose_kpt_conf:
+                if box[2] > 10 and box[3] > 10:
+                    self._last_skipped.append((*box, head_conf))
+                continue
+            for k in self.HEAD_KPT_IDS:
+                kx, ky, kc = kdata[k]
+                if kc > 0.01:
+                    self._last_kpts.append((int(kx), int(ky), kc))
+            if box[2] > 10 and box[3] > 10:
+                boxes.append([*box, head_conf])
         return boxes
 
     def _detect_hog(self, frame, orig_w, orig_h):

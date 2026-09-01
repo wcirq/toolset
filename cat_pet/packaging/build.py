@@ -25,9 +25,9 @@ def main():
     if ret != 0:
         print("图标生成失败, 将使用默认图标构建")
 
-    # 2. 构建 EXE (onedir 模式: 含 torch/ultralytics, 比 onefile 启动快得多)
+    # 2. 构建 EXE (onedir 模式: ONNX Runtime, 比 onefile 启动快)
     workdir = "build"  # 固定工作目录 (二次构建可复用缓存, 加快速度)
-    print("\n[2/4] 构建 EXE (onedir, 包含 YOLO 支持), 工作目录: %s" % workdir)
+    print("\n[2/4] 构建 EXE (onedir, ONNX YOLO), 工作目录: %s" % workdir)
 
     # 预清理旧 dist 输出目录; 删不掉(如 exe 正在运行占用文件)就提示用户手动删, 不强删
     out_dir = os.path.join("dist", "CoolCat")
@@ -47,7 +47,6 @@ def main():
         "--noconsole",
         "-y",
         "--workpath", workdir,  # 每次全新工作目录, 避免删除旧文件被沙箱拦截
-        "--runtime-hook", os.path.join("packaging", "rthook_torch.py"),
         "--name", "CoolCat",
     ]
     icon_path = os.path.join("assets", "cat.ico")
@@ -65,10 +64,10 @@ def main():
     import shutil
     out_dir = os.path.join("dist", "CoolCat")
     resources = [
-        (os.path.join("assets", "models", "yolo26n.pt"),
-         os.path.join("assets", "models", "yolo26n.pt")),
-        (os.path.join("assets", "models", "yolo26n-pose.pt"),
-         os.path.join("assets", "models", "yolo26n-pose.pt")),
+        (os.path.join("assets", "models", "yolo26n.onnx"),
+         os.path.join("assets", "models", "yolo26n.onnx")),
+        (os.path.join("assets", "models", "yolo26n-pose.onnx"),
+         os.path.join("assets", "models", "yolo26n-pose.onnx")),
         (os.path.join("config", "config.json"), "config.json"),
     ]
     for source, target in resources:

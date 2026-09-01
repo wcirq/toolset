@@ -36,14 +36,11 @@ from datetime import datetime
 import cv2
 import numpy as np
 
-# ⚠️ torch 必须在 PyQt5 之前导入!
-# Windows 上若 PyQt5 先加载, torch 的 c10.dll 会报
-# "WinError 1114 动态链接库(DLL)初始化例程失败"。
-# 这里静默预导入 (未安装则跳过, YOLO 功能自动回退到 HOG)。
+# Windows 下先于 PyQt5 加载 ONNX Runtime 原生 DLL，避免工作线程首次导入失败。
 try:
-    import torch  # noqa: F401
+    import onnxruntime  # noqa: F401
 except Exception:
-    torch = None
+    onnxruntime = None
 
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QMenu, QSystemTrayIcon, QLineEdit,

@@ -7,7 +7,7 @@ CONFIG_PATH = (os.path.join(BASE_DIR, "config.json")
 
 DEFAULT_CONFIG = {
     "model": "hog",            # "hog" = HOG+Haar 传统检测, "yolo" = YOLOv26 深度学习
-    "yolo_model": "yolo26n.pt",  # YOLO 权重文件 (ultralytics 会自动下载)
+    "yolo_model": "yolo26n.onnx",  # ONNX Runtime 人体检测/姿态模型
     "yolo_conf": 0.4,          # YOLO 置信度阈值
     "pose_kpt_conf": 0.5,      # pose 模型: 头部关键点(鼻/眼/耳)置信度阈值
     "dedup_iou": 0.55,         # 重复框合并: IoU/包含率超过该值的框视为同一人
@@ -24,6 +24,14 @@ DEFAULT_CONFIG = {
     "monitor_hotkey": "Ctrl+Alt+M",  # 启用/禁用监控
     "monitor_hotkey_enabled": True,
     "monitor_effect_size": 220,  # 左上角渐变闪烁范围 (px)
+    "screenshot_hotkey": "Alt+A",  # 区域截图/OCR/翻译/贴图
+    "screenshot_hotkey_enabled": True,
+    "screenshot_ocr_provider": "disabled",  # disabled / openai_compatible / rapidocr_local
+    "screenshot_result_mode": "image",  # image / popup
+    "screenshot_api_endpoint": "",  # 第三方兼容接口的 chat/completions 地址
+    "screenshot_api_key": "",
+    "screenshot_api_model": "",
+    "screenshot_translate_language": "简体中文",
     "chat_enabled": False,     # 聊天输入功能 (暂时禁用)
     "debug_save": False,       # 调试: 满足切换条件时保存标注检测图片到 debug_shots/
     "auto_pause_fullscreen": False,  # 全屏游戏/会议/演示时自动暂停监控
@@ -71,7 +79,10 @@ def save_config(cfg):
         import json
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
-        _log(f"配置已保存: {cfg}")
+        logged = dict(cfg)
+        if logged.get("screenshot_api_key"):
+            logged["screenshot_api_key"] = "***"
+        _log(f"配置已保存: {logged}")
     except Exception as e:
         _log(f"保存配置失败: {e}")
 

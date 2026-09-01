@@ -5,10 +5,6 @@ PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_DIR)
 os.chdir(PROJECT_DIR)
 
-try:
-    import torch  # noqa: 必须在 PyQt5 之前
-except Exception:
-    pass
 
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer

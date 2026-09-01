@@ -25,8 +25,8 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-主要依赖包括 PyQt5、OpenCV 和 NumPy。Torch、Torchvision 与 Ultralytics 用于
-YOLO 检测，不可用时程序会回退到 HOG；PyInstaller 仅在打包 EXE 时需要。
+主要依赖包括 PyQt5、OpenCV、NumPy、RapidOCR 和 ONNX Runtime。YOLO 与本地
+OCR 共用 ONNX Runtime，不再依赖 Torch、Torchvision 或 Ultralytics。
 
 ## 运行
 
@@ -50,6 +50,12 @@ python main.py
 | 预览窗口滚轮 | 放大或缩小视频画面 |
 | 全局快捷键 | 有记录时切回原窗口，否则切换到目标程序 |
 | 监控开关快捷键 | 交替启用/禁用监控；左上角显示不同的渐变闪烁，范围可调并实时预览 |
+| 截图快捷键（默认 `Alt+A`） | 框选区域后复制、OCR、翻译或生成无边框置顶贴图 |
+
+贴图可用左键拖动，滚轮缩放，双击关闭；右键可复制图片、恢复原始大小或关闭。
+OCR 和翻译默认关闭。OCR 可在“截图与贴图”设置页选择进程内 RapidOCR，或配置兼容 OpenAI
+`chat/completions` 图片消息格式的第三方服务。截图仅在用户点击 OCR/翻译后发送；API Key
+保存在本机配置文件中，并在程序日志中脱敏。
 
 ## 代码结构
 
@@ -83,7 +89,7 @@ python main.py
 | 配置项 | 默认值 | 说明 |
 |---|---:|---|
 | `model` | `hog` | 检测模型：`yolo` 或 `hog` |
-| `yolo_model` | `yolo26n.pt` | YOLO 权重文件名 |
+| `yolo_model` | `yolo26n.onnx` | YOLO ONNX 权重文件名 |
 | `yolo_conf` | `0.4` | 人体检测置信度 |
 | `pose_kpt_conf` | `0.5` | 姿态模型头部关键点置信度 |
 | `dedup_iou` | `0.55` | 重复检测框合并阈值 |
@@ -97,6 +103,22 @@ python main.py
 | `monitor_hotkey` | `Ctrl+Alt+M` | 启用/禁用监控的全局快捷键 |
 | `monitor_hotkey_enabled` | `true` | 是否注册监控开关快捷键 |
 | `monitor_effect_size` | `220` | 左上角渐变闪烁范围（像素） |
+| `screenshot_hotkey` | `Alt+A` | 区域截图、OCR、翻译和贴图快捷键 |
+| `screenshot_hotkey_enabled` | `true` | 是否注册全局截图快捷键 |
+| `screenshot_ocr_provider` | `disabled` | OCR 服务：关闭或 `openai_compatible` |
+| `screenshot_result_mode` | `image` | `image` 在原图擦除重绘，`popup` 弹出文字窗口 |
+| `screenshot_api_endpoint` | 空 | 第三方 `chat/completions` 完整接口地址 |
+| `screenshot_api_key` / `screenshot_api_model` | 空 | 第三方 API Key 与支持图片输入的模型 |
+| `screenshot_translate_language` | `简体中文` | 截图翻译的目标语言 |
+
+### 本地 RapidOCR（小体积方案）
+
+安装依赖后，在设置 →“截图与贴图”→“OCR 服务”选择
+“本地 RapidOCR SMALL（进程内推理）”即可。RapidOCR 3.9 以上的 wheel 已包含默认中英
+SMALL ONNX 模型，不需要下载或启动额外 EXE。
+
+本方案直接把截图字节传给 `RapidOCR()`，不启动外部进程、不监听端口，截图不会上传。
+RapidOCR 本身不提供翻译；需要截图翻译时，切换为 OpenAI-compatible 图片接口。
 | `camera_index` | `0` | OpenCV 摄像头编号 |
 | `cat_scale` | `1.0` | 小猫缩放比例，范围 `0.6`～`2.0` |
 | `character_category` | `cat` | 一级形象类别：`cat`（猫类）或 `human`（人类） |
@@ -116,7 +138,7 @@ python main.py
 
 ## 模型文件与测试
 
-模型统一放在 `assets/models/`。缺失时 Ultralytics 会尝试下载到该目录；打包时
+模型统一放在 `assets/models/`。程序使用随项目提供的 ONNX 文件，不会自动下载；打包时
 也会保持相同目录结构。测试脚本位于 `tests/`：
 
 | 脚本 | 用途 |
@@ -148,7 +170,7 @@ python packaging/build.py
 
 ## 常见问题
 
-- **`c10.dll` / WinError 1114**：PyQt5 先于 Torch 加载可能引发冲突；源码会预导入
-  Torch，打包时由 `packaging/rthook_torch.py` 处理。
+- **ONNX Runtime DLL 初始化失败**：入口会在 PyQt5 前预加载 ONNX Runtime；YOLO
+  与本地 OCR 共用同一套 CPU 推理运行时。
 - **YOLO 检测失败**：确认权重位于 `assets/models/`；失败时程序会回退 HOG。
 - **找不到摄像头**：检查 `camera_index`，并确认目标摄像头未被其他应用独占。

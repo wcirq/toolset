@@ -4,6 +4,7 @@ from .detection import CameraThread
 from .ui.chat import ChatOverlay
 from .ui.preview import CameraPreview
 from .ui.dialogs import AuthDialog, SettingsDialog
+from .ui.screenshot import PinnedImageWindow, ScreenshotOverlay
 
 # ======================== 小猫主窗口 ========================
 class CatWindow(QWidget):
@@ -27,6 +28,8 @@ class CatWindow(QWidget):
         self._last_monitor_hotkey_at = 0.0       # 软件防抖，避免一次按键切换两次
         self.camera_thread = None
         self._previous_window_hwnd = None
+        self._screenshot_overlay = None
+        self._pinned_images = []
         # 开机启动状态 (从注册表读取)
         self._autostart_on = is_autostart_enabled()
 
@@ -66,8 +69,12 @@ class CatWindow(QWidget):
         self.monitor_hotkey_mgr = HotkeyManager(
             self._on_monitor_hotkey, MONITOR_HOTKEY_ID, "监控快捷键")
         QApplication.instance().installNativeEventFilter(self.monitor_hotkey_mgr)
+        self.screenshot_hotkey_mgr = HotkeyManager(
+            self._on_screenshot_hotkey, SCREENSHOT_HOTKEY_ID, "截图快捷键")
+        QApplication.instance().installNativeEventFilter(self.screenshot_hotkey_mgr)
         self._apply_hotkey()
         self._apply_monitor_hotkey()
+        self._apply_screenshot_hotkey()
 
         self._start_timer()
 
@@ -113,6 +120,36 @@ class CatWindow(QWidget):
         self._last_monitor_hotkey_at = now
         _log("监控快捷键触发")
         self._toggle_monitoring()
+
+    def _apply_screenshot_hotkey(self):
+        try:
+            enabled = self.config.get("screenshot_hotkey_enabled", True)
+            ok = self.screenshot_hotkey_mgr.register(
+                int(self.winId()),
+                self.config.get("screenshot_hotkey", "Alt+A"), enabled)
+            if not ok and enabled:
+                self._say("截图快捷键被占用了...", 120)
+        except Exception as e:
+            _log(f"截图快捷键注册异常: {e}\n{traceback.format_exc()}")
+
+    def _on_screenshot_hotkey(self):
+        if self._screenshot_overlay is not None:
+            self._screenshot_overlay.close()
+        overlay = ScreenshotOverlay(self.config)
+        overlay.pin_requested.connect(self._create_pinned_image)
+        overlay.destroyed.connect(lambda: setattr(self, "_screenshot_overlay", None))
+        self._screenshot_overlay = overlay
+        overlay.show(); overlay.raise_(); overlay.activateWindow(); overlay.setFocus()
+
+    def _create_pinned_image(self, pixmap, position):
+        window = PinnedImageWindow(pixmap, position)
+        window.closed.connect(self._remove_pinned_image)
+        self._pinned_images.append(window)
+        window.show(); window.raise_()
+
+    def _remove_pinned_image(self, window):
+        if window in self._pinned_images:
+            self._pinned_images.remove(window)
 
     def _do_switch_target(self, tip=""):
         """执行切换到目标程序 (配置中的 target_exe / target_title)"""
@@ -280,6 +317,13 @@ class CatWindow(QWidget):
                   else "监控快捷键已关闭")
             self._say(f"{hk}~", 90)
 
+        screenshot_hk_keys = ("screenshot_hotkey", "screenshot_hotkey_enabled")
+        if any(new_cfg.get(k) != old.get(k) for k in screenshot_hk_keys):
+            self._apply_screenshot_hotkey()
+            hk = (new_cfg["screenshot_hotkey"]
+                  if new_cfg["screenshot_hotkey_enabled"] else "截图快捷键已关闭")
+            self._say(f"{hk}~", 90)
+
         if (new_cfg.get("debug_save", False) != old.get("debug_save", False)
                 and self.camera_thread is not None):
             self.camera_thread.debug_save = new_cfg["debug_save"]
@@ -301,13 +345,12 @@ class CatWindow(QWidget):
             if auth.exec_() != QDialog.Accepted:
                 return
 
-            # 检查 ultralytics 是否可用 (用于对话框提示)
+            # 检查 ONNX Runtime 是否可用 (用于对话框提示)
             yolo_ok = False
             try:
-                import ultralytics  # noqa
+                import onnxruntime  # noqa
                 yolo_ok = True
             except Exception:
-                # ImportError: 未安装; OSError/WinError 1114: DLL 加载失败
                 pass
 
             dlg = SettingsDialog(self.config, yolo_ok, parent=self)
@@ -350,7 +393,7 @@ class CatWindow(QWidget):
     def _on_camera_error(self, msg):
         self.cam_ok = False
         _log(f"摄像头错误: {msg}")
-        if "YOLO" in msg or "ultralytics" in msg:
+        if "YOLO" in msg or "onnxruntime" in msg:
             self._say("YOLO不可用, 用HOG检测~")
         else:
             self._say("摄像头打不开...")
@@ -525,6 +568,7 @@ class CatWindow(QWidget):
         interact.addAction("玩耍", lambda: self._set_state(self.PLAY, 180))
         interact.addAction("睡觉/起床", self._toggle_sleep)
         interact.addAction("跟随鼠标", self._toggle_follow)
+        menu.addAction("区域截图...", self._on_screenshot_hotkey)
         menu.addAction("设置...", self._open_settings)
         # 开机启动 (勾选状态在弹出时刷新)
         self._tray_autostart_act = menu.addAction("开机启动")
@@ -594,12 +638,17 @@ class CatWindow(QWidget):
         try:
             self.hotkey_mgr.unregister()
             self.monitor_hotkey_mgr.unregister()
+            self.screenshot_hotkey_mgr.unregister()
         except Exception:
             pass
         # 停止摄像头线程
         if self.camera_thread is not None and self.camera_thread.isRunning():
             self.camera_thread.stop()
         self.preview.hide()
+        if self._screenshot_overlay is not None:
+            self._screenshot_overlay.close()
+        for window in list(self._pinned_images):
+            window.close()
         self.tray.hide()
         QApplication.quit()
 
@@ -1812,6 +1861,7 @@ class CatWindow(QWidget):
         cam_text = "隐藏摄像头预览" if self.preview.isVisible() else "摄像头预览 (或长按小猫)"
         menu.addAction(cam_text, self._toggle_preview)
         menu.addAction("切换到目标程序", lambda: self._do_switch_target("切!"))
+        menu.addAction("区域截图...", self._on_screenshot_hotkey)
         settings_text = ("形象与检测设置..." if self.character_category == "human"
                          else "小猫与检测设置...")
         menu.addAction(settings_text, self._open_settings)

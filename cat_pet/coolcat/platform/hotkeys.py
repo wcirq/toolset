@@ -7,6 +7,7 @@ MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN = 0x1, 0x2, 0x4, 0x8
 MOD_NOREPEAT = 0x4000  # 按住时不重复发送 WM_HOTKEY
 HOTKEY_ID = 0xC47  # RegisterHotKey 自定义 ID
 MONITOR_HOTKEY_ID = 0xC48
+SCREENSHOT_HOTKEY_ID = 0xC49
 
 # 键名 → Windows 虚拟键码
 VK_MAP = {chr(c): c for c in range(ord("A"), ord("Z") + 1)}

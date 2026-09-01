@@ -1,20 +1,23 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import os
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 project_root = os.path.abspath(os.path.join(SPECPATH, ".."))
+rapidocr_datas = collect_data_files('rapidocr')
+rapidocr_hiddenimports = collect_submodules('rapidocr')
 
 
 a = Analysis(
     [os.path.join(project_root, 'main.py')],
     pathex=[project_root],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=rapidocr_datas,
+    hiddenimports=rapidocr_hiddenimports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[os.path.join(SPECPATH, 'rthook_torch.py')],
-    excludes=[],
+    runtime_hooks=[],
+    excludes=['torch', 'torchvision', 'ultralytics'],
     noarchive=False,
     optimize=0,
 )
