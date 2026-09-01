@@ -21,6 +21,9 @@ DEFAULT_CONFIG = {
     "maximize_target": False,  # 切换时最大化目标程序
     "hotkey": "Ctrl+Alt+V",    # 全局快捷键 (快速切换到目标程序)
     "hotkey_enabled": True,    # 是否启用全局快捷键
+    "monitor_hotkey": "Ctrl+Alt+M",  # 启用/禁用监控
+    "monitor_hotkey_enabled": True,
+    "monitor_effect_size": 220,  # 左上角渐变闪烁范围 (px)
     "chat_enabled": False,     # 聊天输入功能 (暂时禁用)
     "debug_save": False,       # 调试: 满足切换条件时保存标注检测图片到 debug_shots/
     "auto_pause_fullscreen": False,  # 全屏游戏/会议/演示时自动暂停监控
@@ -31,6 +34,7 @@ DEFAULT_CONFIG = {
     "preview_video_opacity": 0.85,   # 摄像头画面透明度
     "preview_overlay_opacity": 1.0,  # 人体框/关键点/标签透明度
     "cat_color": 0,            # 小猫颜色索引 (对应 COLORS 列表, 右键换颜色后自动记忆)
+    "character_category": "cat",  # 一级形象类别: cat / human
     "cat_style": 0,            # 小猫品种索引 (对应 CAT_STYLES)
     "settings_password_hash": _hash_password("wcy206211"),  # 设置页面密码哈希 (SHA-256)
 }

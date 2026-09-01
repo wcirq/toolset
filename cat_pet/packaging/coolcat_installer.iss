@@ -2,7 +2,7 @@
 ; 用法: ISCC.exe packaging\coolcat_installer.iss
 
 #define MyAppName "CoolCat"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "CoolCat"
 #define MyAppExeName "CoolCat.exe"
 

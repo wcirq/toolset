@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 from mf_virtual_camera.formats import bgr_to_nv12, fit_bgr
-from mf_virtual_camera.media import frames_from_path
+from mf_virtual_camera.media import frames_from_path, frames_from_pattern
 
 
 def test_fit_bgr_preserves_aspect_ratio_with_black_bars() -> None:
@@ -25,3 +25,10 @@ def test_image_no_loop_yields_exactly_one_frame(tmp_path) -> None:
     frames, fps = frames_from_path(path, loop=False)
     assert fps == 30.0
     assert sum(1 for _ in frames) == 1
+
+
+def test_generated_clock_pattern_has_requested_shape() -> None:
+    frames, fps = frames_from_pattern("clock", 640, 480, 25.0)
+    frame = next(frames)
+    assert fps == 25.0
+    assert frame.shape == (480, 640, 3)

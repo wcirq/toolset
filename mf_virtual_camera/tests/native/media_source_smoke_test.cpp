@@ -69,6 +69,28 @@ int wmain() {
     result = presentation->GetStreamDescriptorCount(&stream_count);
     assert(SUCCEEDED(result));
     assert(stream_count == 1);
+    BOOL selected_stream = FALSE;
+    mfvc::ComPtr<IMFStreamDescriptor> stream_descriptor;
+    result = presentation->GetStreamDescriptorByIndex(
+        0, &selected_stream, stream_descriptor.put());
+    assert(SUCCEEDED(result));
+    mfvc::ComPtr<IMFMediaTypeHandler> type_handler;
+    result = stream_descriptor->GetMediaTypeHandler(type_handler.put());
+    assert(SUCCEEDED(result));
+    DWORD media_type_count = 0;
+    result = type_handler->GetMediaTypeCount(&media_type_count);
+    assert(SUCCEEDED(result));
+    assert(media_type_count >= 3);
+    mfvc::ComPtr<IMFMediaType> type_1080;
+    result = type_handler->GetMediaTypeByIndex(1, type_1080.put());
+    assert(SUCCEEDED(result));
+    UINT32 output_width = 0;
+    UINT32 output_height = 0;
+    result = MFGetAttributeSize(type_1080.get(), MF_MT_FRAME_SIZE, &output_width, &output_height);
+    assert(SUCCEEDED(result));
+    assert(output_width == 1920 && output_height == 1080);
+    result = type_handler->SetCurrentMediaType(type_1080.get());
+    assert(SUCCEEDED(result));
     std::wcerr << L"checkpoint: presentation validated\n";
 
     PROPVARIANT start_position;
@@ -105,6 +127,7 @@ int wmain() {
     if (FAILED(result) || event_type != MEStreamStarted) return 38;
 
     constexpr DWORD frame_size = 1280 * 720 * 3 / 2;
+    constexpr DWORD output_frame_size = 1920 * 1080 * 3 / 2;
     constexpr DWORD mapping_size = sizeof(mfvc::protocol::FrameHeader) +
                                    mfvc::protocol::kSlotCount * frame_size;
     HANDLE mapping = CreateFileMappingW(
@@ -157,8 +180,8 @@ int wmain() {
     DWORD sample_length = 0;
     result = sample_buffer->Lock(&sample_bytes, nullptr, &sample_length);
     if (FAILED(result)) return 442;
-    const bool shared_frame_received = sample_length == frame_size && sample_bytes[0] == 42 &&
-                                       sample_bytes[frame_size - 1] == 42;
+    const bool shared_frame_received = sample_length == output_frame_size && sample_bytes[0] == 42 &&
+                                       sample_bytes[output_frame_size - 1] == 42;
     sample_buffer->Unlock();
     if (!shared_frame_received) return 443;
     std::wcerr << L"checkpoint: sample produced\n";

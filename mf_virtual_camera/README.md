@@ -7,26 +7,29 @@
 项目直接使用 Windows Media Foundation 虚拟相机 API，不依赖 OBS Studio、
 OBS Virtual Camera 或 `pyvirtualcam`。
 
-> 当前状态：固定格式 MVP 已打通。设备注册、图片/视频发送、跨会话传帧、
-> Media Foundation 系统枚举和真实取帧均已验证。
+> 当前状态：设备注册、多种输入、跨会话传帧、多分辨率协商、发送端离线检测、
+> Media Foundation 系统枚举和真实取帧均已验证；另提供企业微信可用的 x86
+> DirectShow 兼容层。
 
 ## 功能与限制
 
-- 输入：常见图片和 OpenCV 能解码的视频文件。
+- 输入：图片、视频文件、物理摄像头、OpenCV 可打开的网络流和程序生成测试画面。
 - 输出设备：`SSKJ (Windows Virtual Camera)`。
 - 企业微信兼容设备：`SSKJ DirectShow Camera`（x86 DirectShow）。
-- 输出媒体类型：固定 `NV12`、`1280×720`、`30 FPS`。
+- Media Foundation 输出：`NV12`，支持 `1920×1080`、`1280×720`、`640×480`，30 FPS。
+- DirectShow 输出：`YUY2`，支持上述三种分辨率，30 FPS。
 - 播放：默认循环，支持水平镜像和指定输入发送节奏。
 - 安装范围：虚拟相机的生命周期是系统级，访问范围是当前 Windows 用户。
-- 平台：Windows 11 Build 22000 及以上，仅构建 x64。
-- 暂不支持音频、多个虚拟相机、动态分辨率、GPU 转换和网络流输入。
+- 平台：Windows 11 Build 22000 及以上；MF 构建 x64，DirectShow 兼容层构建 x86。
+- 支持注册多个自定义名称的 MF 设备；当前所有实例共享同一路输入画面。
+- 暂不支持音频、每实例独立画面、GPU 转换和任意尺寸协商。
 
 ## 工作原理
 
 项目把“媒体解码”和“Windows 摄像头设备”分成两个独立进程：
 
 ```text
-图片 / 视频文件
+图片 / 视频 / 物理摄像头 / 网络流 / 测试图案
        │
        ▼
 Python 发送端 + OpenCV
@@ -82,11 +85,15 @@ Local Service、SYSTEM 和 Administrators 配置所需 ACL。
 
 C++ DLL 实现 Media Foundation 所需的媒体源和媒体流接口，包括 `IMFMediaSource2`、
 `IMFMediaStream2` 与 `IMFSampleAllocatorControl`。应用打开摄像头后，Frame Server
-加载该 COM DLL，协商固定媒体类型，并不断向媒体流请求样本。
+加载该 COM DLL，协商媒体类型，并不断向媒体流请求样本。
 
-每次请求到来时，MediaSource 读取最新完整 NV12 帧，将其复制到 Frame Server
-提供的 `IMFSample` 缓冲区，设置时间戳和持续时间，再通过 Media Foundation 事件
-队列交回系统。应用看到的是标准 Windows 摄像头流，不需要了解 Python 或共享文件。
+每次请求到来时，MediaSource 读取最新完整 NV12 帧，按消费者选择的分辨率缩放，
+再写入 Frame Server 提供的 `IMFSample` 缓冲区，设置时间戳和持续时间并通过事件队列
+交回系统。应用看到的是标准 Windows 摄像头流，不需要了解 Python 或共享文件。
+
+IPC 仍固定为 1280×720，以保持协议 ABI 和发送端简单稳定；1920×1080 或 640×480
+由原生读取端输出时转换。发送端超过 2 秒没有发布新序号时，MF 和 DirectShow 均会
+显示灰色叉号离线画面，避免把最后一帧长期伪装成实时视频。
 
 ### 4. 设备注册和升级
 
@@ -148,6 +155,29 @@ mf_virtual_camera/
 cd D:\projects\temp\mf_virtual_camera
 ```
 
+### 桌面软件与中文安装包
+
+桌面版使用 PyQt5（Qt 5.15）实现统一深色界面，集成相机安装/卸载、自定义名称实例、
+设备列表、图片/视频/摄像头/网络流/测试画面输入、循环、镜像、帧率、实时预览和
+Python 帧处理插件。插件验证成功后可用于下一次发送，验证或运行失败会显示 traceback。
+
+构建环境固定为 Conda 环境 `mf_virtual_camera`，安装包使用本机 Inno Setup 6 编译：
+
+```powershell
+conda activate mf_virtual_camera
+.\scripts\build-desktop.ps1 -SkipNative
+```
+
+去掉 `-SkipNative` 会先重新构建 x64 Media Foundation 和 x86 DirectShow 原生组件。
+输出文件：
+
+```text
+dist\installer\SSKJ-Camera-Studio-Setup-0.2.4.exe
+```
+
+安装软件不会自动注册虚拟摄像头；打开软件后在“虚拟相机”页点击安装，Windows 会
+显示 UAC 确认。桌面程序架构和插件约定见 [桌面版架构](docs/desktop-architecture.md)。
+
 ### 第一步：构建原生组件
 
 ```powershell
@@ -202,6 +232,15 @@ mfvc-send D:\media\video.mp4
 
 # 不安装命令入口时
 python -m mf_virtual_camera.cli D:\media\video.mp4
+
+# 使用物理摄像头（索引与 OpenCV 一致）
+mfvc-send --camera 0
+
+# 使用 RTSP/HTTP 等 OpenCV 能打开的网络流
+mfvc-send --stream rtsp://user:password@example.test/live
+
+# 使用自带时钟测试图案，无需媒体文件
+mfvc-send --pattern clock
 ```
 
 常用参数：
@@ -220,8 +259,29 @@ mfvc-send D:\media\picture.jpg --no-loop
 mfvc-send --help
 ```
 
-`--width` 和 `--height` 当前只接受 `1280` 和 `720`；其他尺寸会报错，因为修改输出
-尺寸还需要同步扩展 MediaSource 媒体类型和 IPC 缓冲区。
+`--width` 和 `--height` 是发送端 IPC 画布尺寸，目前仍只接受 `1280` 和 `720`。
+它们不是应用最终获取的分辨率；应用可从虚拟摄像头协商 1080p、720p 或 480p。
+
+### 注册多个名称不同的 MF 摄像头
+
+管理员 PowerShell 中执行：
+
+```powershell
+.\scripts\manage-instance.ps1 -Name "会议演示摄像头" -RefreshFrameServer
+```
+
+命令会生成并输出一个实例 GUID。移除时应同时传入原 GUID，防止误删其他实例：
+
+```powershell
+.\scripts\manage-instance.ps1 `
+  -Name "会议演示摄像头" `
+  -InstanceId "{生成时输出的 GUID}" `
+  -Remove `
+  -RefreshFrameServer
+```
+
+各实例有独立名称和 CLSID，但当前都读取同一个 `frames.v1.bin`，因此显示相同画面。
+要让多个设备同时显示不同内容，还需要把实例标识贯穿 COM 激活与 IPC 路径。
 
 ### 第五步：在应用中使用
 
@@ -255,10 +315,8 @@ SSKJ DirectShow Camera
 ```
 
 `--open` 会把摄像头 Capture Pin 连接到 Null Renderer 并运行 1.2 秒，可验证 COM
-激活、YUY2 协商、缓冲区分配、工作线程和真实推帧路径。当前 DirectShow 层支持：
-
-- YUY2、1280×720、30 FPS。
-- YUY2、640×480、30 FPS。
+激活、YUY2 协商、缓冲区分配、工作线程和真实推帧路径。当前 DirectShow 层支持
+YUY2、30 FPS，分辨率为 1920×1080、1280×720 和 640×480。
 
 它和 Media Foundation 相机读取同一个 `frames.v1.bin`，所以不需要启动第二个 Python
 发送端。安装完成后必须完全退出企业微信及其托盘进程，再重新启动并选择
@@ -398,18 +456,15 @@ Administrators、Local Service 和 Users 设置权限。如果进程仍加载旧
 
 ### 能否修改分辨率或设备名？
 
-设备名可以修改公共常量后重新构建和注册；分辨率不能只改 Python 参数，MediaSource
-对外声明的媒体类型、共享协议和缓冲区大小也必须同步修改。当前固定 1280×720 是为了
-保持消费者兼容性和协议稳定性。
+可用 `manage-instance.ps1` 注册自定义名称。应用可协商 1080p、720p 或 480p；发送端
+IPC 仍固定为 720p。若要增加其他输出尺寸，需同时扩展 MF/DirectShow 媒体类型列表和
+缩放测试，不能只修改 Python 参数。
 
 ## 后续方向
 
-- 增加 1920×1080 和多媒体类型协商。
-- 增加发送端存活检测及更明确的离线占位画面。
-- 支持摄像头、网络流和程序生成画面作为输入。
+- 为不同虚拟相机实例提供彼此独立的 IPC 通道和输入画面。
 - 增加 GPU 解码、颜色转换和更低拷贝路径。
 - 提供正式 MSI、代码签名、升级与回滚策略。
-- 增加多实例和可配置设备名称。
 
 ## 开发与测试踩坑记录
 
@@ -725,6 +780,6 @@ Windows 相机和浏览器能看到 SSKJ，企业微信 5.0.10.6015 只显示物
 
 项目现已增加 32 位 DirectShow Source Filter，并注册到
 `CLSID_VideoInputDeviceCategory`。它继续读取现有 `frames.v1.bin`，把 NV12 转换为
-企业微信更常用的 YUY2，支持 1280×720 和 640×480。x86 探针已验证设备枚举成功，
+企业微信更常用的 YUY2，支持 1920×1080、1280×720 和 640×480。x86 探针已验证设备枚举成功，
 并能完成 Capture Graph 建图和持续推帧。x64 DLL也能构建，正式安装包阶段可再把两种
 位数统一纳入安装和卸载流程。

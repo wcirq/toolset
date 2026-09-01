@@ -12,11 +12,63 @@ namespace mfvc {
 namespace {
 
 constexpr DWORD kStreamId = 0;
-constexpr UINT32 kWidth = 1280;
-constexpr UINT32 kHeight = 720;
+constexpr UINT32 kSourceWidth = 1280;
+constexpr UINT32 kSourceHeight = 720;
 constexpr UINT32 kFps = 30;
-constexpr DWORD kFrameSize = kWidth * kHeight * 3 / 2;
+constexpr DWORD kSourceFrameSize = kSourceWidth * kSourceHeight * 3 / 2;
 constexpr LONGLONG kFrameDuration = 10'000'000 / kFps;
+constexpr ULONGLONG kSenderTimeoutMs = 2000;
+
+void fill_offline_frame(std::vector<BYTE>& frame) {
+    std::memset(frame.data(), 48, kSourceWidth * kSourceHeight);
+    std::memset(frame.data() + kSourceWidth * kSourceHeight, 128,
+                frame.size() - kSourceWidth * kSourceHeight);
+    constexpr UINT32 thickness = 12;
+    for (UINT32 y = 0; y < kSourceHeight; ++y) {
+        const UINT32 diagonal = y * kSourceWidth / kSourceHeight;
+        for (UINT32 x = 0; x < kSourceWidth; ++x) {
+            const bool first = x + thickness >= diagonal && x <= diagonal + thickness;
+            const UINT32 reverse = kSourceWidth - 1 - diagonal;
+            const bool second = x + thickness >= reverse && x <= reverse + thickness;
+            if (first || second) frame[y * kSourceWidth + x] = 190;
+        }
+    }
+}
+
+void scale_nv12(const BYTE* source, BYTE* destination, UINT32 width, UINT32 height) {
+    const BYTE* source_uv = source + kSourceWidth * kSourceHeight;
+    BYTE* destination_uv = destination + width * height;
+    for (UINT32 y = 0; y < height; ++y) {
+        const UINT32 source_y = y * kSourceHeight / height;
+        for (UINT32 x = 0; x < width; ++x) {
+            const UINT32 source_x = x * kSourceWidth / width;
+            destination[y * width + x] = source[source_y * kSourceWidth + source_x];
+        }
+    }
+    for (UINT32 y = 0; y < height / 2; ++y) {
+        const UINT32 source_y = y * (kSourceHeight / 2) / (height / 2);
+        for (UINT32 x = 0; x < width; x += 2) {
+            const UINT32 source_x = (x * kSourceWidth / width) & ~1U;
+            destination_uv[y * width + x] = source_uv[source_y * kSourceWidth + source_x];
+            destination_uv[y * width + x + 1] = source_uv[source_y * kSourceWidth + source_x + 1];
+        }
+    }
+}
+
+HRESULT create_video_type(UINT32 width, UINT32 height, IMFMediaType** output) {
+    winrt::com_ptr<IMFMediaType> type;
+    HRESULT result = MFCreateMediaType(type.put());
+    if (FAILED(result)) return result;
+    if (FAILED(result = type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video))) return result;
+    if (FAILED(result = type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12))) return result;
+    if (FAILED(result = MFSetAttributeSize(type.get(), MF_MT_FRAME_SIZE, width, height))) return result;
+    if (FAILED(result = MFSetAttributeRatio(type.get(), MF_MT_FRAME_RATE, kFps, 1))) return result;
+    if (FAILED(result = MFSetAttributeRatio(type.get(), MF_MT_PIXEL_ASPECT_RATIO, 1, 1))) return result;
+    if (FAILED(result = type->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive))) return result;
+    if (FAILED(result = type->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE))) return result;
+    *output = type.detach();
+    return S_OK;
+}
 HRESULT check_pointer(const void* pointer) noexcept {
     return pointer ? S_OK : E_POINTER;
 }
@@ -68,24 +120,42 @@ HRESULT MediaStream::RequestSample(IUnknown* token) noexcept {
     // completing the RUNNING transition. The source Start path already gates
     // publication of this stream, so accepting that request avoids losing it.
 
+    winrt::com_ptr<IMFMediaTypeHandler> handler;
+    winrt::com_ptr<IMFMediaType> current_type;
+    HRESULT result = descriptor_->GetMediaTypeHandler(handler.put());
+    if (SUCCEEDED(result)) result = handler->GetCurrentMediaType(current_type.put());
+    UINT32 width = 0;
+    UINT32 height = 0;
+    if (SUCCEEDED(result)) result = MFGetAttributeSize(current_type.get(), MF_MT_FRAME_SIZE, &width, &height);
+    if (FAILED(result) || !width || !height || (width & 1U) || (height & 1U)) return MF_E_INVALIDMEDIATYPE;
+    const DWORD frame_size = width * height * 3 / 2;
+
     winrt::com_ptr<IMFSample> sample;
     winrt::com_ptr<IMFMediaBuffer> buffer;
-    HRESULT result = allocator_ ? allocator_->AllocateSample(sample.put()) : MFCreateSample(sample.put());
+    result = allocator_ ? allocator_->AllocateSample(sample.put()) : MFCreateSample(sample.put());
     if (FAILED(result)) return result;
     if (allocator_) {
         result = sample->GetBufferByIndex(0, buffer.put());
     } else {
-        result = MFCreateMemoryBuffer(kFrameSize, buffer.put());
+        result = MFCreateMemoryBuffer(frame_size, buffer.put());
         if (SUCCEEDED(result)) result = sample->AddBuffer(buffer.get());
     }
     if (FAILED(result)) return result;
 
-    std::vector<BYTE> frame(kFrameSize);
-    std::memset(frame.data(), 16, kWidth * kHeight);
-    std::memset(frame.data() + kWidth * kHeight, 128, kFrameSize - kWidth * kHeight);
+    std::vector<BYTE> source_frame(kSourceFrameSize);
+    fill_offline_frame(source_frame);
     std::uint64_t sequence = last_sequence_;
-    reader_.read_latest(frame.data(), kFrameSize, sequence);
-    last_sequence_ = sequence;
+    const bool received = reader_.read_latest(source_frame.data(), kSourceFrameSize, sequence);
+    const ULONGLONG now = GetTickCount64();
+    if (received && sequence != last_sequence_) {
+        last_sequence_ = sequence;
+        last_fresh_tick_ = now;
+    }
+    if (!received || last_fresh_tick_ == 0 || now - last_fresh_tick_ > kSenderTimeoutMs) {
+        fill_offline_frame(source_frame);
+    }
+    std::vector<BYTE> frame(frame_size);
+    scale_nv12(source_frame.data(), frame.data(), width, height);
 
     winrt::com_ptr<IMF2DBuffer2> buffer2d;
     if (SUCCEEDED(buffer->QueryInterface(IID_PPV_ARGS(buffer2d.put())))) {
@@ -96,14 +166,14 @@ HRESULT MediaStream::RequestSample(IUnknown* token) noexcept {
         result = buffer2d->Lock2DSize(MF2DBuffer_LockFlags_Write, &scanline, &pitch,
                                       &buffer_start, &length);
         if (FAILED(result)) return result;
-        for (UINT32 row = 0; row < kHeight; ++row) {
+        for (UINT32 row = 0; row < height; ++row) {
             std::memcpy(scanline + static_cast<std::ptrdiff_t>(row) * pitch,
-                        frame.data() + row * kWidth, kWidth);
+                        frame.data() + row * width, width);
         }
-        BYTE* uv = scanline + static_cast<std::ptrdiff_t>(kHeight) * pitch;
-        for (UINT32 row = 0; row < kHeight / 2; ++row) {
+        BYTE* uv = scanline + static_cast<std::ptrdiff_t>(height) * pitch;
+        for (UINT32 row = 0; row < height / 2; ++row) {
             std::memcpy(uv + static_cast<std::ptrdiff_t>(row) * pitch,
-                        frame.data() + kWidth * kHeight + row * kWidth, kWidth);
+                        frame.data() + width * height + row * width, width);
         }
         buffer2d->Unlock2D();
     } else {
@@ -111,9 +181,9 @@ HRESULT MediaStream::RequestSample(IUnknown* token) noexcept {
         DWORD maximum = 0;
         result = buffer->Lock(&bytes, &maximum, nullptr);
         if (FAILED(result)) return result;
-        std::memcpy(bytes, frame.data(), std::min<DWORD>(maximum, kFrameSize));
+        std::memcpy(bytes, frame.data(), std::min<DWORD>(maximum, frame_size));
         buffer->Unlock();
-        result = buffer->SetCurrentLength(kFrameSize);
+        result = buffer->SetCurrentLength(frame_size);
         if (FAILED(result)) return result;
     }
     result = sample->SetSampleTime(MFGetSystemTime());
@@ -208,20 +278,22 @@ HRESULT MediaSource::initialize(IMFAttributes* activation_attributes) noexcept {
     if (FAILED(result)) return result;
     if (activation_attributes) activation_attributes->CopyAllItems(attributes_.get());
 
-    winrt::com_ptr<IMFMediaType> type;
-    result = MFCreateMediaType(type.put());
-    if (FAILED(result)) return result;
-    if (FAILED(result = type->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video))) return result;
-    if (FAILED(result = type->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_NV12))) return result;
-    if (FAILED(result = MFSetAttributeSize(type.get(), MF_MT_FRAME_SIZE, kWidth, kHeight))) return result;
-    if (FAILED(result = MFSetAttributeRatio(type.get(), MF_MT_FRAME_RATE, kFps, 1))) return result;
-    if (FAILED(result = MFSetAttributeRatio(type.get(), MF_MT_PIXEL_ASPECT_RATIO, 1, 1))) return result;
-    if (FAILED(result = type->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive))) return result;
-    if (FAILED(result = type->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE))) return result;
+    winrt::com_ptr<IMFMediaType> type_1080;
+    winrt::com_ptr<IMFMediaType> type_720;
+    winrt::com_ptr<IMFMediaType> type_480;
+    if (FAILED(result = create_video_type(1920, 1080, type_1080.put()))) return result;
+    if (FAILED(result = create_video_type(1280, 720, type_720.put()))) return result;
+    if (FAILED(result = create_video_type(640, 480, type_480.put()))) return result;
 
-    IMFMediaType* types[] = {type.get()};
+    IMFMediaType* types[] = {type_720.get(), type_1080.get(), type_480.get()};
     winrt::com_ptr<IMFStreamDescriptor> descriptor;
-    result = MFCreateStreamDescriptor(kStreamId, 1, types, descriptor.put());
+    result = MFCreateStreamDescriptor(kStreamId, static_cast<DWORD>(std::size(types)),
+                                      types, descriptor.put());
+    if (FAILED(result)) return result;
+    winrt::com_ptr<IMFMediaTypeHandler> type_handler;
+    result = descriptor->GetMediaTypeHandler(type_handler.put());
+    if (FAILED(result)) return result;
+    result = type_handler->SetCurrentMediaType(type_720.get());
     if (FAILED(result)) return result;
     descriptor->SetGUID(MF_DEVICESTREAM_STREAM_CATEGORY, PINNAME_VIDEO_CAPTURE);
     descriptor->SetUINT32(MF_DEVICESTREAM_STREAM_ID, kStreamId);

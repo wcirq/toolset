@@ -18,20 +18,33 @@ if (-not (Test-Path -LiteralPath $registrar)) {
     throw "Registrar not found: $registrar. Build Release first."
 }
 
+function Invoke-Registrar([string]$Command, [switch]$AllowMissing) {
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $messages = @(& $registrar $Command 2>&1)
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $previousPreference
+    if ($code -ne 0) {
+        if ($AllowMissing) {
+            Write-Output "$Command skipped: the virtual camera was already absent."
+            return
+        }
+        throw "Registrar command '$Command' failed with exit code $code.`n$($messages -join [Environment]::NewLine)"
+    }
+    $messages | ForEach-Object { Write-Output $_.ToString() }
+}
+
 if ($Remove) {
-    & $registrar remove-wecom-test
+    Invoke-Registrar remove-wecom-test -AllowMissing
 } else {
     if (-not (Test-Path -LiteralPath $clsidPath)) {
         throw 'The MediaSource COM component is not installed. Run install-dev.ps1 first.'
     }
-    & $registrar install-wecom-test
-}
-if ($LASTEXITCODE -ne 0) {
-    throw "Registrar failed with exit code $LASTEXITCODE"
+    Invoke-Registrar install-wecom-test
 }
 
 # Clean up the short-lived development instance that used the primary source CLSID.
-& $registrar remove-wecom-test-legacy 2>$null
+Invoke-Registrar remove-wecom-test-legacy -AllowMissing
 
 if ($RefreshFrameServer) {
     & (Join-Path $PSScriptRoot 'refresh-frame-server.ps1')

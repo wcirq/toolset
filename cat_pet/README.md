@@ -11,7 +11,8 @@ Windows 桌面悬浮宠物，结合摄像头人体/姿态检测，在检测到�
 - 右键启用或暂停监控；暂停时释放摄像头。
 - 可在全屏游戏、会议或演示期间自动暂停监控。
 - 摄像头预览、视频画面和检测标注可分别设置透明度。
-- 多种小猫品种、配色和贴边形态。
+- 两级形象选择：猫类下保留多种猫形象和配色；人类下提供与六套猫咪主题色对应的原图、卡通和抽象宝宝形象。
+- 各类形象均支持动画、缩放和贴边形态。
 
 ## 环境准备
 
@@ -48,6 +49,7 @@ python main.py
 | 右键 | 打开监控、预览、程序切换、设置和退出菜单 |
 | 预览窗口滚轮 | 放大或缩小视频画面 |
 | 全局快捷键 | 有记录时切回原窗口，否则切换到目标程序 |
+| 监控开关快捷键 | 交替启用/禁用监控；左上角显示不同的渐变闪烁，范围可调并实时预览 |
 
 ## 代码结构
 
@@ -92,9 +94,13 @@ python main.py
 | `maximize_target` | `false` | 是否最大化目标窗口 |
 | `hotkey` | `Ctrl+Alt+V` | 全局快捷键 |
 | `hotkey_enabled` | `true` | 是否注册全局快捷键 |
+| `monitor_hotkey` | `Ctrl+Alt+M` | 启用/禁用监控的全局快捷键 |
+| `monitor_hotkey_enabled` | `true` | 是否注册监控开关快捷键 |
+| `monitor_effect_size` | `220` | 左上角渐变闪烁范围（像素） |
 | `camera_index` | `0` | OpenCV 摄像头编号 |
 | `cat_scale` | `1.0` | 小猫缩放比例，范围 `0.6`～`2.0` |
-| `cat_style` / `cat_color` | `0` / `0` | 小猫品种与配色索引 |
+| `character_category` | `cat` | 一级形象类别：`cat`（猫类）或 `human`（人类） |
+| `cat_style` / `cat_color` | `0` / `0` | 当前类别下的具体形象索引及猫类配色索引 |
 | `preview_scale` | `1.0` | 预览画面缩放比例 |
 | `preview_window_opacity` | `0.85` | 预览窗口背景、边框和信息栏透明度 |
 | `preview_video_opacity` | `0.85` | 视频画面透明度 |
@@ -146,4 +152,3 @@ python packaging/build.py
   Torch，打包时由 `packaging/rthook_torch.py` 处理。
 - **YOLO 检测失败**：确认权重位于 `assets/models/`；失败时程序会回退 HOG。
 - **找不到摄像头**：检查 `camera_index`，并确认目标摄像头未被其他应用独占。
-

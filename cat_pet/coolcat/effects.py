@@ -1,5 +1,81 @@
 from .common import *
 
+
+class MonitorEdgeEffect(QWidget):
+    """不抢焦点、鼠标穿透的全屏边缘状态特效。"""
+
+    def __init__(self):
+        super().__init__(None, Qt.FramelessWindowHint | Qt.Tool |
+                         Qt.WindowStaysOnTopHint | Qt.WindowTransparentForInput)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self._enabled = True
+        self._extent = 220
+        self._started_at = 0.0
+        self._timer = QTimer(self)
+        self._timer.setInterval(16)
+        self._timer.timeout.connect(self._tick)
+
+    def flash(self, enabled, extent=None):
+        self._enabled = bool(enabled)
+        if extent is not None:
+            self._extent = max(80, min(600, int(extent)))
+        self._started_at = time.monotonic()
+        screen = QApplication.primaryScreen()
+        area = screen.geometry() if screen else QRectF(0, 0, 1920, 1080).toRect()
+        self.setGeometry(area.left(), area.top(), self._extent, self._extent)
+        self.show()
+        self.raise_()
+        self._timer.start()
+        self.update()
+
+    def _tick(self):
+        duration = 1.35 if self._enabled else 0.95
+        if time.monotonic() - self._started_at >= duration:
+            self._timer.stop()
+            self.hide()
+            return
+        self.update()
+
+    def paintEvent(self, _event):
+        elapsed = time.monotonic() - self._started_at
+        if self._enabled:
+            # 启用：三次柔和扩散的青绿脉冲。
+            phase = min(1.0, elapsed / 1.35)
+            pulse = (0.5 + 0.5 * math.sin(elapsed * math.pi * 4.5))
+            alpha = int(145 * (1.0 - phase) * (0.55 + 0.45 * pulse))
+            width = int(16 + 20 * phase)
+            inner = QColor(40, 255, 175, alpha)
+            outer = QColor(0, 185, 255, 0)
+            label, label_color = "监控已启用  ●", QColor(55, 255, 180, min(245, alpha + 35))
+        else:
+            # 禁用：两次急促的红橙告警闪烁，中间有明显断层。
+            on = ((0.00 <= elapsed < 0.20) or (0.34 <= elapsed < 0.62))
+            fade = 1.0 if on else 0.08
+            alpha = int(170 * fade * max(0.0, 1.0 - elapsed / 1.15))
+            width = 32 if elapsed < 0.62 else 22
+            inner = QColor(255, 45, 45, alpha)
+            outer = QColor(255, 155, 20, 0)
+            label, label_color = "监控已禁用  ✕", QColor(255, 70, 45, min(255, alpha + 20))
+
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        w, h = self.width(), self.height()
+        edges = [
+            (QRectF(0, 0, w, width), QPointF(0, 0), QPointF(0, width)),
+            (QRectF(0, 0, width, h), QPointF(0, 0), QPointF(width, 0)),
+        ]
+        for rect, start, end in edges:
+            grad = QLinearGradient(start, end)
+            grad.setColorAt(0.0, inner)
+            grad.setColorAt(1.0, outer)
+            p.fillRect(rect, grad)
+        p.setPen(label_color)
+        p.setFont(QFont("微软雅黑", 11, QFont.Bold))
+        p.drawText(QRectF(16, 14, max(1, w - 22), 30),
+                   Qt.AlignLeft | Qt.AlignVCenter, label)
+        p.end()
+
 # ======================== 粒子效果 ========================
 class Particle:
     """单个粒子，用于爱心、星星、Z等视觉效果"""

@@ -4,7 +4,9 @@ from .windows import user32
 # ======================== 全局快捷键 ========================
 WM_HOTKEY = 0x0312
 MOD_ALT, MOD_CONTROL, MOD_SHIFT, MOD_WIN = 0x1, 0x2, 0x4, 0x8
+MOD_NOREPEAT = 0x4000  # 按住时不重复发送 WM_HOTKEY
 HOTKEY_ID = 0xC47  # RegisterHotKey 自定义 ID
+MONITOR_HOTKEY_ID = 0xC48
 
 # 键名 → Windows 虚拟键码
 VK_MAP = {chr(c): c for c in range(ord("A"), ord("Z") + 1)}
@@ -32,9 +34,11 @@ def parse_hotkey(text):
 class HotkeyManager(QAbstractNativeEventFilter):
     """全局快捷键: 按下即回调 (用于快速切换到目标程序)"""
 
-    def __init__(self, callback):
+    def __init__(self, callback, hotkey_id=HOTKEY_ID, label="全局快捷键"):
         super().__init__()
         self._callback = callback
+        self._hotkey_id = hotkey_id
+        self._label = label
         self._hwnd = None
         self._registered = False
 
@@ -46,18 +50,18 @@ class HotkeyManager(QAbstractNativeEventFilter):
         if not mod or not vk:
             _log(f"快捷键格式无效: {hotkey_text}")
             return False
-        if user32.RegisterHotKey(hwnd, HOTKEY_ID, mod, vk):
+        if user32.RegisterHotKey(hwnd, self._hotkey_id, mod | MOD_NOREPEAT, vk):
             self._hwnd = hwnd
             self._registered = True
-            _log(f"全局快捷键已注册: {hotkey_text}")
+            _log(f"{self._label}已注册: {hotkey_text}")
             return True
         _log(f"快捷键注册失败 (可能被占用): {hotkey_text}")
         return False
 
     def unregister(self):
         if self._registered and self._hwnd:
-            user32.UnregisterHotKey(self._hwnd, HOTKEY_ID)
-            _log("全局快捷键已注销")
+            user32.UnregisterHotKey(self._hwnd, self._hotkey_id)
+            _log(f"{self._label}已注销")
         self._registered = False
         self._hwnd = None
 
@@ -65,7 +69,7 @@ class HotkeyManager(QAbstractNativeEventFilter):
         if eventType == "windows_generic_MSG":
             try:
                 msg = wintypes.MSG.from_address(int(message))
-                if msg.message == WM_HOTKEY and msg.wParam == HOTKEY_ID:
+                if msg.message == WM_HOTKEY and msg.wParam == self._hotkey_id:
                     if self._callback:
                         self._callback()
             except Exception:

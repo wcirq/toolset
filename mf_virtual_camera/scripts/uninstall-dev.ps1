@@ -16,16 +16,20 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     throw 'Development uninstall must run from an elevated PowerShell window.'
 }
 
+function Remove-CameraIfPresent([string]$Command) {
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $null = & $registrar $Command 2>&1
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $previousPreference
+    if ($code -eq 0) { Write-Output "$Command succeeded." }
+    else { Write-Output "$Command skipped: the virtual camera was already absent." }
+}
+
 if (Test-Path -LiteralPath $registrar) {
-    & $registrar remove-wecom-test
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "WeCom test camera removal returned exit code $LASTEXITCODE; continuing."
-    }
-    & $registrar remove-wecom-test-legacy
-    & $registrar remove
-    if ($LASTEXITCODE -ne 0) {
-        Write-Warning "Virtual camera removal returned exit code $LASTEXITCODE; continuing COM cleanup."
-    }
+    Remove-CameraIfPresent remove-wecom-test
+    Remove-CameraIfPresent remove-wecom-test-legacy
+    Remove-CameraIfPresent remove
 }
 $dll = $null
 if (Test-Path -LiteralPath $clsidPath) {

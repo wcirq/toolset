@@ -130,6 +130,32 @@ CAT_STYLES = [
      "body_rx": 40, "body_ry": 34, "eye_x": 16, "tail_len": 60, "tail_w": 13},
 ]
 
+HUMAN_STYLES = [
+    {"name": "原图宝宝 · 暖橘", "kind": "bow_baby", "render": "portrait", "palette": 0},
+    {"name": "原图宝宝 · 酷黑", "kind": "bow_baby", "render": "portrait", "palette": 1},
+    {"name": "童话宝宝 · 奶油白", "kind": "bow_baby", "render": "cartoon", "palette": 2},
+    {"name": "简笔宝宝 · 银灰", "kind": "bow_baby", "render": "cartoon", "palette": 3},
+    {"name": "软萌宝宝 · 奶茶", "kind": "bow_baby", "render": "abstract", "palette": 4},
+    {"name": "几何宝宝 · 天空蓝", "kind": "bow_baby", "render": "abstract", "palette": 5},
+]
+
+# 与猫咪六套颜色逐项对应；body 始终是肤色，其余字段负责服装与装饰主题。
+HUMAN_PALETTES = [
+    {"name": "暖橘", "body": "#FFD8C2", "dark": "#3A2B29", "ear": "#F4A58E",
+     "belly": "#FFF0D2", "bow": "#FFB347", "dress": "#FFF7E9", "blush": "#F5A0A2"},
+    {"name": "酷黑", "body": "#F6CDB8", "dark": "#211D22", "ear": "#E99A91",
+     "belly": "#68636B", "bow": "#3D3D3D", "dress": "#555158", "blush": "#E58E9A"},
+    {"name": "奶油白", "body": "#FFDCC8", "dark": "#493738", "ear": "#F4A7A0",
+     "belly": "#FFFFFF", "bow": "#F2F2F2", "dress": "#FFFDF7", "blush": "#F7A8B3"},
+    {"name": "银灰", "body": "#F2CBB8", "dark": "#4A4143", "ear": "#E79C96",
+     "belly": "#D5D5D8", "bow": "#909090", "dress": "#ECECEE", "blush": "#E79AA3"},
+    {"name": "奶茶", "body": "#F7D1BB", "dark": "#4B352D", "ear": "#EFA29A",
+     "belly": "#E8C9A0", "bow": "#D4A574", "dress": "#F3E1CB", "blush": "#EA9A9A"},
+    {"name": "天空蓝", "body": "#FFD7C4", "dark": "#293B51", "ear": "#F0A0A0",
+     "belly": "#D8EEFA", "bow": "#7CB9E8", "dress": "#EAF7FF", "blush": "#EE9FA9"},
+]
+HUMAN_PALETTE = HUMAN_PALETTES[0]
+
 # 对话文本
 SPEECHES = {
     "idle":  ["喵~", "喵呜~", "......", "呼~", "在看什么?"],

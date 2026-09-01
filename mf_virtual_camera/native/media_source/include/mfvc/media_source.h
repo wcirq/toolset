@@ -54,6 +54,7 @@ private:
     bool shutdown_ = false;
     LONGLONG sample_time_ = 0;
     std::uint64_t last_sequence_ = 0;
+    ULONGLONG last_fresh_tick_ = 0;
 };
 
 class MediaSource : public winrt::implements<MediaSource, IMFMediaSource2, IMFMediaSourceEx,

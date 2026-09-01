@@ -10,6 +10,7 @@ requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.26,<3",
     "opencv-python>=4.9,<5",
+    "PyQt5>=5.15.10,<5.16",
 ]
 
 [project.optional-dependencies]
@@ -17,6 +18,7 @@ test = ["pytest>=8,<9"]
 
 [project.scripts]
 mfvc-send = "mf_virtual_camera.cli:main"
+mfvc-studio = "mf_virtual_camera.desktop.app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

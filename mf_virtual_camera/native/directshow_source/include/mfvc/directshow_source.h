@@ -53,6 +53,8 @@ private:
     SharedFrameReader reader_;
     std::vector<std::uint8_t> source_frame_;
     REFERENCE_TIME sample_time_ = 0;
+    std::uint64_t last_sequence_ = 0;
+    ULONGLONG last_fresh_tick_ = 0;
 };
 
 class DirectShowSource final : public CSource {

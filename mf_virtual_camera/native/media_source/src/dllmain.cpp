@@ -38,9 +38,8 @@ extern "C" HRESULT __stdcall DllCanUnloadNow() {
 extern "C" HRESULT __stdcall DllGetClassObject(REFCLSID clsid, REFIID iid, void** object) {
     if (!object) return E_POINTER;
     *object = nullptr;
-    if (clsid != mfvc::kMediaSourceGuid && clsid != mfvc::kWeComTestMediaSourceGuid) {
-        return CLASS_E_CLASSNOTAVAILABLE;
-    }
+    // Additional virtual-camera instances can register their own CLSID to this
+    // same module. COM only reaches this export through an explicitly registered class.
     try { return winrt::make_self<mfvc::ClassFactory>()->QueryInterface(iid, object); }
     catch (...) { return winrt::to_hresult(); }
 }

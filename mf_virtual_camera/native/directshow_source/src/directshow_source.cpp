@@ -17,15 +17,30 @@ constexpr long kSourceHeight = 720;
 constexpr long kFps = 30;
 constexpr REFERENCE_TIME kFrameDuration = 10'000'000 / kFps;
 constexpr std::size_t kSourceFrameSize = kSourceWidth * kSourceHeight * 3 / 2;
-constexpr VideoMode kModes[]{{1280, 720, 1}, {640, 480, 2}};
+constexpr ULONGLONG kSenderTimeoutMs = 2000;
+constexpr VideoMode kModes[]{{1280, 720, 1}, {1920, 1080, 1}, {640, 480, 2}};
+
+void fill_offline_frame(std::vector<std::uint8_t>& frame) {
+    std::fill(frame.begin(), frame.begin() + kSourceWidth * kSourceHeight, 48);
+    std::fill(frame.begin() + kSourceWidth * kSourceHeight, frame.end(), 128);
+    constexpr long thickness = 12;
+    for (long y = 0; y < kSourceHeight; ++y) {
+        const long diagonal = y * kSourceWidth / kSourceHeight;
+        for (long x = 0; x < kSourceWidth; ++x) {
+            const bool first = x + thickness >= diagonal && x <= diagonal + thickness;
+            const long reverse = kSourceWidth - 1 - diagonal;
+            const bool second = x + thickness >= reverse && x <= reverse + thickness;
+            if (first || second) frame[y * kSourceWidth + x] = 190;
+        }
+    }
+}
 
 }  // namespace
 
 DirectShowStream::DirectShowStream(HRESULT* result, CSource* source)
     : CSourceStream(NAME("SSKJ DirectShow Video Stream"), result, source, L"Capture"),
       source_frame_(kSourceFrameSize) {
-    std::fill(source_frame_.begin(), source_frame_.begin() + kSourceWidth * kSourceHeight, 16);
-    std::fill(source_frame_.begin() + kSourceWidth * kSourceHeight, source_frame_.end(), 128);
+    fill_offline_frame(source_frame_);
 }
 
 STDMETHODIMP DirectShowStream::NonDelegatingQueryInterface(REFIID iid, void** object) {
@@ -143,7 +158,15 @@ HRESULT DirectShowStream::FillBuffer(IMediaSample* sample) {
     if (sample->GetSize() < output_size) return E_FAIL;
 
     std::uint64_t sequence = 0;
-    reader_.read_latest(source_frame_.data(), source_frame_.size(), sequence);
+    const bool received = reader_.read_latest(source_frame_.data(), source_frame_.size(), sequence);
+    const ULONGLONG now = GetTickCount64();
+    if (received && sequence != last_sequence_) {
+        last_sequence_ = sequence;
+        last_fresh_tick_ = now;
+    }
+    if (!received || last_fresh_tick_ == 0 || now - last_fresh_tick_ > kSenderTimeoutMs) {
+        fill_offline_frame(source_frame_);
+    }
     nv12_to_yuy2(source_frame_.data(), destination, *selected);
     sample->SetActualDataLength(output_size);
 

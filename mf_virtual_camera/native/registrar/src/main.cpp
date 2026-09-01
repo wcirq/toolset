@@ -66,7 +66,8 @@ HRESULT verify_media_source_registered(std::wstring_view source_id) {
         reinterpret_cast<void**>(factory.put()));
 }
 
-int run(std::wstring_view command) {
+int run(std::wstring_view command, std::wstring_view custom_name = {},
+        std::wstring_view custom_source_id = {}) {
     BOOL supported = FALSE;
     HRESULT result = MFIsVirtualCameraTypeSupported(MFVirtualCameraType_SoftwareCameraSource, &supported);
     if (FAILED(result)) {
@@ -82,13 +83,27 @@ int run(std::wstring_view command) {
         command == L"install-wecom-test" || command == L"start-wecom-test" ||
         command == L"stop-wecom-test" || command == L"remove-wecom-test";
     const bool is_legacy_test_camera = command == L"remove-wecom-test-legacy";
+    const bool is_custom_camera =
+        command == L"install-custom" || command == L"start-custom" ||
+        command == L"stop-custom" || command == L"remove-custom";
     const bool is_install_or_start =
         command == L"install" || command == L"start" ||
-        command == L"install-wecom-test" || command == L"start-wecom-test";
+        command == L"install-wecom-test" || command == L"start-wecom-test" ||
+        command == L"install-custom" || command == L"start-custom";
+
+    const std::wstring_view source_id = is_custom_camera
+        ? custom_source_id
+        : (is_test_camera ? std::wstring_view(mfvc::kWeComTestMediaSourceClsid)
+                          : std::wstring_view(mfvc::kMediaSourceClsid));
+    const std::wstring_view friendly_name = is_custom_camera
+        ? custom_name
+        : ((is_test_camera || is_legacy_test_camera)
+               ? std::wstring_view(mfvc::kWeComTestFriendlyName)
+               : std::wstring_view(mfvc::kFriendlyName));
+    if (friendly_name.empty() || source_id.empty()) return 2;
 
     if (is_install_or_start) {
-        result = verify_media_source_registered(
-            is_test_camera ? mfvc::kWeComTestMediaSourceClsid : mfvc::kMediaSourceClsid);
+        result = verify_media_source_registered(source_id);
         if (FAILED(result)) {
             std::wcerr << L"MediaSource COM component is not registered or cannot be loaded.\n";
             print_error(L"CoGetClassObject", result);
@@ -97,11 +112,7 @@ int run(std::wstring_view command) {
     }
 
     mfvc::ComPtr<IMFVirtualCamera> camera;
-    result = open_camera(
-        (is_test_camera || is_legacy_test_camera) ? mfvc::kWeComTestFriendlyName
-                                                   : mfvc::kFriendlyName,
-        is_test_camera ? mfvc::kWeComTestMediaSourceClsid : mfvc::kMediaSourceClsid,
-        camera);
+    result = open_camera(friendly_name, source_id, camera);
     if (FAILED(result)) {
         print_error(L"MFCreateVirtualCamera", result);
         return 1;
@@ -110,10 +121,16 @@ int run(std::wstring_view command) {
     if (command == L"install" || command == L"start" ||
         command == L"install-wecom-test" || command == L"start-wecom-test") {
         result = camera->Start(nullptr);
+    } else if (command == L"install-custom" || command == L"start-custom") {
+        result = camera->Start(nullptr);
     } else if (command == L"stop" || command == L"stop-wecom-test") {
+        result = camera->Stop();
+    } else if (command == L"stop-custom") {
         result = camera->Stop();
     } else if (command == L"remove" || command == L"remove-wecom-test" ||
                command == L"remove-wecom-test-legacy") {
+        result = camera->Remove();
+    } else if (command == L"remove-custom") {
         result = camera->Remove();
     } else {
         std::wcerr << L"Unknown command: " << command << L"\n";
@@ -131,11 +148,19 @@ int run(std::wstring_view command) {
 }  // namespace
 
 int wmain(int argc, wchar_t* argv[]) {
-    if (argc != 2) {
+    const bool custom = argc == 4 &&
+        (std::wstring_view(argv[1]) == L"install-custom" ||
+         std::wstring_view(argv[1]) == L"start-custom" ||
+         std::wstring_view(argv[1]) == L"stop-custom" ||
+         std::wstring_view(argv[1]) == L"remove-custom");
+    if (argc != 2 && !custom) {
         std::wcerr << L"Usage: SSKJVirtualCameraRegistrar "
                       L"<install|start|stop|remove|install-wecom-test|"
                       L"start-wecom-test|stop-wecom-test|remove-wecom-test|"
-                      L"remove-wecom-test-legacy>\n";
+                      L"remove-wecom-test-legacy>\n"
+                      L"       SSKJVirtualCameraRegistrar "
+                      L"<install-custom|start-custom|stop-custom|remove-custom> "
+                      L"<friendly-name> <source-clsid>\n";
         return 2;
     }
 
@@ -150,7 +175,7 @@ int wmain(int argc, wchar_t* argv[]) {
         print_error(L"MFStartup", startup);
         return 1;
     }
-    const int exit_code = run(argv[1]);
+    const int exit_code = custom ? run(argv[1], argv[2], argv[3]) : run(argv[1]);
     MFShutdown();
     return exit_code;
 }

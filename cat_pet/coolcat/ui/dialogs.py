@@ -537,10 +537,13 @@ class SettingsDialog(QDialog):
         row.addWidget(self.scale_label)
         f3.addRow("大小:", row)
 
+        self.character_category_combo = QComboBox()
+        self.character_category_combo.addItem("猫类", "cat")
+        self.character_category_combo.addItem("人类", "human")
+        f3.addRow("形象类别:", self.character_category_combo)
+
         self.cat_style_combo = QComboBox()
-        for i, style in enumerate(CAT_STYLES):
-            self.cat_style_combo.addItem(style["name"], i)
-        f3.addRow("猫品种:", self.cat_style_combo)
+        f3.addRow("具体形象:", self.cat_style_combo)
 
         self.cat_color_combo = QComboBox()
         for i, color in enumerate(COLORS):
@@ -656,6 +659,47 @@ class SettingsDialog(QDialog):
         self.hk_enabled = QCheckBox("启用全局快捷键")
         f6.addRow("", self.hk_enabled)
         l3.addWidget(g6)
+
+        # ---------- 监控启用/禁用快捷键 ----------
+        g6_monitor = QGroupBox("监控开关快捷键 (任意界面按下 → 启用/禁用摄像头监控)")
+        f6_monitor = QFormLayout(g6_monitor)
+        mhrow = QHBoxLayout()
+        self.monitor_hk_ctrl = QCheckBox("Ctrl")
+        self.monitor_hk_alt = QCheckBox("Alt")
+        self.monitor_hk_shift = QCheckBox("Shift")
+        self.monitor_hk_win = QCheckBox("Win")
+        self.monitor_hk_key = QComboBox()
+        for k in (list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                  + [str(d) for d in range(10)]
+                  + [f"F{i}" for i in range(1, 13)]):
+            self.monitor_hk_key.addItem(k)
+        self.monitor_hk_key.setMinimumWidth(70)
+        for control in (self.monitor_hk_ctrl, self.monitor_hk_alt,
+                        self.monitor_hk_shift, self.monitor_hk_win):
+            mhrow.addWidget(control)
+        mhrow.addSpacing(6)
+        mhrow.addWidget(self.monitor_hk_key)
+        mhrow.addStretch()
+        f6_monitor.addRow("组合键:", mhrow)
+        self.monitor_hk_enabled = QCheckBox("启用监控开关快捷键")
+        self.monitor_hk_enabled.setToolTip(
+            "启用时显示青绿渐变脉冲，禁用时显示红橙告警双闪")
+        f6_monitor.addRow("", self.monitor_hk_enabled)
+        effect_row = QHBoxLayout()
+        self.monitor_effect_size_slider = QSlider(Qt.Horizontal)
+        self.monitor_effect_size_slider.setRange(80, 600)
+        self.monitor_effect_size_slider.setSingleStep(10)
+        self.monitor_effect_size_slider.setPageStep(50)
+        self.monitor_effect_size_label = QLabel("220 px")
+        self.monitor_effect_size_label.setMinimumWidth(55)
+        effect_row.addWidget(self.monitor_effect_size_slider, 1)
+        effect_row.addWidget(self.monitor_effect_size_label)
+        f6_monitor.addRow("闪烁范围:", effect_row)
+        effect_hint = QLabel("拖动滑块可实时预览左上角提示范围")
+        effect_hint.setStyleSheet(
+            "color: #8888A0; font-size: 11px; font-weight: normal;")
+        f6_monitor.addRow("", effect_hint)
+        l3.addWidget(g6_monitor)
         l3.addStretch()
         self.tabs.addTab(page3, "目标与快捷键")
 
@@ -716,8 +760,13 @@ class SettingsDialog(QDialog):
             bool(cfg.get("auto_pause_fullscreen", False)))
         self.dedup_spin.setValue(cfg.get("dedup_iou", 0.55))
         self.scale_slider.setValue(int(cfg["cat_scale"] * 100))
+        category = cfg.get("character_category", "cat")
+        category_idx = self.character_category_combo.findData(category)
+        self.character_category_combo.setCurrentIndex(
+            category_idx if category_idx >= 0 else 0)
+        self._update_character_styles()
         self.cat_style_combo.setCurrentIndex(max(0, min(
-            len(CAT_STYLES) - 1, int(cfg.get("cat_style", 0)))))
+            self.cat_style_combo.count() - 1, int(cfg.get("cat_style", 0)))))
         self.cat_color_combo.setCurrentIndex(max(0, min(
             len(COLORS) - 1, int(cfg.get("cat_color", 0)))))
         self.cam_spin.setValue(cfg["camera_index"])
@@ -759,12 +808,36 @@ class SettingsDialog(QDialog):
         self.hk_key.setCurrentIndex(ki if ki >= 0 else self.hk_key.findText("V"))
         self.hk_enabled.setChecked(cfg.get("hotkey_enabled", True))
 
+        monitor_mod, monitor_vk = parse_hotkey(
+            cfg.get("monitor_hotkey", "Ctrl+Alt+M"))
+        self.monitor_hk_ctrl.setChecked(bool(monitor_mod & MOD_CONTROL))
+        self.monitor_hk_alt.setChecked(bool(monitor_mod & MOD_ALT))
+        self.monitor_hk_shift.setChecked(bool(monitor_mod & MOD_SHIFT))
+        self.monitor_hk_win.setChecked(bool(monitor_mod & MOD_WIN))
+        monitor_key_text = next(
+            (name for name, code in VK_MAP.items() if code == monitor_vk), "M")
+        monitor_ki = self.monitor_hk_key.findText(monitor_key_text)
+        self.monitor_hk_key.setCurrentIndex(
+            monitor_ki if monitor_ki >= 0 else self.monitor_hk_key.findText("M"))
+        self.monitor_hk_enabled.setChecked(
+            cfg.get("monitor_hotkey_enabled", True))
+        self.monitor_effect_size_slider.setValue(
+            int(cfg.get("monitor_effect_size", 220)))
+        self.monitor_effect_size_label.setText(
+            f"{self.monitor_effect_size_slider.value()} px")
+        self.monitor_effect_size_slider.valueChanged.connect(
+            self._preview_monitor_effect)
+
+        self.character_category_combo.currentIndexChanged.connect(
+            self._update_character_styles)
+
         # 密码: 当前密码引用 + 修改后的新密码 (None = 未修改)
         self._new_password = None
 
         # 外观和预览设置实时反映到主窗口
         for control in (
-                self.scale_slider, self.cat_style_combo, self.cat_color_combo,
+                self.scale_slider, self.character_category_combo,
+                self.cat_style_combo, self.cat_color_combo,
                 self.preview_window_opacity_slider,
                 self.preview_video_opacity_slider,
                 self.preview_overlay_opacity_slider):
@@ -772,6 +845,23 @@ class SettingsDialog(QDialog):
                 control.valueChanged.connect(self._apply_live_preview)
             else:
                 control.currentIndexChanged.connect(self._apply_live_preview)
+
+    def _update_character_styles(self, _index=None):
+        category = self.character_category_combo.currentData() or "cat"
+        styles = HUMAN_STYLES if category == "human" else CAT_STYLES
+        previous = self.cat_style_combo.currentData()
+        self.cat_style_combo.blockSignals(True)
+        self.cat_style_combo.clear()
+        for i, style in enumerate(styles):
+            self.cat_style_combo.addItem(style["name"], i)
+        idx = self.cat_style_combo.findData(previous)
+        self.cat_style_combo.setCurrentIndex(idx if idx >= 0 else 0)
+        self.cat_style_combo.blockSignals(False)
+        self.cat_color_combo.setEnabled(category == "cat")
+        self.cat_color_combo.setToolTip(
+            "" if category == "cat" else "人类形象的主题色已与具体形象绑定")
+        if hasattr(self, "_new_password"):
+            self._apply_live_preview()
 
     def accept(self):
         """保留兼容: 等同于“保存并应用”, 但不关闭窗口。"""
@@ -806,6 +896,14 @@ class SettingsDialog(QDialog):
         if cat is None or not hasattr(cat, "_apply_visual_settings"):
             return
         cat._apply_visual_settings(self.get_config(), show_preview=True)
+
+    def _preview_monitor_effect(self, value):
+        self.monitor_effect_size_label.setText(f"{value} px")
+        cat = self.parent()
+        if cat is None or not hasattr(cat, "monitor_edge_effect"):
+            return
+        enabled = bool(getattr(cat, "_monitoring_requested", True))
+        cat.monitor_edge_effect.flash(enabled, value)
 
     def _save_and_apply(self):
         if not self._validate_password_change():
@@ -895,6 +993,8 @@ class SettingsDialog(QDialog):
             DEFAULT_CONFIG["auto_pause_fullscreen"])
         self.dedup_spin.setValue(DEFAULT_CONFIG["dedup_iou"])
         self.scale_slider.setValue(100)
+        self.character_category_combo.setCurrentIndex(
+            self.character_category_combo.findData("cat"))
         self.cat_style_combo.setCurrentIndex(DEFAULT_CONFIG["cat_style"])
         self.cat_color_combo.setCurrentIndex(DEFAULT_CONFIG["cat_color"])
         self.cam_spin.setValue(0)
@@ -915,6 +1015,14 @@ class SettingsDialog(QDialog):
         self.hk_win.setChecked(False)
         self.hk_key.setCurrentIndex(self.hk_key.findText("V"))
         self.hk_enabled.setChecked(True)
+        self.monitor_hk_ctrl.setChecked(True)
+        self.monitor_hk_alt.setChecked(True)
+        self.monitor_hk_shift.setChecked(False)
+        self.monitor_hk_win.setChecked(False)
+        self.monitor_hk_key.setCurrentIndex(self.monitor_hk_key.findText("M"))
+        self.monitor_hk_enabled.setChecked(True)
+        self.monitor_effect_size_slider.setValue(
+            DEFAULT_CONFIG["monitor_effect_size"])
         # 密码输入框清空 (不重置密码本身)
         self.pwd_old_edit.clear()
         self.pwd_new_edit.clear()
@@ -937,6 +1045,18 @@ class SettingsDialog(QDialog):
         if self.hk_win.isChecked():
             mods.append("Win")
         hotkey = "+".join(mods + [self.hk_key.currentText()]) if mods else ""
+        monitor_mods = []
+        if self.monitor_hk_ctrl.isChecked():
+            monitor_mods.append("Ctrl")
+        if self.monitor_hk_alt.isChecked():
+            monitor_mods.append("Alt")
+        if self.monitor_hk_shift.isChecked():
+            monitor_mods.append("Shift")
+        if self.monitor_hk_win.isChecked():
+            monitor_mods.append("Win")
+        monitor_hotkey = "+".join(
+            monitor_mods + [self.monitor_hk_key.currentText()]
+        ) if monitor_mods else ""
         return {
             "model": self.model_combo.currentData(),
             "yolo_model": self.yolo_model_combo.currentText().strip() or "yolo26n.pt",
@@ -948,6 +1068,7 @@ class SettingsDialog(QDialog):
             "auto_pause_fullscreen": self.auto_pause_fullscreen_check.isChecked(),
             "dedup_iou": round(self.dedup_spin.value(), 2),
             "cat_scale": self.scale_slider.value() / 100.0,
+            "character_category": self.character_category_combo.currentData() or "cat",
             "cat_style": self.cat_style_combo.currentData(),
             "cat_color": self.cat_color_combo.currentData(),
             "camera_index": self.cam_spin.value(),
@@ -958,6 +1079,10 @@ class SettingsDialog(QDialog):
             "auto_return_delay_sec": round(self.auto_return_delay_spin.value(), 1),
             "hotkey": hotkey or "Ctrl+Alt+V",
             "hotkey_enabled": self.hk_enabled.isChecked() and bool(mods),
+            "monitor_hotkey": monitor_hotkey or "Ctrl+Alt+M",
+            "monitor_hotkey_enabled": (
+                self.monitor_hk_enabled.isChecked() and bool(monitor_mods)),
+            "monitor_effect_size": self.monitor_effect_size_slider.value(),
             "chat_enabled": False,   # 聊天输入功能暂时禁用
             "debug_save": self.debug_check.isChecked(),
             # 非 UI 项原样保留 (预览窗口缩放等由滚轮实时修改)

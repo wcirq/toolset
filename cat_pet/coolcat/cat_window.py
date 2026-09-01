@@ -1,5 +1,5 @@
 from .common import *
-from .effects import Particle
+from .effects import Particle, MonitorEdgeEffect
 from .detection import CameraThread
 from .ui.chat import ChatOverlay
 from .ui.preview import CameraPreview
@@ -24,12 +24,14 @@ class CatWindow(QWidget):
         self.cat_scale = max(0.6, min(2.0, float(self.config["cat_scale"])))
         self._monitoring_requested = True       # 每次启动默认启用监控
         self._monitor_auto_paused = False
+        self._last_monitor_hotkey_at = 0.0       # 软件防抖，避免一次按键切换两次
         self.camera_thread = None
         self._previous_window_hwnd = None
         # 开机启动状态 (从注册表读取)
         self._autostart_on = is_autostart_enabled()
 
         self._setup_window()
+        self.monitor_edge_effect = MonitorEdgeEffect()
         self._init_state()
         self.chat = ChatOverlay(self)
         self._setup_tray()
@@ -61,7 +63,11 @@ class CatWindow(QWidget):
         # ---------- 全局快捷键 ----------
         self.hotkey_mgr = HotkeyManager(self._on_hotkey)
         QApplication.instance().installNativeEventFilter(self.hotkey_mgr)
+        self.monitor_hotkey_mgr = HotkeyManager(
+            self._on_monitor_hotkey, MONITOR_HOTKEY_ID, "监控快捷键")
+        QApplication.instance().installNativeEventFilter(self.monitor_hotkey_mgr)
         self._apply_hotkey()
+        self._apply_monitor_hotkey()
 
         self._start_timer()
 
@@ -87,6 +93,26 @@ class CatWindow(QWidget):
             self._return_to_previous_window(manual=True)
         else:
             self._do_switch_target("切!")
+
+    def _apply_monitor_hotkey(self):
+        try:
+            enabled = self.config.get("monitor_hotkey_enabled", True)
+            ok = self.monitor_hotkey_mgr.register(
+                int(self.winId()),
+                self.config.get("monitor_hotkey", "Ctrl+Alt+M"), enabled)
+            if not ok and enabled:
+                self._say("监控快捷键被占用了...", 120)
+        except Exception as e:
+            _log(f"监控快捷键注册异常: {e}\n{traceback.format_exc()}")
+
+    def _on_monitor_hotkey(self):
+        now = time.monotonic()
+        if now - self._last_monitor_hotkey_at < 0.8:
+            _log("监控快捷键重复消息已忽略")
+            return
+        self._last_monitor_hotkey_at = now
+        _log("监控快捷键触发")
+        self._toggle_monitoring()
 
     def _do_switch_target(self, tip=""):
         """执行切换到目标程序 (配置中的 target_exe / target_title)"""
@@ -169,9 +195,14 @@ class CatWindow(QWidget):
             self._tray_monitor_act.setText(
                 "暂停监控" if self._monitoring_requested else "启用监控")
 
-    def _toggle_monitoring(self):
+    def _toggle_monitoring(self, *_action_args):
         self._monitoring_requested = not self._monitoring_requested
+        _log("监控状态切换为: " +
+             ("启用" if self._monitoring_requested else "禁用"))
         self._sync_monitoring()
+        self.monitor_edge_effect.flash(
+            self._monitoring_requested,
+            self.config.get("monitor_effect_size", 220))
         if self._monitoring_requested and self._monitor_auto_paused:
             self._say("当前全屏中，退出后恢复监控~", 130)
         else:
@@ -199,12 +230,15 @@ class CatWindow(QWidget):
         self._apply_scale(cfg.get("cat_scale", self.cat_scale))
         self.config["cat_scale"] = saved_scale
 
-        self.style_idx = max(0, min(len(CAT_STYLES) - 1,
+        self.character_category = cfg.get("character_category", "cat")
+        styles = HUMAN_STYLES if self.character_category == "human" else CAT_STYLES
+        self.style_idx = max(0, min(len(styles) - 1,
                                    int(cfg.get("cat_style", 0))))
-        self.style = CAT_STYLES[self.style_idx]
+        self.style = styles[self.style_idx]
         self.color_idx = max(0, min(len(COLORS) - 1,
                                    int(cfg.get("cat_color", 0))))
-        self.c = COLORS[self.color_idx]
+        self.c = (HUMAN_PALETTES[self.style.get("palette", 0)]
+                  if self.character_category == "human" else COLORS[self.color_idx])
 
         self.preview.window_opacity = max(0.2, min(
             1.0, float(cfg.get("preview_window_opacity", 0.85))))
@@ -237,6 +271,13 @@ class CatWindow(QWidget):
         if any(new_cfg[k] != old.get(k) for k in ("hotkey", "hotkey_enabled")):
             self._apply_hotkey()
             hk = new_cfg["hotkey"] if new_cfg["hotkey_enabled"] else "快捷键已关闭"
+            self._say(f"{hk}~", 90)
+
+        monitor_hk_keys = ("monitor_hotkey", "monitor_hotkey_enabled")
+        if any(new_cfg.get(k) != old.get(k) for k in monitor_hk_keys):
+            self._apply_monitor_hotkey()
+            hk = (new_cfg["monitor_hotkey"] if new_cfg["monitor_hotkey_enabled"]
+                  else "监控快捷键已关闭")
             self._say(f"{hk}~", 90)
 
         if (new_cfg.get("debug_save", False) != old.get("debug_save", False)
@@ -400,10 +441,13 @@ class CatWindow(QWidget):
         # 颜色从配置读取 (上次选的), 越界则回退橘猫
         idx = int(self.config.get("cat_color", 0))
         self.color_idx = idx if 0 <= idx < len(COLORS) else 0
-        self.c = COLORS[self.color_idx]
+        self.character_category = self.config.get("character_category", "cat")
         style_idx = int(self.config.get("cat_style", 0))
-        self.style_idx = style_idx if 0 <= style_idx < len(CAT_STYLES) else 0
-        self.style = CAT_STYLES[self.style_idx]
+        styles = HUMAN_STYLES if self.character_category == "human" else CAT_STYLES
+        self.style_idx = style_idx if 0 <= style_idx < len(styles) else 0
+        self.style = styles[self.style_idx]
+        self.c = (HUMAN_PALETTES[self.style.get("palette", 0)]
+                  if self.character_category == "human" else COLORS[self.color_idx])
 
         self.frame = 0
         self.state_frame = 0
@@ -549,6 +593,7 @@ class CatWindow(QWidget):
         # 注销全局快捷键
         try:
             self.hotkey_mgr.unregister()
+            self.monitor_hotkey_mgr.unregister()
         except Exception:
             pass
         # 停止摄像头线程
@@ -598,7 +643,10 @@ class CatWindow(QWidget):
     def _pet(self):
         self._set_state(self.HAPPY, 120)
         self._spawn_particles("heart", 6)
-        self._say(random.choice(SPEECHES["happy"]), 120)
+        if self.character_category == "human":
+            self._say(random.choice(["嘿嘿~", "好开心~", "抱抱~", "咯咯~"]), 120)
+        else:
+            self._say(random.choice(SPEECHES["happy"]), 120)
 
     def _toggle_follow(self):
         self.follow = not self.follow
@@ -635,6 +683,9 @@ class CatWindow(QWidget):
             self._say("晚安~")
 
     def _change_color(self):
+        if self.character_category == "human":
+            self._say("人类形象使用专属配色~", 100)
+            return
         self.color_idx = (self.color_idx + 1) % len(COLORS)
         self.c = COLORS[self.color_idx]
         # 写入配置, 下次启动生效
@@ -888,9 +939,12 @@ class CatWindow(QWidget):
             edge_face = self.snap_edge is not None and self.snap_anim < 0.3
             if not edge_face:
                 self._draw_shadow(p)
-                self._draw_tail(p)
-                self._draw_body(p)
-                self._draw_head(p)
+                if self.character_category == "human":
+                    self._draw_human_character(p)
+                else:
+                    self._draw_tail(p)
+                    self._draw_body(p)
+                    self._draw_head(p)
 
                 for prt in self.particles:
                     prt.draw(p)
@@ -903,10 +957,6 @@ class CatWindow(QWidget):
             if edge_face:
                 # 眨巴的猫眼 + 微摆的耳朵 (像素坐标绘制)
                 self._draw_edge_face(p)
-            elif self.snap_edge and self.snap_anim < 0.9:
-                # 缩入过程中: 贴边视觉指示器
-                self._draw_snap_indicator(p)
-
             if p.isActive():
                 p.end()
         except Exception as e:
@@ -917,6 +967,138 @@ class CatWindow(QWidget):
         p.setBrush(QBrush(QColor(0, 0, 0, 40)))
         p.setPen(Qt.NoPen)
         p.drawEllipse(QPointF(CX, BODY_CY + BODY_RY + 25), 42, 7)
+
+    def _draw_human_character(self, p):
+        """参考图抽象人类形象：黑色短发、奶油蝴蝶结、大眼笑脸和荷叶袖。"""
+        hy = CY - self.bounce
+        by = BODY_CY - self.bounce
+        mode = self.style.get("render", "portrait")
+        skin = QColor(self.c["body"])
+        hair = QColor(self.c["dark"])
+        cream = QColor(self.c["dress"])
+        bow = QColor(self.c["bow"])
+        outline = QColor(105, 70, 62, 150)
+
+        # 连衣裙和荷叶肩，保留婴幼儿圆润比例。
+        dress = QPainterPath()
+        dress.moveTo(CX - 29, by - 24)
+        dress.quadTo(CX - 48, by + 17, CX - 43, by + 39)
+        dress.quadTo(CX, by + 52, CX + 43, by + 39)
+        dress.quadTo(CX + 48, by + 17, CX + 29, by - 24)
+        dress.closeSubpath()
+        p.setPen(QPen(QColor(210, 177, 142, 130), 1.3))
+        p.setBrush(cream); p.drawPath(dress)
+        p.setPen(Qt.NoPen)
+        for sx in (-1, 1):
+            p.setBrush(cream)
+            p.drawEllipse(QPointF(CX + sx * 34, by - 17), 15, 11)
+            p.setBrush(skin)
+            p.drawRoundedRect(QRectF(CX + sx * 25 - 7, by - 9, 14, 42), 7, 7)
+        # 领口褶边
+        p.setPen(QPen(QColor(222, 194, 156, 150), 1.2))
+        p.setBrush(QColor(self.c["belly"]))
+        p.drawEllipse(QPointF(CX, by - 22), 25, 9)
+
+        # 耳朵、脸和黑发外形。
+        p.setPen(QPen(outline, 1.3)); p.setBrush(skin)
+        p.drawEllipse(QPointF(CX - 47, hy + 5), 10, 16)
+        p.drawEllipse(QPointF(CX + 47, hy + 5), 10, 16)
+        p.setPen(Qt.NoPen); p.setBrush(hair)
+        p.drawEllipse(QPointF(CX, hy - 8), 51, 53)
+        face_grad = QRadialGradient(CX - 12, hy - 5, 82)
+        face_grad.setColorAt(0, QColor(255, 226, 209))
+        face_grad.setColorAt(1, skin)
+        p.setBrush(face_grad); p.setPen(QPen(outline, 1.2))
+        face_rx = 46 if mode == "cartoon" else (43 if mode == "abstract" else 44)
+        face_ry = 44 if mode == "cartoon" else (43 if mode == "abstract" else 46)
+        p.drawEllipse(QPointF(CX, hy + 5), face_rx, face_ry)
+
+        # 侧刘海：几片流线发片压住额头。
+        p.setPen(Qt.NoPen); p.setBrush(hair)
+        bangs = ([(-38, -23, -7, 3), (-20, -38, 7, -2), (2, -39, 24, -4),
+                  (20, -31, 38, 2)] if mode != "abstract" else
+                 [(-38, -22, 0, 1), (-8, -39, 27, -3), (18, -29, 39, 3)])
+        for x1, y1, x2, y2 in bangs:
+            path = QPainterPath(); path.moveTo(CX + x1, hy + y1)
+            path.quadTo(CX + (x1 + x2) / 2, hy + y2 - 14, CX + x2, hy + y2)
+            path.quadTo(CX + x1 + 8, hy + y1 + 11, CX + x1, hy + y1)
+            p.drawPath(path)
+
+        # 奶油色蝴蝶结。
+        p.setPen(QPen(QColor(176, 128, 85, 170), 1.2)); p.setBrush(bow)
+        knot = QPointF(CX + 31, hy - 37)
+        left = QPainterPath(); left.moveTo(knot)
+        left.cubicTo(CX + 11, hy - 55, CX + 5, hy - 30, knot.x() - 3, knot.y() + 5)
+        left.closeSubpath(); p.drawPath(left)
+        right = QPainterPath(); right.moveTo(knot)
+        right.cubicTo(CX + 51, hy - 53, CX + 58, hy - 24, knot.x() + 3, knot.y() + 5)
+        right.closeSubpath(); p.drawPath(right)
+        p.drawEllipse(knot, 7, 8)
+
+        # 眼睛跟随与眨眼。
+        blink = self.blink_left > 0
+        for ex in (CX - 16, CX + 16):
+            if blink:
+                p.setPen(QPen(hair, 2.4, Qt.SolidLine, Qt.RoundCap))
+                p.drawLine(QPointF(ex - 7, hy + 5), QPointF(ex + 7, hy + 5))
+            else:
+                p.setPen(QPen(QColor(100, 65, 60, 120), 1)); p.setBrush(QColor("#FFFDF8"))
+                eye_rx = 12 if mode == "cartoon" else (7.5 if mode == "abstract" else 10)
+                eye_ry = 11 if mode == "cartoon" else (7.5 if mode == "abstract" else 9)
+                p.drawEllipse(QPointF(ex, hy + 4), eye_rx, eye_ry)
+                p.setPen(Qt.NoPen); p.setBrush(hair)
+                pupil = 6.2 if mode == "cartoon" else (4.3 if mode == "abstract" else 5.2)
+                p.drawEllipse(QPointF(ex + self.eye_x * 0.45, hy + 5 + self.eye_y * 0.3), pupil, pupil + 1.3)
+                p.setBrush(Qt.white); p.drawEllipse(QPointF(ex - 1.7, hy + 1), 1.8, 2.1)
+
+        # 腮红、小鼻和露齿笑容。
+        p.setPen(Qt.NoPen); blush = QColor(self.c["blush"]); blush.setAlpha(85)
+        p.setBrush(blush)
+        p.drawEllipse(QPointF(CX - 30, hy + 20), 10, 5)
+        p.drawEllipse(QPointF(CX + 30, hy + 20), 10, 5)
+        p.setPen(QPen(QColor(210, 125, 110, 140), 1.2))
+        p.drawLine(QPointF(CX - 2, hy + 16), QPointF(CX + 2, hy + 17))
+        if mode == "abstract":
+            p.setPen(QPen(QColor(164, 78, 76), 2.4, Qt.SolidLine, Qt.RoundCap))
+            p.setBrush(Qt.NoBrush)
+            mouth = QPainterPath(); mouth.moveTo(CX - 10, hy + 28)
+            mouth.quadTo(CX, hy + 38, CX + 11, hy + 27); p.drawPath(mouth)
+        else:
+            mouth = QPainterPath(); mouth.moveTo(CX - 13, hy + 27)
+            mouth.quadTo(CX, hy + 39, CX + 14, hy + 26)
+            mouth.quadTo(CX, hy + 46, CX - 13, hy + 27); mouth.closeSubpath()
+            p.setPen(QPen(QColor(164, 78, 76), 1.2)); p.setBrush(QColor("#E98283")); p.drawPath(mouth)
+            p.setPen(Qt.NoPen); p.setBrush(QColor("#FFFDF2"))
+            p.drawRoundedRect(QRectF(CX - 7, hy + 27, 14, 6), 2, 2)
+
+    def _draw_edge_human(self, p, alpha, blink):
+        """人类贴边抽象探头：短发、蝴蝶结和大眼。"""
+        p.scale(0.62, 0.62)
+        def c(value):
+            out = QColor(value); out.setAlpha(alpha); return out
+        skin, hair = c(self.c["body"]), c(self.c["dark"])
+        bow = c(self.c["bow"])
+        p.setPen(Qt.NoPen); p.setBrush(hair)
+        p.drawEllipse(QPointF(0, 57), 47, 45)
+        p.setBrush(skin); p.drawEllipse(QPointF(0, 64), 40, 38)
+        p.setBrush(hair)
+        fringe = QPainterPath(); fringe.moveTo(-37, 49)
+        fringe.quadTo(-8, 13, 34, 42); fringe.lineTo(18, 55)
+        fringe.lineTo(4, 43); fringe.lineTo(-10, 57); fringe.closeSubpath(); p.drawPath(fringe)
+        p.setBrush(bow); p.setPen(QPen(c("#A87550"), 1.3))
+        p.drawEllipse(QPointF(26, 29), 7, 7)
+        p.drawEllipse(QPointF(15, 27), 12, 9); p.drawEllipse(QPointF(37, 30), 12, 9)
+        for ex in (-14, 14):
+            if blink > 0.75:
+                p.setPen(QPen(hair, 2.2)); p.drawLine(ex - 6, 61, ex + 6, 61)
+            else:
+                p.setPen(Qt.NoPen); p.setBrush(c("#FFFDF8")); p.drawEllipse(QPointF(ex, 60), 8, 8)
+                p.setBrush(hair); p.drawEllipse(QPointF(ex, 61), 3.3, 4.5)
+                p.setBrush(QColor(255, 255, 255, alpha)); p.drawEllipse(QPointF(ex - 1, 58), 1.2, 1.5)
+        p.setPen(QPen(c("#A84F52"), 1.8)); p.setBrush(Qt.NoBrush)
+        smile = QPainterPath(); smile.moveTo(-8, 76); smile.quadTo(0, 84, 9, 75); p.drawPath(smile)
+        p.setPen(Qt.NoPen); p.setBrush(c(self.c["dress"]))
+        p.drawEllipse(QPointF(-24, 91), 11, 7); p.drawEllipse(QPointF(24, 91), 11, 7)
 
     def _draw_tail(self, p):
         """尾巴 - 摆动曲线"""
@@ -1391,7 +1573,10 @@ class CatWindow(QWidget):
             # 从右侧横着探头
             p.translate(0, win_h / 2)
             p.rotate(-90)
-        self._draw_edge_cat(p, alpha, blink, t)
+        if self.character_category == "human":
+            self._draw_edge_human(p, alpha, blink)
+        else:
+            self._draw_edge_cat(p, alpha, blink, t)
         p.restore()
 
     def _draw_edge_cat(self, p, alpha, blink, t):
@@ -1502,58 +1687,6 @@ class CatWindow(QWidget):
             p.setBrush(ear)
             p.drawEllipse(QPointF(px, 89), 3, 2)
 
-    def _draw_snap_indicator(self, p):
-        """贴边隐藏时在可见边缘绘制猫色提示条"""
-        alpha = int((1.0 - self.snap_anim) * 220)
-        if alpha <= 0:
-            return
-
-        # 用实际窗口像素尺寸 (逻辑 W/H × cat_scale), 否则缩放后画到窗口外
-        win_w, win_h = self.width(), self.height()
-
-        color = QColor(self.c["body"])
-        color.setAlpha(alpha)
-        gradient_color = QColor(self.c["dark"])
-        gradient_color.setAlpha(0)
-
-        if self.snap_edge == "left":
-            # 右侧可见，在右边缘画提示条
-            bar_x = win_w - 8
-            grad = QRadialGradient(bar_x, win_h // 2, 40)
-            grad.setColorAt(0, color)
-            grad.setColorAt(1, gradient_color)
-            p.setBrush(QBrush(grad))
-            p.setPen(Qt.NoPen)
-            p.drawRoundedRect(QRectF(bar_x - 5, win_h // 2 - 35, 10, 70), 5, 5)
-
-        elif self.snap_edge == "right":
-            # 左侧可见，在左边缘画提示条
-            grad = QRadialGradient(8, win_h // 2, 40)
-            grad.setColorAt(0, color)
-            grad.setColorAt(1, gradient_color)
-            p.setBrush(QBrush(grad))
-            p.setPen(Qt.NoPen)
-            p.drawRoundedRect(QRectF(-5, win_h // 2 - 35, 10, 70), 5, 5)
-
-        elif self.snap_edge == "top":
-            # 下边缘可见
-            bar_y = win_h - 8
-            grad = QRadialGradient(win_w // 2, bar_y, 40)
-            grad.setColorAt(0, color)
-            grad.setColorAt(1, gradient_color)
-            p.setBrush(QBrush(grad))
-            p.setPen(Qt.NoPen)
-            p.drawRoundedRect(QRectF(win_w // 2 - 35, bar_y - 5, 70, 10), 5, 5)
-
-        elif self.snap_edge == "bottom":
-            # 上边缘可见
-            grad = QRadialGradient(win_w // 2, 8, 40)
-            grad.setColorAt(0, color)
-            grad.setColorAt(1, gradient_color)
-            p.setBrush(QBrush(grad))
-            p.setPen(Qt.NoPen)
-            p.drawRoundedRect(QRectF(win_w // 2 - 35, -5, 70, 10), 5, 5)
-
     # ======================== 鼠标交互 ========================
 
     def mousePressEvent(self, event):
@@ -1657,15 +1790,21 @@ class CatWindow(QWidget):
             "idle": "闲逛中", "happy": "开心",
             "sleep": "睡觉中", "play": "玩耍中", "drag": "被抓住"
         }
+        category_name = "人类" if self.character_category == "human" else "猫类"
         header = menu.addAction(
-            self.style["name"] + " · " + self.c["name"] +
+            category_name + " / " + self.style["name"] + " · " + self.c["name"] +
             " (" + state_names.get(self.state, "") + ")")
         header.setEnabled(False)
         menu.addSeparator()
-        interact = menu.addMenu("与小猫互动")
-        interact.addAction("摸摸猫", self._pet)
-        interact.addAction("玩耍", lambda: self._set_state(self.PLAY, 180))
-        interact.addAction("睡觉/起床", self._toggle_sleep)
+        if self.character_category == "human":
+            interact = menu.addMenu("与宝宝互动")
+            interact.addAction("逗逗宝宝", self._pet)
+            interact.addAction("宝宝睡觉/起床", self._toggle_sleep)
+        else:
+            interact = menu.addMenu("与小猫互动")
+            interact.addAction("摸摸猫", self._pet)
+            interact.addAction("玩耍", lambda: self._set_state(self.PLAY, 180))
+            interact.addAction("睡觉/起床", self._toggle_sleep)
         follow_text = "取消跟随" if self.follow else "跟随鼠标"
         interact.addAction(follow_text, self._toggle_follow)
         monitor_text = "暂停监控" if self._monitoring_requested else "启用监控"
@@ -1673,7 +1812,9 @@ class CatWindow(QWidget):
         cam_text = "隐藏摄像头预览" if self.preview.isVisible() else "摄像头预览 (或长按小猫)"
         menu.addAction(cam_text, self._toggle_preview)
         menu.addAction("切换到目标程序", lambda: self._do_switch_target("切!"))
-        menu.addAction("小猫与检测设置...", self._open_settings)
+        settings_text = ("形象与检测设置..." if self.character_category == "human"
+                         else "小猫与检测设置...")
+        menu.addAction(settings_text, self._open_settings)
         menu.addSeparator()
         # 开机启动 (带勾选状态, 点击切换)
         autostart_act = menu.addAction("开机启动")
