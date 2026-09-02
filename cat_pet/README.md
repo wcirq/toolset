@@ -11,6 +11,10 @@ Windows 桌面悬浮宠物，结合摄像头人体/姿态检测，在检测到�
 - 右键启用或暂停监控；暂停时释放摄像头。
 - 可在全屏游戏、会议或演示期间自动暂停监控。
 - 摄像头预览、视频画面和检测标注可分别设置透明度。
+- 区域截图支持窗口候选、自由框选、选区移动及四边/四角尺寸调整。
+- 框选时提供带十字准星的像素放大镜，并跟随显示坐标、HEX 和 0～255 RGB 颜色值。
+- 截图支持复制、置顶贴图、本地 RapidOCR、OpenAI-compatible OCR，以及独立的
+  OpenAI-compatible/讯飞机器翻译。
 - 两级形象选择：猫类下保留多种猫形象和配色；人类下提供与六套猫咪主题色对应的原图、卡通和抽象宝宝形象。
 - 各类形象均支持动画、缩放和贴边形态。
 
@@ -34,7 +38,8 @@ OCR 共用 ONNX Runtime，不再依赖 Torch、Torchvision 或 Ultralytics。
 python main.py
 ```
 
-也可以双击 `run.bat`。如需使用图片或视频模拟摄像头，可配合仓库中的
+也可以双击 `run.bat`；该脚本当前使用 WorkBuddy 默认环境中的 Python，换到其他电脑或
+虚拟环境时请改为对应的解释器路径。如需使用图片或视频模拟摄像头，可配合仓库中的
 [Virtual Camera](../virtual_camera/README.md) 项目。
 
 ## 交互方式
@@ -52,14 +57,22 @@ python main.py
 | 监控开关快捷键 | 交替启用/禁用监控；左上角显示不同的渐变闪烁，范围可调并实时预览 |
 | 截图快捷键（默认 `Alt+A`） | 框选区域后复制、OCR、翻译或生成无边框置顶贴图 |
 
-截图框选过程中会在鼠标附近显示带中心十字准星的像素放大图；鼠标坐标、`#RRGGBB` 和
-`RGB(r, g, b)`（0～255）会在放大镜旁分行、实时跟随显示，选区角落显示选区尺寸。选区确认后可拖动边缘或角点调整宽高，也可
-按住选区内部整体移动。
+截图框选过程中会在鼠标附近显示带中心十字准星的像素放大图；选区角落显示尺寸，放大镜
+旁按以下格式实时跟随显示取色信息：
+
+```text
+坐标: (542, 316)
+HEX: #FF8844
+RGB: (255, 136, 68)
+```
+
+选区确认后可拖动四条边或四个角调整宽高，也可按住选区内部整体移动。
 
 贴图可用左键拖动，滚轮缩放，双击关闭；右键可复制图片、恢复原始大小或关闭。
-OCR 和翻译默认关闭。OCR 可在“截图与贴图”设置页选择进程内 RapidOCR，或配置兼容 OpenAI
-`chat/completions` 图片消息格式的第三方服务。截图仅在用户点击 OCR/翻译后发送；API Key
-保存在本机配置文件中，并在程序日志中脱敏。
+OCR 默认使用进程内 RapidOCR，不能关闭，也可切换为兼容 OpenAI `chat/completions` 图片
+消息格式的第三方服务；翻译默认关闭，可单独配置 OpenAI-compatible 或讯飞机器翻译。
+截图仅在用户点击 OCR/翻译后处理或发送；API Key 保存在本机配置文件中，并在程序日志中
+脱敏。
 
 ## 代码结构
 
@@ -103,6 +116,10 @@ OCR 和翻译默认关闭。OCR 可在“截图与贴图”设置页选择进程
 | `trigger_count` | `2` | 触发人数阈值 |
 | `sustain_sec` | `1.5` | 触发需要持续检出的秒数 |
 | `trigger_cooldown_sec` | `10.0` | 自动切换后的冷却时间，`0` 表示关闭 |
+| `camera_index` | `0` | OpenCV 摄像头编号 |
+| `cat_scale` | `1.0` | 宠物缩放比例，范围 `0.01`～`2.0`（1% 为防止零尺寸的技术保护值） |
+| `character_category` | `cat` | 一级形象类别：`cat`（猫类）或 `human`（人类） |
+| `cat_style` / `cat_color` | `0` / `0` | 当前类别下的形象及猫类配色索引 |
 | `target_exe` / `target_title` | `devenv` / `visual studio` | 自动切换的目标程序 |
 | `maximize_target` | `false` | 是否最大化目标窗口 |
 | `hotkey` | `Ctrl+Alt+V` | 全局快捷键 |
@@ -112,15 +129,28 @@ OCR 和翻译默认关闭。OCR 可在“截图与贴图”设置页选择进程
 | `monitor_effect_size` | `220` | 左上角渐变闪烁范围（像素） |
 | `screenshot_hotkey` | `Alt+A` | 区域截图、OCR、翻译和贴图快捷键 |
 | `screenshot_hotkey_enabled` | `true` | 是否注册全局截图快捷键 |
-| `screenshot_ocr_provider` | `disabled` | OCR 服务：关闭、`rapidocr_local` 或 `openai_compatible` |
+| `screenshot_ocr_provider` | `rapidocr_local` | OCR 服务：`rapidocr_local` 或 `openai_compatible`，不可关闭 |
 | `screenshot_result_mode` | `image` | 仅控制翻译；OCR 使用非模态无标题栏原图+右侧文字面板 |
 | `screenshot_ocr_api_endpoint/key/model` | 空 | 云端 OCR 独立接口、密钥和图片模型 |
-| `screenshot_translate_provider` | `disabled` | 是否启用独立翻译服务 |
+| `screenshot_translate_provider` | `disabled` | 翻译服务：关闭、OpenAI-compatible、讯飞旧版或讯飞 2.0 |
 | `screenshot_translate_api_endpoint/key/model` | 空 | 翻译服务独立接口、密钥和模型 |
 | `screenshot_xfyun_endpoint` | `https://itrans.xfyun.cn/v2/its` | 讯飞机器翻译接口 |
 | `screenshot_xfyun_app_id/api_key/api_secret` | 空 | 讯飞翻译鉴权配置（仅保存在本机） |
+| `screenshot_xfyun_v1_endpoint` | `https://itrans.xf-yun.com/v1/its` | 讯飞机器翻译 2.0 接口 |
+| `screenshot_xfyun_v1_app_id/api_key/api_secret` | 空 | 讯飞 2.0 鉴权配置（仅保存在本机） |
+| `screenshot_xfyun_res_id` | 空 | 讯飞 2.0 可选术语资源 ID |
 | `screenshot_xfyun_from` | `cn` | 讯飞翻译源语言代码 |
-| `screenshot_translate_language` | `简体中文` | 截图翻译的目标语言 |
+| `screenshot_translate_language` | `cn` | 截图翻译目标语言代码（`cn` 为简体中文） |
+| `chat_enabled` | `false` | 聊天输入功能预留开关；当前界面仍禁用聊天 |
+| `preview_scale` | `1.0` | 预览画面缩放比例 |
+| `preview_window_opacity` | `0.85` | 预览背景、边框和信息栏透明度，范围 `0`～`1` |
+| `preview_video_opacity` | `0.85` | 摄像头画面透明度，范围 `0`～`1` |
+| `preview_overlay_opacity` | `1.0` | 检测框、关键点和标签透明度，范围 `0`～`1` |
+| `debug_save` | `false` | 按天保存触发截图，最多保留三个日期目录 |
+| `auto_pause_fullscreen` | `false` | 前台全屏时自动暂停监控 |
+| `auto_return_enabled` | `false` | 人员离开后是否自动切回原窗口 |
+| `auto_return_delay_sec` | `10.0` | 人员离开后延迟切回的秒数 |
+| `settings_password_hash` | 空 | 可选设置页密码哈希；留空时进入设置无需密码 |
 
 ### 本地 RapidOCR（小体积方案）
 
@@ -129,20 +159,8 @@ OCR 和翻译默认关闭。OCR 可在“截图与贴图”设置页选择进程
 SMALL ONNX 模型，不需要下载或启动额外 EXE。
 
 本方案直接把截图字节传给 `RapidOCR()`，不启动外部进程、不监听端口，截图不会上传。
-RapidOCR 本身不提供翻译；需要截图翻译时，切换为 OpenAI-compatible 图片接口。
-| `camera_index` | `0` | OpenCV 摄像头编号 |
-| `cat_scale` | `1.0` | 小猫缩放比例，范围 `0.01`～`2.0`（1% 为防止零尺寸的技术保护值） |
-| `character_category` | `cat` | 一级形象类别：`cat`（猫类）或 `human`（人类） |
-| `cat_style` / `cat_color` | `0` / `0` | 当前类别下的具体形象索引及猫类配色索引 |
-| `preview_scale` | `1.0` | 预览画面缩放比例 |
-| `preview_window_opacity` | `0.85` | 预览窗口背景、边框和信息栏透明度，范围 `0`～`1` |
-| `preview_video_opacity` | `0.85` | 视频画面透明度，范围 `0`～`1` |
-| `preview_overlay_opacity` | `1.0` | 检测框、关键点和标签透明度，范围 `0`～`1` |
-| `debug_save` | `false` | 按天保存触发截图，最多保留三个日期目录 |
-| `auto_pause_fullscreen` | `false` | 前台全屏时自动暂停监控 |
-| `auto_return_enabled` | `false` | 人员离开后是否自动切回原窗口 |
-| `auto_return_delay_sec` | `10` | 人员离开后延迟切回的秒数 |
-| `settings_password_hash` | 空 | 可选的设置页密码哈希；留空时进入设置无需密码 |
+RapidOCR 本身不提供翻译；需要截图翻译时，应另外配置独立的翻译服务，OCR 仍可保持本地
+RapidOCR。
 
 设置页支持实时预览；“保存并应用”不会关闭设置页。监控默认启用，暂停后会释放
 摄像头。调试截图保存在 `debug_shots/YYYYMMDD/`，程序只清理由自身创建的日期目录。
@@ -158,6 +176,9 @@ RapidOCR 本身不提供翻译；需要截图翻译时，切换为 OpenAI-compat
 | `tests/settings_ui_test.py` | 设置界面测试 |
 | `tests/pose_draw_test.py` | 姿态关键点绘制测试 |
 | `tests/snap_test.py` | 贴边截图测试 |
+| `tests/screenshot_test.py` | 截图、贴图、OCR、翻译和取色交互测试 |
+| `tests/onnx_yolo_test.py` | YOLO 检测与姿态模型输出解析测试 |
+| `tests/human_styles_test.py` | 人类形象绘制测试 |
 
 ## 打包 EXE
 
