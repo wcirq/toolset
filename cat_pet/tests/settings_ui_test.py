@@ -51,12 +51,105 @@ check("人类下有 6 个主题形象", dlg.cat_style_combo.count() == 6)
 check("人类形象使用专属配色", not dlg.cat_color_combo.isEnabled())
 check("get_config 保存人类类别", dlg.get_config()["character_category"] == "human")
 check("默认截图快捷键为 Alt+A", dlg.get_config()["screenshot_hotkey"] == "Alt+A")
-check("第三方 OCR 默认关闭", dlg.get_config()["screenshot_ocr_provider"] == "disabled")
-check("OCR 默认在原图显示", dlg.get_config()["screenshot_result_mode"] == "image")
+check("OCR 默认启用本地 RapidOCR",
+      dlg.get_config()["screenshot_ocr_provider"] == "rapidocr_local")
+check("翻译结果默认在原图显示", dlg.get_config()["screenshot_result_mode"] == "image")
+check("翻译服务默认独立关闭",
+      dlg.get_config()["screenshot_translate_provider"] == "disabled")
+check("OCR 与翻译配置使用独立分组框",
+      dlg.screenshot_ocr_group.title() == "OCR 配置" and
+      dlg.screenshot_translate_group.title() == "翻译配置")
+check("源语言和目标语言使用同一套完整选项",
+      dlg.screenshot_xfyun_from_combo.count() == 70 and
+      dlg.screenshot_language_combo.count() == 70 and
+      [dlg.screenshot_xfyun_from_combo.itemData(i) for i in range(70)] ==
+      [dlg.screenshot_language_combo.itemData(i) for i in range(70)])
+check("OCR 不提供关闭选项且本地模式隐藏接口配置",
+      dlg.screenshot_provider_combo.findData("disabled") < 0 and
+      dlg.screenshot_endpoint_edit.isHidden() and
+      dlg.screenshot_api_key_edit.isHidden() and
+      dlg.screenshot_model_edit.isHidden())
+check("关闭翻译后隐藏结果模式和翻译配置",
+      dlg.screenshot_result_mode_combo.isHidden() and
+      dlg.screenshot_language_combo.isHidden() and
+      dlg.screenshot_translate_endpoint_edit.isHidden() and
+      dlg.screenshot_xfyun_endpoint_edit.isHidden() and
+      dlg.screenshot_translate_test_container.isHidden() and
+      dlg.screenshot_translate_test_result.isHidden())
+check("OCR 配置提供文字输入和测试按钮",
+      dlg.screenshot_ocr_test_button.text() == "测试 OCR" and
+      dlg.screenshot_ocr_test_input.placeholderText() != "")
+xfyun_idx = dlg.screenshot_translate_provider_combo.findData("xfyun")
+check("翻译服务包含讯飞 WebAPI", xfyun_idx >= 0)
+xfyun_v1_idx = dlg.screenshot_translate_provider_combo.findData("xfyun_v1")
+check("翻译服务包含讯飞机器翻译 2.0", xfyun_v1_idx >= 0)
+dlg.screenshot_translate_provider_combo.setCurrentIndex(xfyun_idx)
+check("选择讯飞后隐藏 OpenAI 配置",
+      dlg.screenshot_translate_endpoint_edit.isHidden() and
+      dlg.screenshot_translate_api_key_edit.isHidden() and
+      dlg.screenshot_translate_model_edit.isHidden())
+check("选择讯飞后显示讯飞配置",
+      not dlg.screenshot_xfyun_endpoint_edit.isHidden() and
+      not dlg.screenshot_xfyun_app_id_edit.isHidden() and
+      not dlg.screenshot_xfyun_api_secret_edit.isHidden() and
+      not dlg.screenshot_result_mode_combo.isHidden() and
+      not dlg.screenshot_language_combo.isHidden() and
+      not dlg.screenshot_translate_test_container.isHidden())
+dlg._api_config_test_completed("translate", True, 1.2345, "测试译文")
+check("接口测试结果显示状态、耗时和内容",
+      "成功" in dlg.screenshot_translate_test_result.text() and
+      "1.234" in dlg.screenshot_translate_test_result.text() and
+      "测试译文" in dlg.screenshot_translate_test_result.text())
+dlg.screenshot_xfyun_app_id_edit.setText("test-app")
+dlg.screenshot_xfyun_api_secret_edit.setText("test-secret")
+check("讯飞 APPID 和 Secret 可独立保存",
+      dlg.get_config()["screenshot_xfyun_app_id"] == "test-app" and
+      dlg.get_config()["screenshot_xfyun_api_secret"] == "test-secret")
+dlg.screenshot_translate_provider_combo.setCurrentIndex(xfyun_v1_idx)
+check("选择讯飞 2.0 后仅显示新版地址和术语资源",
+      dlg.screenshot_xfyun_endpoint_edit.isHidden() and
+      not dlg.screenshot_xfyun_v1_endpoint_edit.isHidden() and
+      not dlg.screenshot_xfyun_res_id_edit.isHidden() and
+      dlg.screenshot_xfyun_app_id_edit.isHidden() and
+      not dlg.screenshot_xfyun_v1_app_id_edit.isHidden())
+dlg.screenshot_xfyun_res_id_edit.setText("its_en_cn_word")
+dlg.screenshot_xfyun_v1_app_id_edit.setText("v1-app")
+dlg.screenshot_xfyun_v1_api_key_edit.setText("v1-key")
+dlg.screenshot_xfyun_v1_api_secret_edit.setText("v1-secret")
+v1_saved = dlg.get_config()
+check("讯飞 2.0 术语资源和凭据可独立保存",
+      v1_saved["screenshot_xfyun_res_id"] == "its_en_cn_word" and
+      v1_saved["screenshot_xfyun_v1_app_id"] == "v1-app" and
+      v1_saved["screenshot_xfyun_app_id"] == "test-app")
+openai_translate_idx = dlg.screenshot_translate_provider_combo.findData(
+    "openai_compatible")
+dlg.screenshot_translate_provider_combo.setCurrentIndex(openai_translate_idx)
+check("选择 OpenAI 后显示 OpenAI 配置并隐藏讯飞配置",
+      not dlg.screenshot_translate_endpoint_edit.isHidden() and
+      dlg.screenshot_xfyun_endpoint_edit.isHidden())
+check("截图配置滚动区使用深色背景",
+      "#1E1E2A" in dlg.screenshot_scroll.styleSheet())
+dlg.screenshot_endpoint_edit.setText("https://ocr.example/v1/chat/completions")
+dlg.screenshot_translate_endpoint_edit.setText(
+    "https://translate.example/v1/chat/completions")
+separated = dlg.get_config()
+check("OCR 与翻译接口配置相互独立",
+      separated["screenshot_ocr_api_endpoint"] !=
+      separated["screenshot_translate_api_endpoint"])
 umi_index = dlg.screenshot_provider_combo.findData("rapidocr_local")
 check("OCR 服务包含进程内 RapidOCR", umi_index >= 0)
 dlg.screenshot_provider_combo.setCurrentIndex(umi_index)
 check("get_config 保存 RapidOCR", dlg.get_config()["screenshot_ocr_provider"] == "rapidocr_local")
+check("本地 RapidOCR 不显示第三方接口配置",
+      dlg.screenshot_endpoint_edit.isHidden() and
+      dlg.screenshot_api_key_edit.isHidden() and
+      dlg.screenshot_model_edit.isHidden())
+openai_ocr_index = dlg.screenshot_provider_combo.findData("openai_compatible")
+dlg.screenshot_provider_combo.setCurrentIndex(openai_ocr_index)
+check("选择第三方 OCR 后显示接口配置",
+      not dlg.screenshot_endpoint_edit.isHidden() and
+      not dlg.screenshot_api_key_edit.isHidden() and
+      not dlg.screenshot_model_edit.isHidden())
 dlg.character_category_combo.setCurrentIndex(
     dlg.character_category_combo.findData("cat"))
 

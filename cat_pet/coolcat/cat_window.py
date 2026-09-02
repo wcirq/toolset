@@ -1866,11 +1866,13 @@ class CatWindow(QWidget):
                          else "小猫与检测设置...")
         menu.addAction(settings_text, self._open_settings)
         menu.addSeparator()
-        # 开机启动 (带勾选状态, 点击切换)
-        autostart_act = menu.addAction("开机启动")
-        autostart_act.setCheckable(True)
-        autostart_act.setChecked(self._autostart_on)
-        autostart_act.triggered.connect(self._toggle_autostart)
+        # 不使用 checkable，避免 Qt 为这一项额外预留左侧指示器列，
+        # 让文字与其他菜单项严格左对齐；状态改在文字右侧显示。
+        autostart_text = "开机启动  ✓" if self._autostart_on else "开机启动"
+        autostart_act = menu.addAction(autostart_text)
+        autostart_act.triggered.connect(
+            lambda _checked=False: self._toggle_autostart(
+                not self._autostart_on))
         menu.addSeparator()
         menu.addAction("退出", self._quit)
         menu.exec_(event.globalPos())

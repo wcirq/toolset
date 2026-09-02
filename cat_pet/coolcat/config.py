@@ -26,12 +26,26 @@ DEFAULT_CONFIG = {
     "monitor_effect_size": 220,  # 左上角渐变闪烁范围 (px)
     "screenshot_hotkey": "Alt+A",  # 区域截图/OCR/翻译/贴图
     "screenshot_hotkey_enabled": True,
-    "screenshot_ocr_provider": "disabled",  # disabled / openai_compatible / rapidocr_local
-    "screenshot_result_mode": "image",  # image / popup
-    "screenshot_api_endpoint": "",  # 第三方兼容接口的 chat/completions 地址
-    "screenshot_api_key": "",
-    "screenshot_api_model": "",
-    "screenshot_translate_language": "简体中文",
+    "screenshot_ocr_provider": "rapidocr_local",  # openai_compatible / rapidocr_local
+    "screenshot_result_mode": "image",  # 仅翻译结果: image / popup
+    "screenshot_ocr_api_endpoint": "",
+    "screenshot_ocr_api_key": "",
+    "screenshot_ocr_api_model": "",
+    "screenshot_translate_provider": "disabled",  # disabled / openai_compatible / xfyun / xfyun_v1
+    "screenshot_translate_api_endpoint": "",
+    "screenshot_translate_api_key": "",
+    "screenshot_translate_api_model": "",
+    "screenshot_xfyun_endpoint": "https://itrans.xfyun.cn/v2/its",
+    "screenshot_xfyun_v1_endpoint": "https://itrans.xf-yun.com/v1/its",
+    "screenshot_xfyun_res_id": "",
+    "screenshot_xfyun_v1_app_id": "",
+    "screenshot_xfyun_v1_api_key": "",
+    "screenshot_xfyun_v1_api_secret": "",
+    "screenshot_xfyun_app_id": "",
+    "screenshot_xfyun_api_key": "",
+    "screenshot_xfyun_api_secret": "",
+    "screenshot_xfyun_from": "cn",
+    "screenshot_translate_language": "cn",
     "chat_enabled": False,     # 聊天输入功能 (暂时禁用)
     "debug_save": False,       # 调试: 满足切换条件时保存标注检测图片到 debug_shots/
     "auto_pause_fullscreen": False,  # 全屏游戏/会议/演示时自动暂停监控
@@ -67,6 +81,23 @@ def load_config():
             # 迁移: 旧版单一预览透明度 -> 摄像头画面透明度
             if "preview_opacity" in saved and "preview_video_opacity" not in saved:
                 saved["preview_video_opacity"] = saved["preview_opacity"]
+            # 迁移: 旧版 OCR/翻译共用一套 API 配置 -> 两套独立配置。
+            old_endpoint = saved.get("screenshot_api_endpoint", "")
+            old_key = saved.get("screenshot_api_key", "")
+            old_model = saved.get("screenshot_api_model", "")
+            if "screenshot_ocr_api_endpoint" not in saved:
+                saved["screenshot_ocr_api_endpoint"] = old_endpoint
+                saved["screenshot_ocr_api_key"] = old_key
+                saved["screenshot_ocr_api_model"] = old_model
+            if "screenshot_translate_api_endpoint" not in saved:
+                saved["screenshot_translate_api_endpoint"] = old_endpoint
+                saved["screenshot_translate_api_key"] = old_key
+                saved["screenshot_translate_api_model"] = old_model
+                saved["screenshot_translate_provider"] = (
+                    "openai_compatible" if old_endpoint and old_model else "disabled")
+            # OCR 现为截图翻译的基础能力，不再允许关闭。
+            if saved.get("screenshot_ocr_provider") == "disabled":
+                saved["screenshot_ocr_provider"] = "rapidocr_local"
             for k in DEFAULT_CONFIG:
                 if k in saved:
                     cfg[k] = saved[k]
@@ -80,8 +111,12 @@ def save_config(cfg):
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
         logged = dict(cfg)
-        if logged.get("screenshot_api_key"):
-            logged["screenshot_api_key"] = "***"
+        for key in ("screenshot_ocr_api_key", "screenshot_translate_api_key",
+                    "screenshot_xfyun_api_key", "screenshot_xfyun_api_secret",
+                    "screenshot_xfyun_v1_api_key",
+                    "screenshot_xfyun_v1_api_secret"):
+            if logged.get(key):
+                logged[key] = "***"
         _log(f"配置已保存: {logged}")
     except Exception as e:
         _log(f"保存配置失败: {e}")

@@ -1,4 +1,66 @@
 from ..common import *
+from PyQt5.QtWidgets import QScrollArea
+
+
+TRANSLATION_LANGUAGES = (
+    ("汉语普通话", "cn"), ("英语", "en"), ("彝语", "ii"),
+    ("广东话", "yue"), ("日语", "ja"), ("俄语", "ru"),
+    ("法语", "fr"), ("西班牙语", "es"), ("阿拉伯语", "ar"),
+    ("意大利语", "it"), ("土耳其语", "tr"), ("越南语", "vi"),
+    ("泰语", "th"), ("韩语", "ko"), ("德语", "de"),
+    ("哈萨克语", "kka"), ("南非荷兰语", "af"), ("阿姆哈拉语", "am"),
+    ("阿塞拜疆语", "az"), ("孟加拉语", "bn"), ("加泰罗尼亚语", "ca"),
+    ("捷克语", "cs"), ("丹麦语", "da"), ("希腊语", "el"),
+    ("波斯语", "fa"), ("芬兰语", "fi"), ("希伯来语", "he"),
+    ("印地语", "hi"), ("克罗地亚语", "hr"), ("匈牙利语", "hu"),
+    ("亚美尼亚语", "hy"), ("印尼语", "id"), ("冰岛语", "is"),
+    ("塔加路语（菲律宾）", "tl"), ("罗马尼亚语", "ro"),
+    ("格鲁吉亚语", "ka"), ("高棉语", "km"), ("老挝语", "lo"),
+    ("立陶宛语", "lt"), ("拉脱维亚语", "lv"), ("马拉雅拉姆语", "ml"),
+    ("马拉地语", "mr"), ("博克马尔挪威语", "nb"), ("尼泊尔语", "ne"),
+    ("荷兰语", "nl"), ("波兰语", "pl"), ("葡萄牙语", "pt"),
+    ("僧伽罗语", "si"), ("斯洛伐克语", "sk"), ("斯洛文尼亚语", "sl"),
+    ("塞尔维亚语", "sr"), ("巽他语", "su"), ("瑞典语", "sv"),
+    ("斯瓦希里语", "sw"), ("泰米尔语", "ta"), ("泰卢固语", "te"),
+    ("爪哇语", "jv"), ("马来语", "ms"), ("乌克兰语", "uk"),
+    ("乌尔都语", "ur"), ("南非祖鲁语", "zu"), ("内蒙语", "mn"),
+    ("缅甸语", "my"), ("外蒙语", "nm"), ("普什图语", "ps"),
+    ("豪萨语", "ha"), ("乌兹别克语", "uz"), ("土库曼语", "tk"),
+    ("塔吉克语", "tg"), ("保加利亚语", "bg"),
+)
+
+
+class ApiConfigTestWorker(QThread):
+    completed = pyqtSignal(str, bool, float, str)
+
+    def __init__(self, kind, config, text, pixmap=None, parent=None):
+        super().__init__(parent)
+        self.kind = kind
+        self.config = dict(config)
+        self.text = text
+        self.pixmap = QPixmap(pixmap) if pixmap is not None else QPixmap()
+
+    def run(self):
+        started = time.perf_counter()
+        try:
+            from .screenshot import (call_openai_compatible,
+                                     call_translation_lines, call_umi_ocr)
+            if self.kind == "ocr":
+                provider = self.config.get(
+                    "screenshot_ocr_provider", "rapidocr_local")
+                if provider == "openai_compatible":
+                    result = call_openai_compatible(
+                        self.config, self.pixmap, translate=False)
+                else:
+                    result = call_umi_ocr(self.config, self.pixmap)
+            else:
+                result = "\n".join(call_translation_lines(
+                    self.config, [self.text]))
+            self.completed.emit(
+                self.kind, True, time.perf_counter() - started, str(result))
+        except Exception as exc:
+            self.completed.emit(
+                self.kind, False, time.perf_counter() - started, str(exc))
 
 # ======================== 无边框对话框标题栏 ========================
 class DialogTitleBar(QWidget):
@@ -701,7 +763,7 @@ class SettingsDialog(QDialog):
         l3.addWidget(g6_monitor)
 
         # ---------- 截图快捷键与第三方 OCR ----------
-        g6_screenshot = QGroupBox("截图、OCR、翻译与贴图")
+        g6_screenshot = QGroupBox("截图与贴图")
         f6_screenshot = QFormLayout(g6_screenshot)
         shrow = QHBoxLayout()
         self.screenshot_hk_ctrl = QCheckBox("Ctrl")
@@ -722,37 +784,142 @@ class SettingsDialog(QDialog):
         self.screenshot_hk_enabled = QCheckBox("启用全局截图快捷键")
         f6_screenshot.addRow("", self.screenshot_hk_enabled)
 
+        self.screenshot_ocr_group = QGroupBox("OCR 配置")
+        f6_ocr = QFormLayout(self.screenshot_ocr_group)
+        self.screenshot_ocr_form_layout = f6_ocr
         self.screenshot_provider_combo = QComboBox()
-        self.screenshot_provider_combo.addItem("不启用 OCR/翻译", "disabled")
-        self.screenshot_provider_combo.addItem(
-            "OpenAI-compatible 第三方接口", "openai_compatible")
         self.screenshot_provider_combo.addItem(
             "本地 RapidOCR SMALL（进程内推理）", "rapidocr_local")
-        f6_screenshot.addRow("OCR 服务:", self.screenshot_provider_combo)
+        self.screenshot_provider_combo.addItem(
+            "OpenAI-compatible 第三方接口", "openai_compatible")
+        f6_ocr.addRow("OCR 服务:", self.screenshot_provider_combo)
+        self.screenshot_endpoint_edit = QLineEdit()
+        self.screenshot_endpoint_edit.setPlaceholderText(
+            "https://服务地址/v1/chat/completions")
+        f6_ocr.addRow("OCR 接口地址:", self.screenshot_endpoint_edit)
+        self.screenshot_api_key_edit = QLineEdit()
+        self.screenshot_api_key_edit.setEchoMode(QLineEdit.Password)
+        self.screenshot_api_key_edit.setPlaceholderText("Bearer API Key（保存在本机配置）")
+        f6_ocr.addRow("OCR API Key:", self.screenshot_api_key_edit)
+        self.screenshot_model_edit = QLineEdit()
+        self.screenshot_model_edit.setPlaceholderText("支持图片输入的模型名称")
+        f6_ocr.addRow("OCR 模型:", self.screenshot_model_edit)
+        self.screenshot_ocr_test_input = QLineEdit()
+        self.screenshot_ocr_test_input.setPlaceholderText("输入用于生成测试图片的文字")
+        self.screenshot_ocr_test_button = QPushButton("测试 OCR")
+        self.screenshot_ocr_test_container = QWidget()
+        ocr_test_row = QHBoxLayout(self.screenshot_ocr_test_container)
+        ocr_test_row.setContentsMargins(0, 0, 0, 0)
+        ocr_test_row.addWidget(self.screenshot_ocr_test_input, 1)
+        ocr_test_row.addWidget(self.screenshot_ocr_test_button)
+        f6_ocr.addRow("接口测试:", self.screenshot_ocr_test_container)
+        self.screenshot_ocr_test_result = QLabel("尚未测试")
+        self.screenshot_ocr_test_result.setWordWrap(True)
+        self.screenshot_ocr_test_result.setTextInteractionFlags(
+            Qt.TextSelectableByMouse)
+        f6_ocr.addRow("测试结果:", self.screenshot_ocr_test_result)
+        f6_screenshot.addRow(self.screenshot_ocr_group)
+
+        self.screenshot_translate_group = QGroupBox("翻译配置")
+        f6_translate = QFormLayout(self.screenshot_translate_group)
+        self.screenshot_translate_form_layout = f6_translate
+        self.screenshot_translate_provider_combo = QComboBox()
+        self.screenshot_translate_provider_combo.addItem("关闭翻译", "disabled")
+        self.screenshot_translate_provider_combo.addItem(
+            "OpenAI-compatible 翻译接口", "openai_compatible")
+        self.screenshot_translate_provider_combo.addItem(
+            "讯飞机器翻译 WebAPI（旧版 v2）", "xfyun")
+        self.screenshot_translate_provider_combo.addItem(
+            "讯飞机器翻译 2.0（新版 v1）", "xfyun_v1")
+        f6_translate.addRow("翻译服务:", self.screenshot_translate_provider_combo)
         self.screenshot_result_mode_combo = QComboBox()
         self.screenshot_result_mode_combo.addItem(
             "在原图上擦除并重绘文字（默认）", "image")
         self.screenshot_result_mode_combo.addItem(
             "弹出文字结果窗口", "popup")
-        f6_screenshot.addRow("结果显示:", self.screenshot_result_mode_combo)
-        self.screenshot_endpoint_edit = QLineEdit()
-        self.screenshot_endpoint_edit.setPlaceholderText(
-            "https://服务地址/v1/chat/completions")
-        f6_screenshot.addRow("接口地址:", self.screenshot_endpoint_edit)
-        self.screenshot_api_key_edit = QLineEdit()
-        self.screenshot_api_key_edit.setEchoMode(QLineEdit.Password)
-        self.screenshot_api_key_edit.setPlaceholderText("Bearer API Key（保存在本机配置）")
-        f6_screenshot.addRow("API Key:", self.screenshot_api_key_edit)
-        self.screenshot_model_edit = QLineEdit()
-        self.screenshot_model_edit.setPlaceholderText("支持图片输入的模型名称")
-        f6_screenshot.addRow("模型:", self.screenshot_model_edit)
-        self.screenshot_language_edit = QLineEdit()
-        self.screenshot_language_edit.setPlaceholderText("如：简体中文、English、日本語")
-        f6_screenshot.addRow("翻译目标:", self.screenshot_language_edit)
+        f6_translate.addRow("翻译结果显示:", self.screenshot_result_mode_combo)
+        self.screenshot_translate_endpoint_edit = QLineEdit()
+        self.screenshot_translate_endpoint_edit.setPlaceholderText(
+            "https://翻译服务地址/v1/chat/completions")
+        f6_translate.addRow("翻译接口地址:", self.screenshot_translate_endpoint_edit)
+        self.screenshot_translate_api_key_edit = QLineEdit()
+        self.screenshot_translate_api_key_edit.setEchoMode(QLineEdit.Password)
+        self.screenshot_translate_api_key_edit.setPlaceholderText(
+            "翻译服务 Bearer API Key（保存在本机）")
+        f6_translate.addRow("翻译 API Key:", self.screenshot_translate_api_key_edit)
+        self.screenshot_translate_model_edit = QLineEdit()
+        self.screenshot_translate_model_edit.setPlaceholderText("翻译模型名称")
+        f6_translate.addRow("翻译模型:", self.screenshot_translate_model_edit)
+        self.screenshot_xfyun_endpoint_edit = QLineEdit()
+        self.screenshot_xfyun_endpoint_edit.setPlaceholderText(
+            "https://itrans.xfyun.cn/v2/its")
+        f6_translate.addRow("讯飞接口地址:", self.screenshot_xfyun_endpoint_edit)
+        self.screenshot_xfyun_v1_endpoint_edit = QLineEdit()
+        self.screenshot_xfyun_v1_endpoint_edit.setPlaceholderText(
+            "https://itrans.xf-yun.com/v1/its")
+        f6_translate.addRow(
+            "讯飞 2.0 接口地址:", self.screenshot_xfyun_v1_endpoint_edit)
+        self.screenshot_xfyun_res_id_edit = QLineEdit()
+        self.screenshot_xfyun_res_id_edit.setPlaceholderText(
+            "可选，如：its_en_cn_word")
+        f6_translate.addRow("术语资源 RES_ID:", self.screenshot_xfyun_res_id_edit)
+        self.screenshot_xfyun_app_id_edit = QLineEdit()
+        f6_translate.addRow("旧版 APPID:", self.screenshot_xfyun_app_id_edit)
+        self.screenshot_xfyun_api_key_edit = QLineEdit()
+        self.screenshot_xfyun_api_key_edit.setEchoMode(QLineEdit.Password)
+        f6_translate.addRow("旧版 API Key:", self.screenshot_xfyun_api_key_edit)
+        self.screenshot_xfyun_api_secret_edit = QLineEdit()
+        self.screenshot_xfyun_api_secret_edit.setEchoMode(QLineEdit.Password)
+        f6_translate.addRow("旧版 API Secret:", self.screenshot_xfyun_api_secret_edit)
+        self.screenshot_xfyun_v1_app_id_edit = QLineEdit()
+        f6_translate.addRow("2.0 APPID:", self.screenshot_xfyun_v1_app_id_edit)
+        self.screenshot_xfyun_v1_api_key_edit = QLineEdit()
+        self.screenshot_xfyun_v1_api_key_edit.setEchoMode(QLineEdit.Password)
+        f6_translate.addRow("2.0 API Key:", self.screenshot_xfyun_v1_api_key_edit)
+        self.screenshot_xfyun_v1_api_secret_edit = QLineEdit()
+        self.screenshot_xfyun_v1_api_secret_edit.setEchoMode(QLineEdit.Password)
+        f6_translate.addRow(
+            "2.0 API Secret:", self.screenshot_xfyun_v1_api_secret_edit)
+        self.screenshot_xfyun_from_combo = QComboBox()
+        for label, code in TRANSLATION_LANGUAGES:
+            self.screenshot_xfyun_from_combo.addItem(f"{label} ({code})", code)
+        f6_translate.addRow("源语言:", self.screenshot_xfyun_from_combo)
+        self.screenshot_language_combo = QComboBox()
+        for label, code in TRANSLATION_LANGUAGES:
+            self.screenshot_language_combo.addItem(f"{label} ({code})", code)
+        # 保留旧属性名，避免外部插件访问设置窗口时失效。
+        self.screenshot_language_edit = self.screenshot_language_combo
+        f6_translate.addRow("目标语言:", self.screenshot_language_combo)
+        self.screenshot_translate_test_input = QLineEdit()
+        self.screenshot_translate_test_input.setPlaceholderText("输入需要翻译的测试文本")
+        self.screenshot_translate_test_button = QPushButton("测试翻译")
+        self.screenshot_translate_test_container = QWidget()
+        translate_test_row = QHBoxLayout(self.screenshot_translate_test_container)
+        translate_test_row.setContentsMargins(0, 0, 0, 0)
+        translate_test_row.addWidget(self.screenshot_translate_test_input, 1)
+        translate_test_row.addWidget(self.screenshot_translate_test_button)
+        f6_translate.addRow("接口测试:", self.screenshot_translate_test_container)
+        self.screenshot_translate_test_result = QLabel("尚未测试")
+        self.screenshot_translate_test_result.setWordWrap(True)
+        self.screenshot_translate_test_result.setTextInteractionFlags(
+            Qt.TextSelectableByMouse)
+        f6_translate.addRow("测试结果:", self.screenshot_translate_test_result)
+        f6_screenshot.addRow(self.screenshot_translate_group)
+        self._config_test_workers = []
+        self.screenshot_ocr_test_button.clicked.connect(
+            lambda: self._start_api_config_test("ocr"))
+        self.screenshot_translate_test_button.clicked.connect(
+            lambda: self._start_api_config_test("translate"))
+        self.screenshot_provider_combo.currentIndexChanged.connect(
+            self._update_ocr_provider_fields)
+        self.screenshot_translate_provider_combo.currentIndexChanged.connect(
+            self._update_translation_provider_fields)
+        self._update_ocr_provider_fields()
+        self._update_translation_provider_fields()
         screenshot_hint = QLabel(
-            "框选后可复制、OCR、翻译或贴图；贴图无边框且始终置顶。"
+            "OCR 始终弹出文字结果；翻译可在原图重绘或弹窗显示。"
             "RapidOCR SMALL 模型直接在当前进程离线识别，无需 EXE 或本地服务；"
-            "翻译仍需 OpenAI-compatible 图片接口。")
+            "OCR 与翻译服务相互独立，可分别启用和配置。")
         screenshot_hint.setWordWrap(True)
         screenshot_hint.setStyleSheet(
             "color:#8888A0;font-size:11px;font-weight:normal;")
@@ -761,10 +928,29 @@ class SettingsDialog(QDialog):
         self.tabs.addTab(page3, "目标与快捷键")
 
         screenshot_page = QWidget()
+        screenshot_page.setObjectName("screenshotPage")
+        screenshot_page.setStyleSheet("QWidget#screenshotPage{background:#1E1E2A;}")
         screenshot_layout = QVBoxLayout(screenshot_page)
         screenshot_layout.setContentsMargins(8, 8, 8, 8)
-        screenshot_layout.addWidget(g6_screenshot)
-        screenshot_layout.addStretch()
+        screenshot_scroll = QScrollArea()
+        self.screenshot_scroll = screenshot_scroll
+        screenshot_scroll.setObjectName("screenshotScroll")
+        screenshot_scroll.setWidgetResizable(True)
+        screenshot_scroll.setFrameShape(QScrollArea.NoFrame)
+        screenshot_scroll.setFixedHeight(520)
+        screenshot_scroll.setStyleSheet(
+            "QScrollArea#screenshotScroll{background:#1E1E2A;border:none;}"
+            "QScrollArea#screenshotScroll QWidget#qt_scrollarea_viewport{background:#1E1E2A;}")
+        screenshot_content = QWidget()
+        screenshot_content.setObjectName("screenshotContent")
+        screenshot_content.setStyleSheet(
+            "QWidget#screenshotContent{background:#1E1E2A;}")
+        screenshot_content_layout = QVBoxLayout(screenshot_content)
+        screenshot_content_layout.setContentsMargins(0, 0, 6, 0)
+        screenshot_content_layout.addWidget(g6_screenshot)
+        screenshot_content_layout.addStretch()
+        screenshot_scroll.setWidget(screenshot_content)
+        screenshot_layout.addWidget(screenshot_scroll)
         self.tabs.addTab(screenshot_page, "截图与贴图")
 
         # ========== Tab 5: 安全 ==========
@@ -905,7 +1091,7 @@ class SettingsDialog(QDialog):
             screenshot_ki if screenshot_ki >= 0 else self.screenshot_hk_key.findText("A"))
         self.screenshot_hk_enabled.setChecked(
             cfg.get("screenshot_hotkey_enabled", True))
-        provider = cfg.get("screenshot_ocr_provider", "disabled")
+        provider = cfg.get("screenshot_ocr_provider", "rapidocr_local")
         if provider == "umi_ocr":
             provider = "rapidocr_local"
         provider_idx = self.screenshot_provider_combo.findData(provider)
@@ -914,11 +1100,50 @@ class SettingsDialog(QDialog):
             cfg.get("screenshot_result_mode", "image"))
         self.screenshot_result_mode_combo.setCurrentIndex(
             result_mode_idx if result_mode_idx >= 0 else 0)
-        self.screenshot_endpoint_edit.setText(cfg.get("screenshot_api_endpoint", ""))
-        self.screenshot_api_key_edit.setText(cfg.get("screenshot_api_key", ""))
-        self.screenshot_model_edit.setText(cfg.get("screenshot_api_model", ""))
-        self.screenshot_language_edit.setText(
-            cfg.get("screenshot_translate_language", "简体中文"))
+        self.screenshot_endpoint_edit.setText(cfg.get("screenshot_ocr_api_endpoint", ""))
+        self.screenshot_api_key_edit.setText(cfg.get("screenshot_ocr_api_key", ""))
+        self.screenshot_model_edit.setText(cfg.get("screenshot_ocr_api_model", ""))
+        translate_provider_idx = self.screenshot_translate_provider_combo.findData(
+            cfg.get("screenshot_translate_provider", "disabled"))
+        self.screenshot_translate_provider_combo.setCurrentIndex(
+            translate_provider_idx if translate_provider_idx >= 0 else 0)
+        self.screenshot_translate_endpoint_edit.setText(
+            cfg.get("screenshot_translate_api_endpoint", ""))
+        self.screenshot_translate_api_key_edit.setText(
+            cfg.get("screenshot_translate_api_key", ""))
+        self.screenshot_translate_model_edit.setText(
+            cfg.get("screenshot_translate_api_model", ""))
+        self.screenshot_xfyun_endpoint_edit.setText(cfg.get(
+            "screenshot_xfyun_endpoint", "https://itrans.xfyun.cn/v2/its"))
+        self.screenshot_xfyun_v1_endpoint_edit.setText(cfg.get(
+            "screenshot_xfyun_v1_endpoint", "https://itrans.xf-yun.com/v1/its"))
+        self.screenshot_xfyun_res_id_edit.setText(
+            cfg.get("screenshot_xfyun_res_id", ""))
+        self.screenshot_xfyun_v1_app_id_edit.setText(
+            cfg.get("screenshot_xfyun_v1_app_id", ""))
+        self.screenshot_xfyun_v1_api_key_edit.setText(
+            cfg.get("screenshot_xfyun_v1_api_key", ""))
+        self.screenshot_xfyun_v1_api_secret_edit.setText(
+            cfg.get("screenshot_xfyun_v1_api_secret", ""))
+        self.screenshot_xfyun_app_id_edit.setText(
+            cfg.get("screenshot_xfyun_app_id", ""))
+        self.screenshot_xfyun_api_key_edit.setText(
+            cfg.get("screenshot_xfyun_api_key", ""))
+        self.screenshot_xfyun_api_secret_edit.setText(
+            cfg.get("screenshot_xfyun_api_secret", ""))
+        xfyun_from_idx = self.screenshot_xfyun_from_combo.findData(
+            cfg.get("screenshot_xfyun_from", "cn"))
+        self.screenshot_xfyun_from_combo.setCurrentIndex(
+            xfyun_from_idx if xfyun_from_idx >= 0 else 0)
+        target_language = cfg.get("screenshot_translate_language", "cn")
+        target_idx = self.screenshot_language_combo.findData(target_language)
+        if target_idx < 0:
+            legacy_names = {"简体中文": "cn", "中文": "cn", "汉语": "cn",
+                            "英文": "en", "English": "en", "日本語": "ja"}
+            target_idx = self.screenshot_language_combo.findData(
+                legacy_names.get(str(target_language), target_language))
+        self.screenshot_language_combo.setCurrentIndex(
+            target_idx if target_idx >= 0 else 0)
 
         self.character_category_combo.currentIndexChanged.connect(
             self._update_character_styles)
@@ -937,6 +1162,103 @@ class SettingsDialog(QDialog):
                 control.valueChanged.connect(self._apply_live_preview)
             else:
                 control.currentIndexChanged.connect(self._apply_live_preview)
+
+    def _update_translation_provider_fields(self, _index=None):
+        provider = self.screenshot_translate_provider_combo.currentData()
+        enabled = provider in ("openai_compatible", "xfyun", "xfyun_v1")
+        show_openai = provider == "openai_compatible"
+        show_xfyun = provider in ("xfyun", "xfyun_v1")
+        show_xfyun_old = provider == "xfyun"
+        show_xfyun_v1 = provider == "xfyun_v1"
+        for widget in (self.screenshot_result_mode_combo,
+                       self.screenshot_language_combo,
+                       self.screenshot_translate_test_container,
+                       self.screenshot_translate_test_result):
+            self._set_form_row_visible(
+                self.screenshot_translate_form_layout, widget, enabled)
+        for widget in (self.screenshot_translate_endpoint_edit,
+                       self.screenshot_translate_api_key_edit,
+                       self.screenshot_translate_model_edit):
+            self._set_form_row_visible(
+                self.screenshot_translate_form_layout, widget, show_openai)
+        self._set_form_row_visible(
+            self.screenshot_translate_form_layout,
+            self.screenshot_xfyun_endpoint_edit, show_xfyun_old)
+        for widget in (self.screenshot_xfyun_v1_endpoint_edit,
+                       self.screenshot_xfyun_res_id_edit,
+                       self.screenshot_xfyun_v1_app_id_edit,
+                       self.screenshot_xfyun_v1_api_key_edit,
+                       self.screenshot_xfyun_v1_api_secret_edit):
+            self._set_form_row_visible(
+                self.screenshot_translate_form_layout, widget, show_xfyun_v1)
+        for widget in (self.screenshot_xfyun_app_id_edit,
+                       self.screenshot_xfyun_api_key_edit,
+                       self.screenshot_xfyun_api_secret_edit):
+            self._set_form_row_visible(
+                self.screenshot_translate_form_layout, widget, show_xfyun_old)
+        self._set_form_row_visible(
+            self.screenshot_translate_form_layout,
+            self.screenshot_xfyun_from_combo, show_xfyun)
+
+    def _start_api_config_test(self, kind):
+        is_ocr = kind == "ocr"
+        input_widget = (self.screenshot_ocr_test_input if is_ocr
+                        else self.screenshot_translate_test_input)
+        button = (self.screenshot_ocr_test_button if is_ocr
+                  else self.screenshot_translate_test_button)
+        result_label = (self.screenshot_ocr_test_result if is_ocr
+                        else self.screenshot_translate_test_result)
+        test_text = input_widget.text().strip()
+        if not test_text:
+            result_label.setText("请输入测试文本")
+            return
+        pixmap = None
+        if is_ocr:
+            pixmap = QPixmap(900, 150)
+            pixmap.fill(QColor("#FFFFFF"))
+            painter = QPainter(pixmap)
+            painter.setPen(QColor("#111111"))
+            painter.setFont(QFont("Microsoft YaHei UI", 30))
+            painter.drawText(
+                pixmap.rect().adjusted(24, 12, -24, -12),
+                Qt.AlignLeft | Qt.AlignVCenter | Qt.TextWordWrap, test_text)
+            painter.end()
+        button.setEnabled(False)
+        result_label.setText("测试中，请稍候…")
+        worker = ApiConfigTestWorker(
+            kind, self.get_config(), test_text, pixmap, self)
+        self._config_test_workers.append(worker)
+        worker.completed.connect(self._api_config_test_completed)
+        worker.finished.connect(
+            lambda: self._config_test_workers.remove(worker)
+            if worker in self._config_test_workers else None)
+        worker.start()
+
+    def _api_config_test_completed(self, kind, success, elapsed, result):
+        is_ocr = kind == "ocr"
+        button = (self.screenshot_ocr_test_button if is_ocr
+                  else self.screenshot_translate_test_button)
+        result_label = (self.screenshot_ocr_test_result if is_ocr
+                        else self.screenshot_translate_test_result)
+        button.setEnabled(True)
+        status = "成功" if success else "失败"
+        result_label.setText(
+            f"{status}｜耗时 {elapsed:.3f} 秒\n{result}")
+
+    def _update_ocr_provider_fields(self, _index=None):
+        show_api = self.screenshot_provider_combo.currentData() == "openai_compatible"
+        for widget in (self.screenshot_endpoint_edit,
+                       self.screenshot_api_key_edit,
+                       self.screenshot_model_edit):
+            self._set_form_row_visible(
+                self.screenshot_ocr_form_layout, widget, show_api)
+
+    @staticmethod
+    def _set_form_row_visible(form_layout, widget, visible):
+        widget.setVisible(visible)
+        label = form_layout.labelForField(widget)
+        if label is not None:
+            label.setVisible(visible)
 
     def _update_character_styles(self, _index=None):
         category = self.character_category_combo.currentData() or "cat"
@@ -1122,12 +1444,29 @@ class SettingsDialog(QDialog):
         self.screenshot_hk_key.setCurrentIndex(
             self.screenshot_hk_key.findText("A"))
         self.screenshot_hk_enabled.setChecked(True)
-        self.screenshot_provider_combo.setCurrentIndex(0)
+        self.screenshot_provider_combo.setCurrentIndex(
+            self.screenshot_provider_combo.findData("rapidocr_local"))
         self.screenshot_result_mode_combo.setCurrentIndex(0)
         self.screenshot_endpoint_edit.clear()
         self.screenshot_api_key_edit.clear()
         self.screenshot_model_edit.clear()
-        self.screenshot_language_edit.setText("简体中文")
+        self.screenshot_translate_provider_combo.setCurrentIndex(0)
+        self.screenshot_translate_endpoint_edit.clear()
+        self.screenshot_translate_api_key_edit.clear()
+        self.screenshot_translate_model_edit.clear()
+        self.screenshot_xfyun_endpoint_edit.setText(
+            "https://itrans.xfyun.cn/v2/its")
+        self.screenshot_xfyun_v1_endpoint_edit.setText(
+            "https://itrans.xf-yun.com/v1/its")
+        self.screenshot_xfyun_res_id_edit.clear()
+        self.screenshot_xfyun_v1_app_id_edit.clear()
+        self.screenshot_xfyun_v1_api_key_edit.clear()
+        self.screenshot_xfyun_v1_api_secret_edit.clear()
+        self.screenshot_xfyun_app_id_edit.clear()
+        self.screenshot_xfyun_api_key_edit.clear()
+        self.screenshot_xfyun_api_secret_edit.clear()
+        self.screenshot_xfyun_from_combo.setCurrentIndex(0)
+        self.screenshot_language_combo.setCurrentIndex(0)
         # 密码输入框清空 (不重置密码本身)
         self.pwd_old_edit.clear()
         self.pwd_new_edit.clear()
@@ -1204,14 +1543,44 @@ class SettingsDialog(QDialog):
             "screenshot_hotkey_enabled": (
                 self.screenshot_hk_enabled.isChecked() and bool(screenshot_mods)),
             "screenshot_ocr_provider": (
-                self.screenshot_provider_combo.currentData() or "disabled"),
+                self.screenshot_provider_combo.currentData() or "rapidocr_local"),
             "screenshot_result_mode": (
                 self.screenshot_result_mode_combo.currentData() or "image"),
-            "screenshot_api_endpoint": self.screenshot_endpoint_edit.text().strip(),
-            "screenshot_api_key": self.screenshot_api_key_edit.text().strip(),
-            "screenshot_api_model": self.screenshot_model_edit.text().strip(),
+            "screenshot_ocr_api_endpoint": self.screenshot_endpoint_edit.text().strip(),
+            "screenshot_ocr_api_key": self.screenshot_api_key_edit.text().strip(),
+            "screenshot_ocr_api_model": self.screenshot_model_edit.text().strip(),
+            "screenshot_translate_provider": (
+                self.screenshot_translate_provider_combo.currentData() or "disabled"),
+            "screenshot_translate_api_endpoint": (
+                self.screenshot_translate_endpoint_edit.text().strip()),
+            "screenshot_translate_api_key": (
+                self.screenshot_translate_api_key_edit.text().strip()),
+            "screenshot_translate_api_model": (
+                self.screenshot_translate_model_edit.text().strip()),
+            "screenshot_xfyun_endpoint": (
+                self.screenshot_xfyun_endpoint_edit.text().strip()
+                or "https://itrans.xfyun.cn/v2/its"),
+            "screenshot_xfyun_v1_endpoint": (
+                self.screenshot_xfyun_v1_endpoint_edit.text().strip()
+                or "https://itrans.xf-yun.com/v1/its"),
+            "screenshot_xfyun_res_id": (
+                self.screenshot_xfyun_res_id_edit.text().strip()),
+            "screenshot_xfyun_v1_app_id": (
+                self.screenshot_xfyun_v1_app_id_edit.text().strip()),
+            "screenshot_xfyun_v1_api_key": (
+                self.screenshot_xfyun_v1_api_key_edit.text().strip()),
+            "screenshot_xfyun_v1_api_secret": (
+                self.screenshot_xfyun_v1_api_secret_edit.text().strip()),
+            "screenshot_xfyun_app_id": (
+                self.screenshot_xfyun_app_id_edit.text().strip()),
+            "screenshot_xfyun_api_key": (
+                self.screenshot_xfyun_api_key_edit.text().strip()),
+            "screenshot_xfyun_api_secret": (
+                self.screenshot_xfyun_api_secret_edit.text().strip()),
+            "screenshot_xfyun_from": (
+                self.screenshot_xfyun_from_combo.currentData() or "cn"),
             "screenshot_translate_language": (
-                self.screenshot_language_edit.text().strip() or "简体中文"),
+                self.screenshot_language_combo.currentData() or "cn"),
             "chat_enabled": False,   # 聊天输入功能暂时禁用
             "debug_save": self.debug_check.isChecked(),
             # 非 UI 项原样保留 (预览窗口缩放等由滚轮实时修改)

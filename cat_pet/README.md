@@ -105,10 +105,14 @@ OCR 和翻译默认关闭。OCR 可在“截图与贴图”设置页选择进程
 | `monitor_effect_size` | `220` | 左上角渐变闪烁范围（像素） |
 | `screenshot_hotkey` | `Alt+A` | 区域截图、OCR、翻译和贴图快捷键 |
 | `screenshot_hotkey_enabled` | `true` | 是否注册全局截图快捷键 |
-| `screenshot_ocr_provider` | `disabled` | OCR 服务：关闭或 `openai_compatible` |
-| `screenshot_result_mode` | `image` | `image` 在原图擦除重绘，`popup` 弹出文字窗口 |
-| `screenshot_api_endpoint` | 空 | 第三方 `chat/completions` 完整接口地址 |
-| `screenshot_api_key` / `screenshot_api_model` | 空 | 第三方 API Key 与支持图片输入的模型 |
+| `screenshot_ocr_provider` | `disabled` | OCR 服务：关闭、`rapidocr_local` 或 `openai_compatible` |
+| `screenshot_result_mode` | `image` | 仅控制翻译；OCR 使用非模态无标题栏原图+右侧文字面板 |
+| `screenshot_ocr_api_endpoint/key/model` | 空 | 云端 OCR 独立接口、密钥和图片模型 |
+| `screenshot_translate_provider` | `disabled` | 是否启用独立翻译服务 |
+| `screenshot_translate_api_endpoint/key/model` | 空 | 翻译服务独立接口、密钥和模型 |
+| `screenshot_xfyun_endpoint` | `https://itrans.xfyun.cn/v2/its` | 讯飞机器翻译接口 |
+| `screenshot_xfyun_app_id/api_key/api_secret` | 空 | 讯飞翻译鉴权配置（仅保存在本机） |
+| `screenshot_xfyun_from` | `cn` | 讯飞翻译源语言代码 |
 | `screenshot_translate_language` | `简体中文` | 截图翻译的目标语言 |
 
 ### 本地 RapidOCR（小体积方案）
