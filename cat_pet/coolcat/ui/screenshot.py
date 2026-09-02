@@ -125,8 +125,7 @@ def get_rapidocr_engine():
         try:
             from rapidocr import RapidOCR
         except ImportError as exc:
-            raise RuntimeError(
-                "当前 Python 环境未安装 rapidocr 和 onnxruntime") from exc
+            raise RuntimeError("RapidOCR 初始化失败：" + str(exc)) from exc
         _rapidocr_engine = RapidOCR(params={"Global.log_level": "critical"})
     return _rapidocr_engine
 
