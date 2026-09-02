@@ -6,15 +6,15 @@ CONFIG_PATH = (os.path.join(BASE_DIR, "config.json")
                else os.path.join(BASE_DIR, "config", "config.json"))
 
 DEFAULT_CONFIG = {
-    "model": "hog",            # "hog" = HOG+Haar 传统检测, "yolo" = YOLOv26 深度学习
-    "yolo_model": "yolo26n.onnx",  # ONNX Runtime 人体检测/姿态模型
+    "model": "yolo",           # "hog" = HOG+Haar 传统检测, "yolo" = YOLOv26 深度学习
+    "yolo_model": "yolo26n-pose.onnx",  # ONNX Runtime 姿态模型
     "yolo_conf": 0.4,          # YOLO 置信度阈值
     "pose_kpt_conf": 0.5,      # pose 模型: 头部关键点(鼻/眼/耳)置信度阈值
     "dedup_iou": 0.55,         # 重复框合并: IoU/包含率超过该值的框视为同一人
     "trigger_count": 2,        # 检测到 >= 该人数(pose模型=头部数)时触发切换
     "sustain_sec": 1.5,        # 持续检出超过该秒数才触发 (0 = 立即)
     "trigger_cooldown_sec": 10.0,  # 触发切换后的冷却时间 (0 = 不冷却)
-    "cat_scale": 1.0,          # 小猫尺寸倍率 (0.6 ~ 2.0)
+    "cat_scale": 1.0,          # 小猫尺寸倍率 (0.01 ~ 2.0)
     "camera_index": 0,         # 摄像头编号
     "target_exe": "devenv",    # 目标程序可执行名关键字 (devenv=VS, Code=VSCode, idea64=IDEA...)
     "target_title": "visual studio",  # 目标程序窗口标题关键字
@@ -58,8 +58,12 @@ DEFAULT_CONFIG = {
     "cat_color": 0,            # 小猫颜色索引 (对应 COLORS 列表, 右键换颜色后自动记忆)
     "character_category": "cat",  # 一级形象类别: cat / human
     "cat_style": 0,            # 小猫品种索引 (对应 CAT_STYLES)
-    "settings_password_hash": _hash_password("wcy206211"),  # 设置页面密码哈希 (SHA-256)
+    "settings_password_hash": "",  # 留空表示未设置访问密码
 }
+
+# 旧版本内置密码的 SHA-256，仅用于把已有配置迁移为“未设置密码”。
+_LEGACY_DEFAULT_PASSWORD_HASH = (
+    "f6e0a1e2ac41945a9aa7ff8a8aaa0cebc12a3bcc981a929ad5cf810a090e11ae")
 
 def load_config():
     cfg = dict(DEFAULT_CONFIG)
@@ -78,6 +82,14 @@ def load_config():
                     _log("已迁移 settings_password -> settings_password_hash (哈希加密)")
                 except Exception as e:
                     _log(f"迁移密码哈希写回失败: {e}")
+            if saved.get("settings_password_hash") == _LEGACY_DEFAULT_PASSWORD_HASH:
+                saved["settings_password_hash"] = ""
+                try:
+                    with open(CONFIG_PATH, "w", encoding="utf-8") as f2:
+                        json.dump(saved, f2, ensure_ascii=False, indent=2)
+                    _log("已取消旧版本内置设置密码")
+                except Exception as e:
+                    _log(f"取消旧版本内置设置密码写回失败: {e}")
             # 迁移: 旧版单一预览透明度 -> 摄像头画面透明度
             if "preview_opacity" in saved and "preview_video_opacity" not in saved:
                 saved["preview_video_opacity"] = saved["preview_opacity"]

@@ -589,7 +589,8 @@ class SettingsDialog(QDialog):
         g3 = QGroupBox("小猫尺寸")
         f3 = QFormLayout(g3)
         self.scale_slider = QSlider(Qt.Horizontal)
-        self.scale_slider.setRange(60, 200)
+        # 1% 仅用于避免零尺寸窗口；产品层面不再设置最小尺寸限制。
+        self.scale_slider.setRange(1, 200)
         self.scale_slider.setTickInterval(10)
         self.scale_label = QLabel("100%")
         self.scale_label.setMinimumWidth(48)
@@ -631,7 +632,7 @@ class SettingsDialog(QDialog):
 
         def add_opacity_row(title, initial):
             slider = QSlider(Qt.Horizontal)
-            slider.setRange(20, 100)
+            slider.setRange(0, 100)
             slider.setTickInterval(10)
             label = QLabel(f"{initial}%")
             label.setMinimumWidth(48)
@@ -962,7 +963,10 @@ class SettingsDialog(QDialog):
         f7 = QFormLayout(g7)
         self.pwd_old_edit = QLineEdit()
         self.pwd_old_edit.setEchoMode(QLineEdit.Password)
-        self.pwd_old_edit.setPlaceholderText("留空表示不修改密码")
+        has_password = bool(str(cfg.get("settings_password_hash", "")).strip())
+        self.pwd_old_edit.setEnabled(has_password)
+        self.pwd_old_edit.setPlaceholderText(
+            "输入当前密码" if has_password else "尚未设置密码，无需填写")
         f7.addRow("当前密码:", self.pwd_old_edit)
         self.pwd_new_edit = QLineEdit()
         self.pwd_new_edit.setEchoMode(QLineEdit.Password)
@@ -972,7 +976,7 @@ class SettingsDialog(QDialog):
         self.pwd_new2_edit.setEchoMode(QLineEdit.Password)
         self.pwd_new2_edit.setPlaceholderText("再输入一遍新密码")
         f7.addRow("确认新密码:", self.pwd_new2_edit)
-        pwd_hint = QLabel("修改后点击下方\"保存并应用\"生效; 密码以 SHA-256 哈希存储, 配置文件不含明文; 忘记密码可删除配置文件中的 settings_password_hash 恢复默认")
+        pwd_hint = QLabel("首次设置密码无需填写当前密码；已有密码时修改密码才需验证当前密码。修改后点击下方\"保存并应用\"生效；配置文件只保存 SHA-256 哈希，不保存明文。")
         pwd_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
         pwd_hint.setWordWrap(True)
         f7.addRow("", pwd_hint)
@@ -1287,9 +1291,10 @@ class SettingsDialog(QDialog):
         new_pwd = self.pwd_new_edit.text()
         new_pwd2 = self.pwd_new2_edit.text()
         if new_pwd or new_pwd2:
-            cur_hash = self._cfg.get("settings_password_hash",
-                                     DEFAULT_CONFIG["settings_password_hash"])
-            if _hash_password(old_pwd) != cur_hash:
+            cur_hash = str(self._cfg.get(
+                "settings_password_hash",
+                DEFAULT_CONFIG["settings_password_hash"])).strip()
+            if cur_hash and _hash_password(old_pwd) != cur_hash:
                 StyledMessageDialog.warning(self, "密码错误", "当前密码不正确!")
                 self.tabs.setCurrentWidget(self.tabs.widget(3))
                 self.pwd_old_edit.setFocus()
@@ -1333,6 +1338,10 @@ class SettingsDialog(QDialog):
         self.pwd_old_edit.clear()
         self.pwd_new_edit.clear()
         self.pwd_new2_edit.clear()
+        has_password = bool(str(cfg.get("settings_password_hash", "")).strip())
+        self.pwd_old_edit.setEnabled(has_password)
+        self.pwd_old_edit.setPlaceholderText(
+            "输入当前密码" if has_password else "尚未设置密码，无需填写")
         self.title_bar.setTitle("小猫设置 — 已保存")
         QTimer.singleShot(1200, lambda: self.title_bar.setTitle("小猫设置"))
         return True

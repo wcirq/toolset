@@ -52,6 +52,10 @@ python main.py
 | 监控开关快捷键 | 交替启用/禁用监控；左上角显示不同的渐变闪烁，范围可调并实时预览 |
 | 截图快捷键（默认 `Alt+A`） | 框选区域后复制、OCR、翻译或生成无边框置顶贴图 |
 
+截图框选过程中会在鼠标附近显示带中心十字准星的像素放大图；鼠标坐标、`#RRGGBB` 和
+`RGB(r, g, b)`（0～255）会在放大镜旁分行、实时跟随显示，选区角落显示选区尺寸。选区确认后可拖动边缘或角点调整宽高，也可
+按住选区内部整体移动。
+
 贴图可用左键拖动，滚轮缩放，双击关闭；右键可复制图片、恢复原始大小或关闭。
 OCR 和翻译默认关闭。OCR 可在“截图与贴图”设置页选择进程内 RapidOCR，或配置兼容 OpenAI
 `chat/completions` 图片消息格式的第三方服务。截图仅在用户点击 OCR/翻译后发送；API Key
@@ -83,13 +87,16 @@ OCR 和翻译默认关闭。OCR 可在“截图与贴图”设置页选择进程
 
 ## 配置
 
-源码运行读取 `config/config.json`；打包后读取 EXE 同目录的 `config.json`。缺失配置
-项时使用程序默认值。
+源码运行读取 `config/config.json`；打包后读取 EXE 同目录的 `config.json`。安装包不附带
+`config.json`：首次启动缺少配置文件时使用内置默认值，用户保存设置后才会在 EXE 同目录
+创建该文件。程序不再提供默认设置密码：只有用户在“安全”页面手动设置密码后，后续进入
+设置才需要验证；第一次设置密码不要求输入旧密码。内置检测默认值为 YOLO 和
+`yolo26n-pose.onnx`。
 
 | 配置项 | 默认值 | 说明 |
 |---|---:|---|
-| `model` | `hog` | 检测模型：`yolo` 或 `hog` |
-| `yolo_model` | `yolo26n.onnx` | YOLO ONNX 权重文件名 |
+| `model` | `yolo` | 检测模型：`yolo` 或 `hog` |
+| `yolo_model` | `yolo26n-pose.onnx` | YOLO ONNX 权重文件名 |
 | `yolo_conf` | `0.4` | 人体检测置信度 |
 | `pose_kpt_conf` | `0.5` | 姿态模型头部关键点置信度 |
 | `dedup_iou` | `0.55` | 重复检测框合并阈值 |
@@ -124,18 +131,18 @@ SMALL ONNX 模型，不需要下载或启动额外 EXE。
 本方案直接把截图字节传给 `RapidOCR()`，不启动外部进程、不监听端口，截图不会上传。
 RapidOCR 本身不提供翻译；需要截图翻译时，切换为 OpenAI-compatible 图片接口。
 | `camera_index` | `0` | OpenCV 摄像头编号 |
-| `cat_scale` | `1.0` | 小猫缩放比例，范围 `0.6`～`2.0` |
+| `cat_scale` | `1.0` | 小猫缩放比例，范围 `0.01`～`2.0`（1% 为防止零尺寸的技术保护值） |
 | `character_category` | `cat` | 一级形象类别：`cat`（猫类）或 `human`（人类） |
 | `cat_style` / `cat_color` | `0` / `0` | 当前类别下的具体形象索引及猫类配色索引 |
 | `preview_scale` | `1.0` | 预览画面缩放比例 |
-| `preview_window_opacity` | `0.85` | 预览窗口背景、边框和信息栏透明度 |
-| `preview_video_opacity` | `0.85` | 视频画面透明度 |
-| `preview_overlay_opacity` | `1.0` | 检测框、关键点和标签透明度 |
+| `preview_window_opacity` | `0.85` | 预览窗口背景、边框和信息栏透明度，范围 `0`～`1` |
+| `preview_video_opacity` | `0.85` | 视频画面透明度，范围 `0`～`1` |
+| `preview_overlay_opacity` | `1.0` | 检测框、关键点和标签透明度，范围 `0`～`1` |
 | `debug_save` | `false` | 按天保存触发截图，最多保留三个日期目录 |
 | `auto_pause_fullscreen` | `false` | 前台全屏时自动暂停监控 |
 | `auto_return_enabled` | `false` | 人员离开后是否自动切回原窗口 |
 | `auto_return_delay_sec` | `10` | 人员离开后延迟切回的秒数 |
-| `settings_password_hash` | SHA-256 | 设置页密码哈希，不保存明文 |
+| `settings_password_hash` | 空 | 可选的设置页密码哈希；留空时进入设置无需密码 |
 
 设置页支持实时预览；“保存并应用”不会关闭设置页。监控默认启用，暂停后会释放
 摄像头。调试截图保存在 `debug_shots/YYYYMMDD/`，程序只清理由自身创建的日期目录。
@@ -158,8 +165,26 @@ RapidOCR 本身不提供翻译；需要截图翻译时，切换为 OpenAI-compat
 python packaging/build.py
 ```
 
-流程为生成图标、PyInstaller `onedir` 打包、复制模型与配置。输出位于
-`dist/CoolCat/CoolCat.exe`。若无法删除旧输出目录，请先退出仍在运行的程序。
+`build.py` 会依次完成：
+
+1. 生成应用图标；
+2. 使用 `packaging/CoolCat.spec` 执行 PyInstaller `onedir` 打包；
+3. 将两个 ONNX 模型复制到 `dist/CoolCat/assets/models/`；
+4. 检查最终 EXE 和必需模型是否存在。
+
+输出程序位于 `dist/CoolCat/CoolCat.exe`。运行时资源布局如下：
+
+```text
+dist/CoolCat/
+├── CoolCat.exe
+└── assets/models/
+    ├── yolo26n.onnx
+    └── yolo26n-pose.onnx
+```
+
+`config.json` 不属于打包目标，首次保存设置时才会生成。不需要手动执行 PyInstaller 或
+复制模型；若模型缺失，构建脚本会列出缺失文件并停止。若无法删除旧输出目录，请先退出
+仍在运行的 CoolCat 程序。
 
 ## 制作安装包
 
@@ -176,5 +201,7 @@ python packaging/build.py
 
 - **ONNX Runtime DLL 初始化失败**：入口会在 PyQt5 前预加载 ONNX Runtime；YOLO
   与本地 OCR 共用同一套 CPU 推理运行时。
+- **打包时扫描 Torch/ONNX 后崩溃**：请通过 `python packaging/build.py` 构建，不要直接
+  对 `main.py` 运行 PyInstaller；构建脚本会使用排除无关推理后端的专用 Spec。
 - **YOLO 检测失败**：确认权重位于 `assets/models/`；失败时程序会回退 HOG。
 - **找不到摄像头**：检查 `camera_index`，并确认目标摄像头未被其他应用独占。

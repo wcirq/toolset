@@ -6,6 +6,29 @@
 import os
 import sys
 import subprocess
+import shutil
+
+
+def copy_resources(project_dir, output_dir):
+    """复制 EXE 运行所需的模型，返回缺失资源列表。"""
+    resources = [
+        (os.path.join("assets", "models", "yolo26n.onnx"),
+         os.path.join("assets", "models", "yolo26n.onnx")),
+        (os.path.join("assets", "models", "yolo26n-pose.onnx"),
+         os.path.join("assets", "models", "yolo26n-pose.onnx")),
+    ]
+    missing = []
+    for relative_source, relative_target in resources:
+        source = os.path.join(project_dir, relative_source)
+        target = os.path.join(output_dir, relative_target)
+        if not os.path.isfile(source):
+            missing.append(relative_source)
+            continue
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        shutil.copy2(source, target)
+        print("已复制: %s -> %s" % (relative_source, relative_target))
+    return missing
+
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,15 +42,15 @@ def main():
     print("=" * 40)
 
     # 1. 生成图标
-    print("\n[1/3] 生成图标...")
+    print("\n[1/4] 生成图标...")
     ret = subprocess.call([python, os.path.join("tools", "make_icon.py"),
                            os.path.join("assets", "cat.ico")])
     if ret != 0:
         print("图标生成失败, 将使用默认图标构建")
 
     # 2. 构建 EXE (onedir 模式: ONNX Runtime, 比 onefile 启动快)
-    workdir = "build"  # 固定工作目录 (二次构建可复用缓存, 加快速度)
-    print("\n[2/4] 构建 EXE (onedir, ONNX YOLO), 工作目录: %s" % workdir)
+    workdir = "build"  # 将 PyInstaller 中间产物固定在项目 build 目录
+    print("\n[2/4] 使用 packaging/CoolCat.spec 构建 EXE, 工作目录: %s" % workdir)
 
     # 预清理旧 dist 输出目录; 删不掉(如 exe 正在运行占用文件)就提示用户手动删, 不强删
     out_dir = os.path.join("dist", "CoolCat")
@@ -42,46 +65,40 @@ def main():
             print("    然后手动删除该目录后重新运行 build.py")
             sys.exit(1)
 
+    spec_path = os.path.join("packaging", "CoolCat.spec")
+    if not os.path.isfile(spec_path):
+        print("构建配置不存在: %s" % os.path.abspath(spec_path))
+        sys.exit(1)
     cmd = [
         python, "-m", "PyInstaller",
-        "--noconsole",
+        "--clean",
         "-y",
-        "--workpath", workdir,  # 每次全新工作目录, 避免删除旧文件被沙箱拦截
-        "--name", "CoolCat",
+        "--workpath", workdir,
+        spec_path,
     ]
-    icon_path = os.path.join("assets", "cat.ico")
-    if os.path.exists(icon_path):
-        cmd += ["--icon", icon_path]
-    cmd.append("main.py")
 
     ret = subprocess.call(cmd)
     if ret != 0:
         print("构建失败!")
         sys.exit(1)
 
-    # 3. 复制 YOLO 权重和默认配置到输出目录
-    print("\n[3/4] 复制 YOLO 权重和配置...")
-    import shutil
+    # 3. 复制 YOLO 权重到输出目录；配置由程序首次保存设置时创建
+    print("\n[3/4] 复制 YOLO 权重...")
     out_dir = os.path.join("dist", "CoolCat")
-    resources = [
-        (os.path.join("assets", "models", "yolo26n.onnx"),
-         os.path.join("assets", "models", "yolo26n.onnx")),
-        (os.path.join("assets", "models", "yolo26n-pose.onnx"),
-         os.path.join("assets", "models", "yolo26n-pose.onnx")),
-        (os.path.join("config", "config.json"), "config.json"),
-    ]
-    for source, target in resources:
-        if os.path.exists(source):
-            target_path = os.path.join(out_dir, target)
-            os.makedirs(os.path.dirname(target_path), exist_ok=True)
-            shutil.copy2(source, target_path)
-            print(f"已复制: {source}")
+    missing = copy_resources(project_dir, os.path.abspath(out_dir))
+    if missing:
+        print("\n构建产物不完整，缺少以下运行时资源:")
+        for path in missing:
+            print("  - " + path)
+        sys.exit(1)
 
     # 4. 完成
     exe_path = os.path.join("dist", "CoolCat", "CoolCat.exe")
     print("\n[4/4] 构建完成!")
-    if os.path.exists(exe_path):
-        print("EXE 文件: " + os.path.abspath(exe_path))
+    if not os.path.isfile(exe_path):
+        print("未找到预期的 EXE 文件: " + os.path.abspath(exe_path))
+        sys.exit(1)
+    print("EXE 文件: " + os.path.abspath(exe_path))
 
 
 if __name__ == "__main__":

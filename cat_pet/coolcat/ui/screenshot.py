@@ -1014,10 +1014,14 @@ class ScreenshotOverlay(QWidget):
         self.snapshot = self.screen.grabWindow(0)
         self.origin = QPoint()
         self.current = QPoint()
+        self._cursor_pos = self.mapFromGlobal(QCursor.pos())
         self.selecting = False
         self._drag_started = False
         self._selection_confirmed = False
         self._pressed_window_rect = QRect()
+        self._interaction = None
+        self._resize_edges = ()
+        self._handle_margin = 6
         self.selection = QRect()
         self._workers = []
         self._active_worker = None
@@ -1126,6 +1130,90 @@ class ScreenshotOverlay(QWidget):
         pixmap.setDevicePixelRatio(dpr)
         return pixmap
 
+    def _pixel_rgb(self, pos):
+        """按截图的设备像素比读取逻辑坐标处的 RGB，越界时返回 None。"""
+        if self.snapshot.isNull() or not self.rect().contains(pos):
+            return None
+        dpr = self.snapshot.devicePixelRatio()
+        image = self.snapshot.toImage()
+        x = min(image.width() - 1, max(0, int(pos.x() * dpr)))
+        y = min(image.height() - 1, max(0, int(pos.y() * dpr)))
+        color = image.pixelColor(x, y)
+        return color.red(), color.green(), color.blue()
+
+    @staticmethod
+    def _format_color(rgb):
+        """同时返回常用的 HEX 与 0-255 RGB 颜色表示。"""
+        if rgb is None:
+            return ""
+        return (f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}  "
+                f"RGB({rgb[0]}, {rgb[1]}, {rgb[2]})")
+
+    def _magnifier_rect(self, pos, size=126, gap=20):
+        """计算光标附近的放大镜位置，并自动避开窗口边缘。"""
+        x = pos.x() + gap
+        y = pos.y() + gap
+        if x + size > self.width() - 6:
+            x = pos.x() - gap - size
+        if y + size > self.height() - 6:
+            y = pos.y() - gap - size
+        return QRect(max(6, x), max(6, y), size, size)
+
+    def _magnifier_info_rect(self, magnifier_rect, width=190, height=66):
+        """将坐标和颜色信息条贴在放大镜旁，并保持在窗口范围内。"""
+        x = min(max(6, magnifier_rect.left()), max(6, self.width() - width - 6))
+        y = magnifier_rect.bottom() + 6
+        if y + height > self.height() - 6:
+            y = magnifier_rect.top() - height - 6
+        return QRect(x, max(6, y), width, height)
+
+    def _draw_magnifier(self, painter):
+        """绘制鼠标附近的像素放大图及中心十字准星。"""
+        if not self.selecting or self.snapshot.isNull():
+            return
+        target = self._magnifier_rect(self._cursor_pos)
+        dpr = self.snapshot.devicePixelRatio()
+        source_size = max(9, int(round(15 * dpr)))
+        image_w = self.snapshot.width()
+        image_h = self.snapshot.height()
+        center_x = int(self._cursor_pos.x() * dpr)
+        center_y = int(self._cursor_pos.y() * dpr)
+        source_x = min(max(0, center_x - source_size // 2),
+                       max(0, image_w - source_size))
+        source_y = min(max(0, center_y - source_size // 2),
+                       max(0, image_h - source_size))
+        source = QRect(source_x, source_y,
+                       min(source_size, image_w), min(source_size, image_h))
+
+        painter.save()
+        painter.fillRect(target.adjusted(-3, -3, 3, 3), QColor(15, 15, 18, 235))
+        painter.setRenderHint(QPainter.SmoothPixmapTransform, False)
+        painter.drawPixmap(target, self.snapshot, source)
+        center = target.center()
+        # 黑色描边确保准星在亮色画面上仍清楚，白色细线用于精确定位。
+        for color, width in ((QColor(0, 0, 0, 210), 3),
+                             (QColor(255, 255, 255, 235), 1)):
+            painter.setPen(QPen(color, width))
+            painter.drawLine(center.x(), target.top(), center.x(), target.bottom())
+            painter.drawLine(target.left(), center.y(), target.right(), center.y())
+        painter.setPen(QPen(QColor("#39A8FF"), 2))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRect(target.adjusted(0, 0, -1, -1))
+
+        rgb = self._pixel_rgb(self._cursor_pos)
+        info = f"坐标: ({self._cursor_pos.x()}, {self._cursor_pos.y()})"
+        if rgb is not None:
+            info += (f"\nHEX: #{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+                     f"\nRGB: ({rgb[0]}, {rgb[1]}, {rgb[2]})")
+        info_rect = self._magnifier_info_rect(target)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(QColor(15, 15, 18, 235))
+        painter.drawRoundedRect(info_rect, 4, 4)
+        painter.setPen(Qt.white)
+        painter.drawText(info_rect.adjusted(8, 4, -5, -4),
+                         Qt.AlignVCenter | Qt.AlignLeft, info)
+        painter.restore()
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.drawPixmap(self.rect(), self.snapshot)
@@ -1140,8 +1228,81 @@ class ScreenshotOverlay(QWidget):
             painter.setBrush(Qt.NoBrush)
             painter.drawRect(rect.adjusted(0, 0, -1, -1))
             painter.setPen(Qt.white)
-            painter.drawText(rect.topLeft() + QPoint(5, -7),
+            info_y = rect.top() - 7 if rect.top() >= 22 else rect.top() + 18
+            painter.drawText(QPoint(max(5, rect.left() + 5), info_y),
                              f"{rect.width()} × {rect.height()}")
+            if self._selection_confirmed:
+                painter.setPen(QPen(QColor("#FFFFFF"), 1))
+                painter.setBrush(QColor("#39A8FF"))
+                for point in (rect.topLeft(), rect.topRight(),
+                              rect.bottomLeft(), rect.bottomRight(),
+                              QPoint(rect.center().x(), rect.top()),
+                              QPoint(rect.center().x(), rect.bottom()),
+                              QPoint(rect.left(), rect.center().y()),
+                              QPoint(rect.right(), rect.center().y())):
+                    painter.drawRect(QRect(point - QPoint(3, 3), QSize(7, 7)))
+        self._draw_magnifier(painter)
+
+    def _resize_hit_test(self, pos):
+        """返回指针命中的选区边；角点会同时返回水平边和垂直边。"""
+        if not self._selection_confirmed or self.selection.isEmpty():
+            return ()
+        rect = self.selection.normalized()
+        margin = self._handle_margin
+        if not rect.adjusted(-margin, -margin, margin, margin).contains(pos):
+            return ()
+        edges = []
+        if abs(pos.x() - rect.left()) <= margin:
+            edges.append("left")
+        elif abs(pos.x() - rect.right()) <= margin:
+            edges.append("right")
+        if abs(pos.y() - rect.top()) <= margin:
+            edges.append("top")
+        elif abs(pos.y() - rect.bottom()) <= margin:
+            edges.append("bottom")
+        return tuple(edges)
+
+    def _update_selection_cursor(self, pos):
+        edges = self._resize_hit_test(pos)
+        edge_set = set(edges)
+        if edge_set in ({"left", "top"}, {"right", "bottom"}):
+            cursor = Qt.SizeFDiagCursor
+        elif edge_set in ({"right", "top"}, {"left", "bottom"}):
+            cursor = Qt.SizeBDiagCursor
+        elif "left" in edge_set or "right" in edge_set:
+            cursor = Qt.SizeHorCursor
+        elif "top" in edge_set or "bottom" in edge_set:
+            cursor = Qt.SizeVerCursor
+        elif (self._selection_confirmed and
+              self.selection.normalized().contains(pos)):
+            cursor = Qt.SizeAllCursor
+        else:
+            cursor = Qt.CrossCursor
+        self.setCursor(cursor)
+
+    def _move_selection(self, delta):
+        rect = QRect(self._pressed_window_rect)
+        max_x = max(0, self.width() - rect.width())
+        max_y = max(0, self.height() - rect.height())
+        rect.moveTopLeft(QPoint(
+            min(max(0, rect.x() + delta.x()), max_x),
+            min(max(0, rect.y() + delta.y()), max_y)))
+        return rect
+
+    def _resize_selection(self, pos):
+        rect = QRect(self._pressed_window_rect).normalized()
+        min_size = 8
+        x = min(max(0, pos.x()), max(0, self.width() - 1))
+        y = min(max(0, pos.y()), max(0, self.height() - 1))
+        if "left" in self._resize_edges:
+            rect.setLeft(min(x, rect.right() - min_size + 1))
+        if "right" in self._resize_edges:
+            rect.setRight(max(x, rect.left() + min_size - 1))
+        if "top" in self._resize_edges:
+            rect.setTop(min(y, rect.bottom() - min_size + 1))
+        if "bottom" in self._resize_edges:
+            rect.setBottom(max(y, rect.top() + min_size - 1))
+        return rect.intersected(self.rect())
 
     def mousePressEvent(self, event):
         if self._operation_blocks_selection():
@@ -1150,10 +1311,19 @@ class ScreenshotOverlay(QWidget):
         over_toolbar = (self.toolbar.isVisible() and
                         self.toolbar.geometry().contains(event.pos()))
         if event.button() == Qt.LeftButton and not over_toolbar:
+            self._cursor_pos = QPoint(event.pos())
             self.toolbar.hide()
             self.origin = event.pos(); self.current = event.pos()
-            self._selection_confirmed = False
-            if not self.selection.isEmpty() and self.selection.contains(event.pos()):
+            self._resize_edges = self._resize_hit_test(event.pos())
+            if self._resize_edges:
+                self._interaction = "resize"
+            elif (self._selection_confirmed and not self.selection.isEmpty() and
+                  self.selection.normalized().contains(event.pos())):
+                self._interaction = "move"
+            else:
+                self._interaction = "new"
+                self._selection_confirmed = False
+            if self._interaction in ("move", "resize"):
                 self._pressed_window_rect = QRect(self.selection)
             else:
                 self._pressed_window_rect = self._window_candidate(event.pos())
@@ -1165,29 +1335,48 @@ class ScreenshotOverlay(QWidget):
         if self._operation_blocks_selection():
             event.accept()
             return
+        self._cursor_pos = QPoint(event.pos())
         if self.selecting:
             if (event.pos() - self.origin).manhattanLength() >= 5:
                 self._drag_started = True
             if self._drag_started:
                 self.current = event.pos()
-                self.selection = QRect(self.origin, self.current).normalized()
+                if self._interaction == "move":
+                    self.selection = self._move_selection(
+                        self.current - self.origin)
+                elif self._interaction == "resize":
+                    self.selection = self._resize_selection(self.current)
+                else:
+                    self.selection = QRect(self.origin, self.current).normalized()
                 self.update()
         else:
-            self._update_window_candidate(event.pos())
+            if self._selection_confirmed:
+                self._update_selection_cursor(event.pos())
+            else:
+                self._update_window_candidate(event.pos())
 
     def mouseReleaseEvent(self, event):
         if self._operation_blocks_selection():
             event.accept()
             return
         if event.button() == Qt.LeftButton and self.selecting:
+            self._cursor_pos = QPoint(event.pos())
             self.selecting = False
             if self._drag_started:
-                self.selection = QRect(self.origin, event.pos()).normalized()
+                if self._interaction == "move":
+                    self.selection = self._move_selection(event.pos() - self.origin)
+                elif self._interaction == "resize":
+                    self.selection = self._resize_selection(event.pos())
+                else:
+                    self.selection = QRect(self.origin, event.pos()).normalized()
             else:
                 self.selection = QRect(self._pressed_window_rect)
             if self.selection.width() < 8 or self.selection.height() < 8:
                 self.selection = QRect(); self.update(); return
             self._selection_confirmed = True
+            self._interaction = None
+            self._resize_edges = ()
+            self._update_selection_cursor(event.pos())
             self._show_toolbar_for_selection()
 
     def _show_toolbar_for_selection(self):

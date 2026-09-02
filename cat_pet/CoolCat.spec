@@ -1,26 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
-
-rapidocr_datas = collect_data_files('rapidocr')
-rapidocr_hiddenimports = collect_submodules('rapidocr.inference_engine.onnxruntime')
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=rapidocr_datas,
-    hiddenimports=rapidocr_hiddenimports,
+    datas=[],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[os.path.join(project_root, 'packaging', 'runtime_hooks',
-                                'preload_vc_runtime.py')],
-    excludes=[
-        'torch', 'torchvision', 'ultralytics', 'matplotlib',
-        'rapidocr.inference_engine.pytorch', 'rapidocr.inference_engine.paddle',
-        'rapidocr.inference_engine.openvino', 'rapidocr.inference_engine.tensorrt',
-        'rapidocr.inference_engine.mnn',
-    ],
+    runtime_hooks=[],
+    excludes=[],
     noarchive=False,
     optimize=0,
 )

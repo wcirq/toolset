@@ -25,7 +25,7 @@ class CameraPreview(QWidget):
             self.scale = 1.0
         def read_opacity(key, default):
             try:
-                return max(0.2, min(1.0, float(self.cat.config.get(key, default))))
+                return max(0.0, min(1.0, float(self.cat.config.get(key, default))))
             except Exception:
                 return default
         self.window_opacity = read_opacity("preview_window_opacity", 0.85)

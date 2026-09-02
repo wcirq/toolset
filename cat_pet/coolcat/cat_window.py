@@ -22,7 +22,8 @@ class CatWindow(QWidget):
 
         # ---------- 加载配置 ----------
         self.config = load_config()
-        self.cat_scale = max(0.6, min(2.0, float(self.config["cat_scale"])))
+        # 仅保留 1% 的技术保护值，避免零尺寸窗口和除零；不再限制为至少 60%。
+        self.cat_scale = max(0.01, min(2.0, float(self.config["cat_scale"])))
         self._monitoring_requested = True       # 每次启动默认启用监控
         self._monitor_auto_paused = False
         self._last_monitor_hotkey_at = 0.0       # 软件防抖，避免一次按键切换两次
@@ -277,11 +278,11 @@ class CatWindow(QWidget):
         self.c = (HUMAN_PALETTES[self.style.get("palette", 0)]
                   if self.character_category == "human" else COLORS[self.color_idx])
 
-        self.preview.window_opacity = max(0.2, min(
+        self.preview.window_opacity = max(0.0, min(
             1.0, float(cfg.get("preview_window_opacity", 0.85))))
-        self.preview.video_opacity = max(0.2, min(
+        self.preview.video_opacity = max(0.0, min(
             1.0, float(cfg.get("preview_video_opacity", 0.85))))
-        self.preview.overlay_opacity = max(0.2, min(
+        self.preview.overlay_opacity = max(0.0, min(
             1.0, float(cfg.get("preview_overlay_opacity", 1.0))))
         self.update()
         self.preview.update()
@@ -338,12 +339,14 @@ class CatWindow(QWidget):
 
     def _open_settings(self):
         try:
-            # ---------- 密码验证 (哈希比对) ----------
-            cur_hash = self.config.get("settings_password_hash",
-                                       DEFAULT_CONFIG["settings_password_hash"])
-            auth = AuthDialog(cur_hash, parent=self)
-            if auth.exec_() != QDialog.Accepted:
-                return
+            # 只有用户主动设置了密码才验证；是否存在配置文件不影响进入设置。
+            cur_hash = str(self.config.get(
+                "settings_password_hash",
+                DEFAULT_CONFIG["settings_password_hash"])).strip()
+            if cur_hash:
+                auth = AuthDialog(cur_hash, parent=self)
+                if auth.exec_() != QDialog.Accepted:
+                    return
 
             # 检查 ONNX Runtime 是否可用 (用于对话框提示)
             yolo_ok = False
@@ -362,7 +365,7 @@ class CatWindow(QWidget):
 
     def _apply_scale(self, scale, keep_center=True):
         """按倍率缩放小猫窗口 (绘制时用 painter 变换)"""
-        scale = max(0.6, min(2.0, float(scale)))
+        scale = max(0.01, min(2.0, float(scale)))
         old_w, old_h = self.width(), self.height()
         # 以当前中心为锚点缩放
         cx = self.x() + old_w // 2
@@ -378,7 +381,7 @@ class CatWindow(QWidget):
     def _change_cat_size(self, delta):
         """右键菜单 +/- 快速调整尺寸 (每次 20%)"""
         new_scale = self.cat_scale + delta
-        new_scale = max(0.6, min(2.0, new_scale))
+        new_scale = max(0.01, min(2.0, new_scale))
         if abs(new_scale - self.cat_scale) > 0.001:
             self._apply_scale(new_scale)
             save_config(self.config)
@@ -526,8 +529,6 @@ class CatWindow(QWidget):
         self.drag_start = QPoint(0, 0)
         self.drag_offset = QPoint(0, 0)
         self.drag_distance = 0.0
-        self.shake = 0
-
         # 跟随鼠标
         self.follow = False
 
@@ -792,9 +793,6 @@ class CatWindow(QWidget):
                     random.choice(["star", "sparkle"])
                 ))
 
-            if self.shake > 0:
-                self.shake -= 1
-
             self._update_snap()
             self._check_snap_hover()
 
@@ -975,12 +973,7 @@ class CatWindow(QWidget):
             p.setRenderHint(QPainter.Antialiasing)
             p.setRenderHint(QPainter.SmoothPixmapTransform)
 
-            sx = sy = 0
-            if self.shake > 0:
-                sx = random.uniform(-3, 3)
-                sy = random.uniform(-3, 3)
             p.save()
-            p.translate(sx, sy)
             # 尺寸缩放变换: 所有绘制仍用逻辑坐标 (W×H 画布)
             p.scale(self.cat_scale, self.cat_scale)
 
@@ -1802,7 +1795,6 @@ class CatWindow(QWidget):
             if not self.longpress_active:
                 new_pos = QPoint(event.globalPos() - self.drag_offset)
                 self.move(new_pos)
-                self.shake = 3
                 # 预览显示中则跟随小猫移动
                 if self.preview.isVisible():
                     self._position_preview()

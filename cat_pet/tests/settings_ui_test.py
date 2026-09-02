@@ -28,17 +28,28 @@ StyledMessageDialog.warning = staticmethod(
 cfg = dict(m.DEFAULT_CONFIG)
 dlg = m.SettingsDialog(cfg, yolo_available=False)
 check("共 5 个分页", dlg.tabs.count() == 5)
+check("默认使用 YOLO 姿态模型",
+      cfg["model"] == "yolo" and
+      cfg["yolo_model"] == "yolo26n-pose.onnx")
+check("姿态模型选项存在",
+      dlg.yolo_model_combo.findText("yolo26n-pose.onnx") >= 0)
+check("宠物尺寸可调至 1%", dlg.scale_slider.minimum() == 1)
+check("预览透明度可调至 0%", all(
+    slider.minimum() == 0 for slider in (
+        dlg.preview_window_opacity_slider,
+        dlg.preview_video_opacity_slider,
+        dlg.preview_overlay_opacity_slider)))
 titles = [dlg.tabs.tabText(i) for i in range(5)]
 print("  分页:", titles)
 check("分页标题正确", titles == [
     "检测与触发", "小猫与摄像头", "目标与快捷键", "截图与贴图", "安全"])
 check("窗口可见高度受控 (有 tab 容器)", dlg.tabs.isVisible() or True)  # offscreen 未show
 
-# ---------- 2. 不修改密码 → get_config 保留原密码哈希 ----------
+# ---------- 2. 默认无密码 ----------
 dlg.pwd_old_edit.clear(); dlg.pwd_new_edit.clear(); dlg.pwd_new2_edit.clear()
 out = dlg.get_config()
-default_hash = hashlib.sha256("wcy206211".encode("utf-8")).hexdigest()
-check("未修改密码时保留原密码哈希", out["settings_password_hash"] == default_hash)
+check("默认不设置密码", out["settings_password_hash"] == "")
+check("未设置密码时当前密码输入框禁用", not dlg.pwd_old_edit.isEnabled())
 check("get_config 保留 cat_color", "cat_color" in out)
 check("get_config 保留 preview_scale", out.get("preview_scale") == cfg.get("preview_scale", 1.0))
 
@@ -153,49 +164,58 @@ check("选择第三方 OCR 后显示接口配置",
 dlg.character_category_combo.setCurrentIndex(
     dlg.character_category_combo.findData("cat"))
 
-# ---------- 3. 旧密码错误 → 拒绝保存 ----------
-dlg.pwd_old_edit.setText("wrong")
-dlg.pwd_new_edit.setText("newpass")
-dlg.pwd_new2_edit.setText("newpass")
+# ---------- 3. 第一次设置密码无需旧密码 ----------
+dlg.pwd_new_edit.setText("firstpass")
+dlg.pwd_new2_edit.setText("firstpass")
 warn_msgs.clear()
-dlg._validate_password_change()
-check("旧密码错误时弹出警告", len(warn_msgs) == 1)
-check("旧密码错误时密码未改", dlg.get_config()["settings_password_hash"] == default_hash)
+check("第一次设置密码校验通过", dlg._validate_password_change())
+check("第一次设置密码无需旧密码", len(warn_msgs) == 0)
+first_hash = hashlib.sha256("firstpass".encode("utf-8")).hexdigest()
+check("第一次设置的新密码哈希生效",
+      dlg.get_config()["settings_password_hash"] == first_hash)
 
-# ---------- 4. 两次输入不一致 → 拒绝 ----------
-dlg.pwd_old_edit.setText("wcy206211")
+# ---------- 4. 第一次设置时两次输入不一致 → 拒绝 ----------
+dlg._new_password = None
 dlg.pwd_new_edit.setText("aaa")
 dlg.pwd_new2_edit.setText("bbb")
 warn_msgs.clear()
 dlg._validate_password_change()
 check("两次不一致时弹出警告", len(warn_msgs) == 1)
-check("两次不一致时密码未改", dlg.get_config()["settings_password_hash"] == default_hash)
+check("两次不一致时密码未改", dlg.get_config()["settings_password_hash"] == "")
 
-# ---------- 5. 正确修改密码 ----------
-dlg.pwd_old_edit.setText("wcy206211")
-dlg.pwd_new_edit.setText("mynew123")
-dlg.pwd_new2_edit.setText("mynew123")
+# ---------- 5. 已有密码时必须验证旧密码 ----------
+protected_cfg = dict(cfg)
+protected_hash = hashlib.sha256("existingpass".encode("utf-8")).hexdigest()
+protected_cfg["settings_password_hash"] = protected_hash
+protected = m.SettingsDialog(protected_cfg, yolo_available=False)
+protected.pwd_old_edit.setText("wrong")
+protected.pwd_new_edit.setText("mynew123")
+protected.pwd_new2_edit.setText("mynew123")
 warn_msgs.clear()
-dlg._validate_password_change()
+check("旧密码错误时拒绝修改", not protected._validate_password_change())
+check("旧密码错误时弹出警告", len(warn_msgs) == 1)
+protected.pwd_old_edit.setText("existingpass")
+warn_msgs.clear()
+check("旧密码正确时允许修改", protected._validate_password_change())
 check("正确修改时无警告", len(warn_msgs) == 0)
-out = dlg.get_config()
+out = protected.get_config()
 new_hash = hashlib.sha256("mynew123".encode("utf-8")).hexdigest()
 check("新密码哈希生效", out["settings_password_hash"] == new_hash)
 
 # ---------- 6. 新密码为空但有输入 → 拒绝 ----------
 dlg2 = m.SettingsDialog(cfg, yolo_available=False)
-dlg2.pwd_old_edit.setText("wcy206211")
 dlg2.pwd_new_edit.clear()
 dlg2.pwd_new2_edit.setText("x")
 warn_msgs.clear()
 dlg2._validate_password_change()
 check("新密码为空但有输入时警告", len(warn_msgs) == 1)
 
-# ---------- 7. 密码验证入口逻辑 (模拟 _open_settings 的验证段) ----------
-cur = cfg.get("settings_password_hash", m.DEFAULT_CONFIG["settings_password_hash"])
+# ---------- 7. 密码验证入口逻辑 ----------
+cur = protected_cfg["settings_password_hash"]
 def try_open(pwd):
     return hashlib.sha256(pwd.encode("utf-8")).hexdigest() == cur
-check("密码正确可进入", try_open("wcy206211"))
+check("未设置密码时无需验证", not cfg["settings_password_hash"])
+check("手动设置的密码正确可进入", try_open("existingpass"))
 check("密码错误被拒", not try_open("bad"))
 
 # ---------- 8. 窗口高度对比 (旧版无分页 ~900px, 新版应更矮) ----------

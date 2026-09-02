@@ -85,3 +85,5 @@ Desktop.ini
 # ===== 本地测试输入（不属于源码）=====
 /virtual_camera/00.jpg
 /virtual_camera/00.mp4
+
+cat_pet/config

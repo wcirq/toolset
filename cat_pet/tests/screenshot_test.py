@@ -9,7 +9,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_DIR)
 
-from PyQt5.QtCore import Qt, QRect, QEvent
+from PyQt5.QtCore import Qt, QPoint, QRect, QEvent
 from PyQt5.QtGui import QColor, QKeyEvent, QPainter, QPixmap
 from PyQt5.QtWidgets import QApplication, QPushButton
 
@@ -38,6 +38,14 @@ overlay = shot.ScreenshotOverlay({})
 assert not overlay.translate_button.isEnabled()
 overlay.snapshot = QPixmap(300, 200)
 overlay.snapshot.fill(QColor("#FF8844"))
+assert overlay._pixel_rgb(QPoint(10, 10)) == (255, 136, 68)
+assert overlay._pixel_rgb(QPoint(-1, -1)) is None
+assert overlay._format_color((255, 136, 68)) == "#FF8844  RGB(255, 136, 68)"
+overlay.resize(300, 200)
+assert overlay.rect().contains(overlay._magnifier_rect(QPoint(20, 20)))
+assert overlay.rect().contains(overlay._magnifier_rect(QPoint(290, 190)))
+mag_rect = overlay._magnifier_rect(QPoint(290, 190))
+assert overlay.rect().contains(overlay._magnifier_info_rect(mag_rect))
 overlay.selection = QRect(20, 30, 90, 60)
 selected = overlay.selected_pixmap()
 assert selected.width() == 90 and selected.height() == 60
@@ -47,6 +55,19 @@ overlay._selection_confirmed = True
 overlay._window_candidate = lambda _pos: QRect(0, 0, 300, 200)
 overlay._update_window_candidate(locked_selection.topLeft())
 assert overlay.selection == locked_selection
+
+# 已确认选区支持内部拖动和八方向边缘缩放，并限制在屏幕范围内。
+overlay.resize(300, 200)
+overlay.selection = QRect(20, 30, 90, 60)
+overlay._selection_confirmed = True
+overlay._pressed_window_rect = QRect(overlay.selection)
+overlay._interaction = "move"
+assert overlay._move_selection(QPoint(25, 15)) == QRect(45, 45, 90, 60)
+assert overlay._move_selection(QPoint(-100, -100)).topLeft() == QPoint(0, 0)
+overlay._resize_edges = ("right", "bottom")
+overlay._pressed_window_rect = QRect(20, 30, 90, 60)
+assert overlay._resize_selection(QPoint(139, 109)) == QRect(20, 30, 120, 80)
+assert set(overlay._resize_hit_test(QPoint(20, 30))) == {"left", "top"}
 overlay.close()
 
 # 慢任务显示提示；第一次 Esc 取消任务，第二次 Esc 退出截图界面。
