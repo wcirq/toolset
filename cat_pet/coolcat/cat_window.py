@@ -4,7 +4,8 @@ from .detection import CameraThread
 from .ui.chat import ChatOverlay
 from .ui.preview import CameraPreview
 from .ui.dialogs import AuthDialog, SettingsDialog
-from .ui.screenshot import PinnedImageWindow, ScreenshotOverlay
+from .ui.screenshot import (PinnedImageWindow, ScreenshotOverlay,
+                            TranslationResultController)
 
 # ======================== 小猫主窗口 ========================
 class CatWindow(QWidget):
@@ -31,6 +32,7 @@ class CatWindow(QWidget):
         self._previous_window_hwnd = None
         self._screenshot_overlay = None
         self._pinned_images = []
+        self._translation_results = []
         # 开机启动状态 (从注册表读取)
         self._autostart_on = is_autostart_enabled()
 
@@ -138,6 +140,7 @@ class CatWindow(QWidget):
             self._screenshot_overlay.close()
         overlay = ScreenshotOverlay(self.config)
         overlay.pin_requested.connect(self._create_pinned_image)
+        overlay.translation_requested.connect(self._show_translation_result)
         overlay.destroyed.connect(lambda: setattr(self, "_screenshot_overlay", None))
         self._screenshot_overlay = overlay
         overlay.show(); overlay.raise_(); overlay.activateWindow(); overlay.setFocus()
@@ -151,6 +154,12 @@ class CatWindow(QWidget):
     def _remove_pinned_image(self, window):
         if window in self._pinned_images:
             self._pinned_images.remove(window)
+
+    def _show_translation_result(self, source, payload, position, mode):
+        result = TranslationResultController(source, payload, position, mode, self)
+        self._translation_results.append(result)
+        result.finished.connect(lambda: self._translation_results.remove(result)
+                                if result in self._translation_results else None)
 
     def _do_switch_target(self, tip=""):
         """执行切换到目标程序 (配置中的 target_exe / target_title)"""
@@ -650,6 +659,8 @@ class CatWindow(QWidget):
             self._screenshot_overlay.close()
         for window in list(self._pinned_images):
             window.close()
+        for result in list(self._translation_results):
+            result.close()
         self.tray.hide()
         QApplication.quit()
 
@@ -1850,12 +1861,12 @@ class CatWindow(QWidget):
         interact.addAction(follow_text, self._toggle_follow)
         monitor_text = "暂停监控" if self._monitoring_requested else "启用监控"
         menu.addAction(monitor_text, self._toggle_monitoring)
-        cam_text = "隐藏摄像头预览" if self.preview.isVisible() else "摄像头预览 (或长按小猫)"
+        cam_text = "隐藏摄像头预览" if self.preview.isVisible() else "摄像头预览"
         menu.addAction(cam_text, self._toggle_preview)
         menu.addAction("切换到目标程序", lambda: self._do_switch_target("切!"))
-        menu.addAction("区域截图...", self._on_screenshot_hotkey)
-        settings_text = ("形象与检测设置..." if self.character_category == "human"
-                         else "小猫与检测设置...")
+        menu.addAction("区域截图", self._on_screenshot_hotkey)
+        settings_text = ("设置" if self.character_category == "human"
+                         else "设置")
         menu.addAction(settings_text, self._open_settings)
         menu.addSeparator()
         # 不使用 checkable，避免 Qt 为这一项额外预留左侧指示器列，

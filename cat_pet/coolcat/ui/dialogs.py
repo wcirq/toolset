@@ -385,7 +385,7 @@ class AuthDialog(QDialog):
 # ======================== 设置对话框 ========================
 class SettingsDialog(QDialog):
     """
-    配置页面: 检测模型 / 触发规则 / 小猫尺寸 / 摄像头。
+    配置页面: 检测模型 / 触发规则 / 形象尺寸 / 摄像头。
     保存后通过 get_config() 返回新配置, 由 CatWindow 应用并持久化。
     """
     STYLE = """
@@ -585,8 +585,8 @@ class SettingsDialog(QDialog):
         l2 = QVBoxLayout(page2)
         l2.setContentsMargins(8, 8, 8, 8)
 
-        # ---------- 小猫尺寸 ----------
-        g3 = QGroupBox("小猫尺寸")
+        # ---------- 形象尺寸 ----------
+        g3 = QGroupBox("形象尺寸")
         f3 = QFormLayout(g3)
         self.scale_slider = QSlider(Qt.Horizontal)
         # 1% 仅用于避免零尺寸窗口；产品层面不再设置最小尺寸限制。
@@ -652,7 +652,7 @@ class SettingsDialog(QDialog):
         f4.addRow("", opacity_hint)
         l2.addWidget(g4)
         l2.addStretch()
-        self.tabs.addTab(page2, "小猫与摄像头")
+        self.tabs.addTab(page2, "形象与摄像头")
 
         # ========== Tab 3: 目标程序与快捷键 ==========
         page3 = QWidget()

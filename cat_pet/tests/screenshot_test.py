@@ -372,4 +372,133 @@ translation_dialog._toggle_original_text()
 assert translation_dialog.text_edit.toPlainText() == "我叫托尼！"
 translation_dialog._close_explicitly()
 
+# 同一次翻译可反复切换展示方式，保留缓存的原图和译文，不调用翻译接口。
+translation_payload = {
+    "text": "我叫托尼！",
+    "regions": [{"text": "I am Tony!",
+                 "box": [[30, 30], [250, 30], [250, 80], [30, 80]],
+                 "score": 0.99}],
+    "replacements": ["我叫托尼！"],
+}
+result = shot.TranslationResultController(
+    source, translation_payload, QPoint(30, 30), "image")
+assert result.image_window.isVisible() and not result.popup_window.isVisible()
+rendered_before = shot.pixmap_to_base64(result.image_window.pixmap)
+result.image_window._display_mode_switch()
+assert result.mode == "popup"
+assert result.popup_window.isVisible() and not result.image_window.isVisible()
+assert result.popup_window.text_edit.toPlainText() == "我叫托尼！"
+assert shot.pixmap_to_base64(result.popup_window.source_pixmap) == source_before
+result.popup_window._display_mode_switch()
+assert result.mode == "image" and result.image_window.isVisible()
+assert not result.popup_window.isVisible()
+assert shot.pixmap_to_base64(result.image_window.pixmap) == rendered_before
+finished = []
+result.finished.connect(lambda: finished.append(True))
+result.close()
+assert finished == [True]
+assert not result.image_window.isVisible() and not result.popup_window.isVisible()
+
+popup_result = shot.TranslationResultController(
+    source, translation_payload, QPoint(30, 30), "popup")
+assert popup_result.popup_window.isVisible()
+popup_result.popup_window._close_explicitly()
+assert popup_result._closing and not popup_result.image_window.isVisible()
+
+# 小图不放大、不强制 360px 高；滚轮只缩放图像，弹窗和文本面板尺寸固定。
+from PyQt5.QtCore import QPointF
+from PyQt5.QtGui import QWheelEvent
+zoom_dialog = shot.OcrImageResultDialog(source, "测试文本")
+zoom_dialog.show()
+app.processEvents()
+assert zoom_dialog.image_label.size() == source.size()
+assert zoom_dialog.height() < 360
+window_size = zoom_dialog.size()
+panel_size = zoom_dialog.text_panel.size()
+initial_zoom = zoom_dialog.image_label.zoom
+wheel = QWheelEvent(QPointF(20, 20), QPointF(20, 20), QPoint(),
+                    QPoint(0, 120), Qt.NoButton, Qt.NoModifier,
+                    Qt.NoScrollPhase, False)
+QApplication.sendEvent(zoom_dialog.image_label, wheel)
+app.processEvents()
+assert zoom_dialog.image_label.zoom > initial_zoom
+assert zoom_dialog.size() == window_size
+assert zoom_dialog.text_panel.size() == panel_size
+# 左侧空白区域同样支持滚轮缩放。
+before_zoom = zoom_dialog.image_label.zoom
+QApplication.sendEvent(zoom_dialog.image_scroll.viewport(), wheel)
+app.processEvents()
+assert zoom_dialog.image_label.zoom > before_zoom
+assert zoom_dialog.size() == window_size
+zoom_dialog.image_label.set_zoom(3.0)
+app.processEvents()
+viewport = zoom_dialog.image_scroll.viewport()
+horizontal = zoom_dialog.image_scroll.horizontalScrollBar()
+vertical = zoom_dialog.image_scroll.verticalScrollBar()
+horizontal.setValue(horizontal.maximum() // 2)
+vertical.setValue(vertical.maximum() // 2)
+anchor = QPoint(80, 45)
+before_point = zoom_dialog.image_label.mapFrom(viewport, anchor)
+fraction = (before_point.x() / zoom_dialog.image_label.width(),
+            before_point.y() / zoom_dialog.image_label.height())
+zoom_dialog._zoom_image_at(anchor, 120)
+app.processEvents()
+after_point = zoom_dialog.image_label.mapFrom(viewport, anchor)
+assert abs(after_point.x() - fraction[0] * zoom_dialog.image_label.width()) <= 2
+assert abs(after_point.y() - fraction[1] * zoom_dialog.image_label.height()) <= 2
+
+# 放大后拖拽只平移图片，不移动弹窗；释放后结束平移状态。
+from PyQt5.QtGui import QMouseEvent
+window_position = zoom_dialog.pos()
+scroll_before = QPoint(horizontal.value(), vertical.value())
+global_start = viewport.mapToGlobal(anchor)
+def pan_event(kind, global_pos, button, buttons):
+    label = zoom_dialog.image_label
+    QApplication.sendEvent(label, QMouseEvent(
+        kind, QPointF(label.mapFromGlobal(global_pos)), QPointF(global_pos),
+        button, buttons, Qt.NoModifier))
+pan_event(QEvent.MouseButtonPress, global_start, Qt.LeftButton, Qt.LeftButton)
+pan_event(QEvent.MouseMove, global_start + QPoint(20, 10), Qt.NoButton, Qt.LeftButton)
+assert horizontal.value() == scroll_before.x() - 20
+assert vertical.value() == scroll_before.y() - 10
+assert zoom_dialog.pos() == window_position and zoom_dialog.size() == window_size
+pan_event(QEvent.MouseButtonRelease, global_start + QPoint(20, 10), Qt.LeftButton, Qt.NoButton)
+assert zoom_dialog._pan_origin is None
+zoom_dialog._close_explicitly()
+
+for dimensions in ((2200, 180), (180, 2200)):
+    large = QPixmap(*dimensions)
+    large.fill(QColor("white"))
+    fit_dialog = shot.OcrImageResultDialog(large, "测试")
+    fit_dialog.show()
+    app.processEvents()
+    available = QApplication.primaryScreen().availableGeometry()
+    assert fit_dialog.width() <= available.width()
+    assert fit_dialog.height() <= available.height()
+    assert fit_dialog.image_label.zoom <= 1.0
+    assert available.contains(fit_dialog.frameGeometry())
+    fit_dialog._close_explicitly()
+
+from PyQt5.QtTest import QTest
+feedback_dialog = shot.OcrImageResultDialog(source, "复制反馈测试")
+feedback_dialog.show()
+app.processEvents()
+for button in feedback_dialog.findChildren(QPushButton):
+    assert button.cursor().shape() == Qt.PointingHandCursor
+    assert button.toolTip()
+    assert "QPushButton:hover" in button.styleSheet()
+feedback_dialog.copy_all_button.click()
+assert QApplication.clipboard().text() == "复制反馈测试"
+assert feedback_dialog._copy_toast.isVisible()
+assert feedback_dialog._copy_toast.text() == "已复制全部文字"
+assert feedback_dialog._copy_toast.testAttribute(Qt.WA_ShowWithoutActivating)
+QTest.qWait(2000)
+assert not feedback_dialog._copy_toast.isVisible()
+feedback_dialog.copy_all_button.click()
+assert feedback_dialog._copy_toast.isVisible()
+feedback_dialog.hide()
+assert not feedback_dialog._copy_toast.isVisible()
+assert not feedback_dialog._copy_toast_timer.isActive()
+feedback_dialog._close_explicitly()
+
 print("PASS: screenshot, OCR, OpenAI/Xfyun translation and image redraw")

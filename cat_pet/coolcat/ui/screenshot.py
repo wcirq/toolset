@@ -21,12 +21,12 @@ except Exception:
     onnxruntime = None
 
 from PyQt5.QtCore import (Qt, QPoint, QRect, QSize, QBuffer, QByteArray,
-                          pyqtSignal, QThread, QTimer, QEvent)
+                          pyqtSignal, QThread, QTimer, QEvent, QObject)
 from PyQt5.QtGui import (QColor, QCursor, QFont, QFontMetrics, QKeySequence,
                          QPainter, QPen, QPixmap, QTextCursor)
 from PyQt5.QtWidgets import (
     QApplication, QDialog, QHBoxLayout, QLabel, QMenu, QMessageBox,
-    QPushButton, QTextEdit, QVBoxLayout, QWidget,
+    QPushButton, QTextEdit, QVBoxLayout, QWidget, QScrollArea,
 )
 
 
@@ -643,12 +643,28 @@ class OcrRegionImageLabel(QLabel):
         self.source_pixmap = QPixmap(source_pixmap)
         self.regions = list(regions or [])
         self.highlighted_index = -1
-        self.display_pixmap = self.source_pixmap.scaled(
-            760, 650, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.setPixmap(self.display_pixmap)
+        self.zoom = 1.0
+        self.set_zoom(1.0)
         self.setAlignment(Qt.AlignCenter)
         self.setMouseTracking(True)
         self.setStyleSheet("background:#17181A;border-radius:4px;")
+
+    def set_zoom(self, zoom):
+        self.zoom = max(0.01, min(8.0, zoom))
+        self.display_pixmap = self.source_pixmap.scaled(
+            max(1, round(self.source_pixmap.width() * self.zoom)),
+            max(1, round(self.source_pixmap.height() * self.zoom)),
+            Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.setPixmap(self.display_pixmap)
+        self.setFixedSize(self.display_pixmap.size() /
+                          max(1.0, self.display_pixmap.devicePixelRatio()))
+        self.update()
+
+    def wheelEvent(self, event):
+        delta = event.angleDelta().y()
+        if delta:
+            self.set_zoom(self.zoom * (1.1 if delta > 0 else 1 / 1.1))
+        event.accept()
 
     def _display_region_rect(self, region):
         points = region.get("box") or []
@@ -656,10 +672,12 @@ class OcrRegionImageLabel(QLabel):
             return QRect()
         source_size = self.source_pixmap.size() / max(
             1.0, self.source_pixmap.devicePixelRatio())
-        scale_x = self.display_pixmap.width() / max(1, source_size.width())
-        scale_y = self.display_pixmap.height() / max(1, source_size.height())
-        offset_x = (self.width() - self.display_pixmap.width()) // 2
-        offset_y = (self.height() - self.display_pixmap.height()) // 2
+        display_size = self.display_pixmap.size() / max(
+            1.0, self.display_pixmap.devicePixelRatio())
+        scale_x = display_size.width() / max(1, source_size.width())
+        scale_y = display_size.height() / max(1, source_size.height())
+        offset_x = (self.width() - display_size.width()) // 2
+        offset_y = (self.height() - display_size.height()) // 2
         xs, ys = [point[0] for point in points], [point[1] for point in points]
         return QRect(
             offset_x + int(min(xs) * scale_x),
@@ -716,13 +734,14 @@ class OcrImageResultDialog(QDialog):
     """左侧原图、右侧可选择和一键复制的 OCR 文本面板。"""
 
     def __init__(self, pixmap, text, parent=None, regions=None,
-                 translated_texts=None):
+                 translated_texts=None, display_mode_switch=None, position=None):
         super().__init__(parent)
         self.setWindowFlags(
             Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self._explicit_close_requested = False
         self.source_pixmap = QPixmap(pixmap)
+        self._display_mode_switch = display_mode_switch
         self.regions = list(regions or [])
         self.original_lines = [
             str(region.get("text", "")).replace("\n", " ")
@@ -739,20 +758,31 @@ class OcrImageResultDialog(QDialog):
 
         self.image_label = OcrRegionImageLabel(
             self.source_pixmap, self.regions)
-        display = self.image_label.display_pixmap
-        self.image_label.setMinimumSize(min(240, display.width()),
-                                        min(160, display.height()))
-        root.addWidget(self.image_label, 1)
+        if self._display_mode_switch is not None:
+            self.image_label.setContextMenuPolicy(Qt.CustomContextMenu)
+            self.image_label.customContextMenuRequested.connect(
+                lambda pos: self._show_display_menu(
+                    self.image_label.mapToGlobal(pos)))
+        self.image_scroll = QScrollArea()
+        self.image_scroll.setFrameShape(QScrollArea.NoFrame)
+        self.image_scroll.setAlignment(Qt.AlignCenter)
+        self.image_scroll.setWidget(self.image_label)
+        self.image_scroll.setMinimumSize(1, 1)
+        self.image_scroll.viewport().installEventFilter(self)
+        self.image_label.installEventFilter(self)
+        self._pan_origin = None
+        root.addWidget(self.image_scroll, 1)
 
         panel = QWidget()
-        panel.setMinimumWidth(260)
-        panel.setMaximumWidth(380)
+        self.text_panel = panel
+        panel.setFixedWidth(300)
         side = QVBoxLayout(panel)
         side.setContentsMargins(8, 8, 8, 8)
         title = QLabel("识别到的文本")
         title.setStyleSheet("font-weight:bold;")
         side.addWidget(title)
         self.text_edit = QTextEdit()
+        self.text_edit.setMinimumHeight(32)
         self.text_edit.setReadOnly(True)
         mapped_text = ("\n".join(self.translated_lines)
                        if self.translated_lines is not None
@@ -770,25 +800,72 @@ class OcrImageResultDialog(QDialog):
         if self.translated_lines is not None:
             self.toggle_text_button = QPushButton("切换原文")
             self.toggle_text_button.setAutoDefault(False)
+            self.toggle_text_button.setToolTip("查看识别到的原文")
             self.toggle_text_button.clicked.connect(self._toggle_original_text)
             buttons.addWidget(self.toggle_text_button)
         self.copy_all_button = QPushButton("一键复制全部")
         self.copy_all_button.setAutoDefault(False)
         self.copy_all_button.setDefault(False)
+        self.copy_all_button.setToolTip("复制右侧当前显示的全部文字到剪贴板")
         self.copy_all_button.clicked.connect(self._copy_all)
         buttons.addWidget(self.copy_all_button)
         close_button = QPushButton("关闭")
         close_button.setAutoDefault(False)
         close_button.setDefault(False)
+        close_button.setToolTip("关闭当前结果窗口")
         close_button.clicked.connect(self._close_explicitly)
         buttons.addWidget(close_button)
+        for index in range(buttons.count()):
+            button = buttons.itemAt(index).widget()
+            button.setCursor(Qt.PointingHandCursor)
+            button.setStyleSheet("""
+                QPushButton {
+                    background:#FFFFFF; color:#303846;
+                    border:1px solid #C7CED8; border-radius:5px;
+                    padding:5px 7px;
+                }
+                QPushButton:hover {
+                    background:#DDEEFF; color:#075BB5; border:1px solid #39A8FF;
+                }
+                QPushButton:pressed {
+                    background:#B9DCFF; color:#06488B; border:1px solid #1976D2;
+                }
+                QPushButton:focus { border:1px solid #1976D2; }
+                QPushButton:disabled { background:#ECEFF3; color:#959DA8; }
+            """)
         side.addLayout(buttons)
         panel.setStyleSheet("QWidget{background:#F5F6F8;border-radius:5px;}")
         root.addWidget(panel)
 
-        width = min(1180, max(620, display.width() + 310))
-        height = min(720, max(360, display.height() + 24))
-        self.resize(width, height)
+        self._copy_toast = QLabel(self, Qt.Tool | Qt.FramelessWindowHint |
+                                  Qt.WindowStaysOnTopHint | Qt.WindowDoesNotAcceptFocus)
+        self._copy_toast.setAttribute(Qt.WA_ShowWithoutActivating)
+        self._copy_toast.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self._copy_toast.setAttribute(Qt.WA_TranslucentBackground)
+        self._copy_toast.setAlignment(Qt.AlignCenter)
+        self._copy_toast.setStyleSheet(
+            "color:#FFFFFF;background:#183D60;border:1px solid #56B6FF;"
+            "border-radius:8px;padding:12px 24px;font-size:14px;")
+        self._copy_toast.hide()
+        self._copy_toast_timer = QTimer(self)
+        self._copy_toast_timer.setSingleShot(True)
+        self._copy_toast_timer.setInterval(1800)
+        self._copy_toast_timer.timeout.connect(self._copy_toast.hide)
+
+        position = position if position is not None else QCursor.pos()
+        screen = QApplication.screenAt(position) or QApplication.primaryScreen()
+        available = screen.availableGeometry()
+        base = self.source_pixmap.size() / max(1.0, self.source_pixmap.devicePixelRatio())
+        max_width = int(available.width() * 0.9)
+        max_height = int(available.height() * 0.9)
+        scale = min(1.0, max(1, max_width - 324) / max(1, base.width()),
+                    max(1, max_height - 16) / max(1, base.height()))
+        self.image_label.set_zoom(scale)
+        self.resize(min(max_width, self.image_label.width() + 324),
+                    min(max_height, max(self.image_label.height(),
+                                        panel.minimumSizeHint().height()) + 16))
+        self.move(max(available.left(), min(position.x(), available.right() - self.width() + 1)),
+                  max(available.top(), min(position.y(), available.bottom() - self.height() + 1)))
 
     def _toggle_original_text(self):
         if self.translated_lines is None:
@@ -802,6 +879,8 @@ class OcrImageResultDialog(QDialog):
         self.image_label.set_highlighted_region(-1)
         self.toggle_text_button.setText(
             "切换译文" if self._showing_original else "切换原文")
+        self.toggle_text_button.setToolTip(
+            "查看翻译后的文字" if self._showing_original else "查看识别到的原文")
 
     def _highlight_text_region(self, index):
         index = index if 0 <= index < len(self.regions) else -1
@@ -819,7 +898,61 @@ class OcrImageResultDialog(QDialog):
                 selections.append(selection)
         self.text_edit.setExtraSelections(selections)
 
+    def _zoom_image_at(self, viewport_pos, delta):
+        if not delta:
+            return
+        label = self.image_label
+        viewport = self.image_scroll.viewport()
+        local = label.mapFrom(viewport, viewport_pos)
+        fraction_x = local.x() / max(1, label.width())
+        fraction_y = local.y() / max(1, label.height())
+        label.set_zoom(label.zoom * (1.1 if delta > 0 else 1 / 1.1))
+        # 缩放前后的同一图像点保持在鼠标下方；边缘由滚动条范围限制。
+        origin = label.mapTo(viewport, QPoint())
+        horizontal = self.image_scroll.horizontalScrollBar()
+        vertical = self.image_scroll.verticalScrollBar()
+        horizontal.setValue(horizontal.value() + round(
+            origin.x() + fraction_x * label.width() - viewport_pos.x()))
+        vertical.setValue(vertical.value() + round(
+            origin.y() + fraction_y * label.height() - viewport_pos.y()))
+        cursor = (Qt.OpenHandCursor if horizontal.maximum() or vertical.maximum()
+                  else Qt.ArrowCursor)
+        label.setCursor(cursor)
+        viewport.setCursor(cursor)
+
     def eventFilter(self, watched, event):
+        if watched in (self.image_label, self.image_scroll.viewport()):
+            if event.type() == QEvent.Wheel:
+                pos = watched.mapTo(self.image_scroll.viewport(), event.pos())
+                self._zoom_image_at(pos, event.angleDelta().y())
+                event.accept()
+                return True
+            horizontal = self.image_scroll.horizontalScrollBar()
+            vertical = self.image_scroll.verticalScrollBar()
+            if (event.type() == QEvent.MouseButtonPress and
+                    event.button() == Qt.LeftButton and
+                    (horizontal.maximum() > 0 or vertical.maximum() > 0)):
+                self._pan_origin = QPoint(event.globalPos())
+                self._pan_scroll = QPoint(horizontal.value(), vertical.value())
+                self._drag_offset = None
+                self.image_label.setCursor(Qt.ClosedHandCursor)
+                self.image_scroll.viewport().setCursor(Qt.ClosedHandCursor)
+                event.accept()
+                return True
+            if self._pan_origin is not None:
+                if event.type() == QEvent.MouseMove:
+                    delta = event.globalPos() - self._pan_origin
+                    horizontal.setValue(self._pan_scroll.x() - delta.x())
+                    vertical.setValue(self._pan_scroll.y() - delta.y())
+                    event.accept()
+                    return True
+                if (event.type() == QEvent.MouseButtonRelease and
+                        event.button() == Qt.LeftButton):
+                    self._pan_origin = None
+                    self.image_label.setCursor(Qt.OpenHandCursor)
+                    self.image_scroll.viewport().setCursor(Qt.OpenHandCursor)
+                    event.accept()
+                    return True
         if watched is self.text_edit.viewport() and self.regions:
             if event.type() == QEvent.MouseMove:
                 if event.buttons() & Qt.LeftButton:
@@ -872,12 +1005,47 @@ class OcrImageResultDialog(QDialog):
         copy_action.setEnabled(self.text_edit.textCursor().hasSelection())
         copy_action.triggered.connect(self._copy_selected)
         menu.addAction("全选", self.text_edit.selectAll)
+        if self._display_mode_switch is not None:
+            menu.addSeparator()
+            menu.addAction("切换为原图绘制结果", self._display_mode_switch)
         menu.exec_(self.text_edit.mapToGlobal(position))
 
+    def _show_display_menu(self, global_pos):
+        menu = QMenu(self)
+        menu.addAction("切换为原图绘制结果", self._display_mode_switch)
+        menu.exec_(global_pos)
+
+    def contextMenuEvent(self, event):
+        if self._display_mode_switch is not None:
+            self._show_display_menu(event.globalPos())
+        else:
+            super().contextMenuEvent(event)
+
     def _copy_all(self):
-        QApplication.clipboard().setText(self.text_edit.toPlainText())
+        text = self.text_edit.toPlainText()
+        QApplication.clipboard().setText(text)
+        if QApplication.clipboard().text() != text:
+            return
+        self._copy_toast.setText("已复制全部文字")
+        self._copy_toast.adjustSize()
+        screen = (QApplication.screenAt(self.frameGeometry().center()) or
+                  QApplication.primaryScreen())
+        available = screen.availableGeometry()
+        self._copy_toast.move(
+            available.left() + (available.width() - self._copy_toast.width()) // 2,
+            available.top() + max(24, round(available.height() * 0.06)))
+        self._copy_toast.show()
+        self._copy_toast.raise_()
+        self._copy_toast_timer.start()
+
+    def hideEvent(self, event):
+        self._copy_toast_timer.stop()
+        self._copy_toast.hide()
+        super().hideEvent(event)
 
     def _close_explicitly(self):
+        self._copy_toast_timer.stop()
+        self._copy_toast.hide()
         self._explicit_close_requested = True
         super().accept()
 
@@ -939,25 +1107,32 @@ class OcrImageResultDialog(QDialog):
 class PinnedImageWindow(QWidget):
     closed = pyqtSignal(object)
 
-    def __init__(self, pixmap, position=None):
+    def __init__(self, pixmap, position=None, display_mode_switch=None):
         super().__init__(None)
         self.pixmap = QPixmap(pixmap)
+        self._display_mode_switch = display_mode_switch
         self._drag_offset = None
         self._scale = 1.0
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setCursor(Qt.SizeAllCursor)
-        self._apply_size()
         if position is None:
             position = QCursor.pos() + QPoint(16, 16)
-        self.move(position)
+        screen = QApplication.screenAt(position) or QApplication.primaryScreen()
+        available = screen.availableGeometry()
+        base = self.pixmap.size() / max(1.0, self.pixmap.devicePixelRatio())
+        self._scale = min(1.0, available.width() * 0.9 / max(1, base.width()),
+                          available.height() * 0.9 / max(1, base.height()))
+        self._apply_size()
+        self.move(max(available.left(), min(position.x(), available.right() - self.width() + 1)),
+                  max(available.top(), min(position.y(), available.bottom() - self.height() + 1)))
         self.setToolTip("拖动移动 · 滚轮缩放 · 双击关闭 · 右键操作")
 
     def _apply_size(self):
         base = self.pixmap.size() / max(1.0, self.pixmap.devicePixelRatio())
-        width = max(80, min(1600, int(base.width() * self._scale)))
-        height = max(60, min(1200, int(base.height() * self._scale)))
+        width = max(1, round(base.width() * self._scale))
+        height = max(1, round(base.height() * self._scale))
         self.resize(width, height)
 
     def paintEvent(self, event):
@@ -981,16 +1156,26 @@ class PinnedImageWindow(QWidget):
             self.close()
 
     def wheelEvent(self, event):
-        old_center = self.frameGeometry().center()
-        self._scale = max(0.2, min(4.0,
+        if not event.angleDelta().y():
+            event.accept()
+            return
+        fraction_x = event.pos().x() / max(1, self.width())
+        fraction_y = event.pos().y() / max(1, self.height())
+        anchor = event.globalPos()
+        self._scale = max(0.01, min(8.0,
             self._scale * (1.1 if event.angleDelta().y() > 0 else 1 / 1.1)))
         self._apply_size()
-        self.move(old_center - self.rect().center())
+        self.move(anchor - QPoint(round(fraction_x * self.width()),
+                                  round(fraction_y * self.height())))
+        event.accept()
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
         menu.addAction("复制图片", lambda: QApplication.clipboard().setPixmap(self.pixmap))
         menu.addAction("原始大小", self._reset_scale)
+        if self._display_mode_switch is not None:
+            menu.addSeparator()
+            menu.addAction("切换为弹出显示结果", self._display_mode_switch)
         menu.addSeparator()
         menu.addAction("关闭贴图", self.close)
         menu.exec_(event.globalPos())
@@ -1004,8 +1189,59 @@ class PinnedImageWindow(QWidget):
         super().closeEvent(event)
 
 
+class TranslationResultController(QObject):
+    """缓存一次翻译结果，在贴图和文本弹窗间切换，不再发起网络请求。"""
+
+    finished = pyqtSignal()
+
+    def __init__(self, source, payload, position, mode="image", parent=None):
+        super().__init__(parent)
+        self._closing = False
+        self.mode = None
+        self.image_window = PinnedImageWindow(
+            render_text_on_image(source, payload.get("regions", []),
+                                 payload.get("replacements")),
+            position, display_mode_switch=lambda: self.show_mode("popup"))
+        self.image_window.setAttribute(Qt.WA_DeleteOnClose)
+        self.popup_window = OcrImageResultDialog(
+            source, payload.get("text", ""),
+            regions=payload.get("regions", []),
+            translated_texts=payload.get("replacements", []),
+            display_mode_switch=lambda: self.show_mode("image"), position=position)
+        self.image_window.closed.connect(self.close)
+        self.popup_window.finished.connect(self.close)
+        self.show_mode(mode)
+
+    def show_mode(self, mode):
+        if self._closing:
+            return
+        mode = "image" if mode == "image" else "popup"
+        target = self.image_window if mode == "image" else self.popup_window
+        other = self.popup_window if mode == "image" else self.image_window
+        if self.mode is not None and self.mode != mode:
+            screen = QApplication.screenAt(other.pos()) or QApplication.primaryScreen()
+            available = screen.availableGeometry()
+            target.move(max(available.left(), min(other.x(), available.right() - target.width() + 1)),
+                        max(available.top(), min(other.y(), available.bottom() - target.height() + 1)))
+        other.hide()
+        self.mode = mode
+        target.show()
+        target.raise_()
+        target.activateWindow()
+
+    def close(self, *_args):
+        if self._closing:
+            return
+        self._closing = True
+        self.image_window.close()
+        self.popup_window._close_explicitly()
+        self.finished.emit()
+        self.deleteLater()
+
+
 class ScreenshotOverlay(QWidget):
     pin_requested = pyqtSignal(QPixmap, QPoint)
+    translation_requested = pyqtSignal(QPixmap, object, QPoint, str)
 
     def __init__(self, config, parent=None):
         super().__init__(None)
@@ -1509,26 +1745,13 @@ class ScreenshotOverlay(QWidget):
             dialog.show()
             dialog.raise_()
             dialog.activateWindow()
-        elif (mode == "translate" and
-                self.config.get("screenshot_result_mode", "image") == "image"):
-            pixmap = render_text_on_image(
-                self.selected_pixmap(), payload.get("regions", []),
-                payload.get("replacements"))
-            pos = self.mapToGlobal(self.selection.topLeft())
-            self.pin_requested.emit(pixmap, pos)
-            self.hide()
-            self._close_after_worker = True
         else:
             self.hide()
-            dialog = OcrImageResultDialog(
-                self.selected_pixmap(), payload.get("text", ""), None,
-                payload.get("regions", []), payload.get("replacements", []))
-            dialog.finished.connect(self._ocr_dialog_closed)
-            dialog.destroyed.connect(lambda: setattr(self, "_result_dialog", None))
-            self._result_dialog = dialog
-            dialog.show()
-            dialog.raise_()
-            dialog.activateWindow()
+            self.translation_requested.emit(
+                self.selected_pixmap(), payload,
+                self.mapToGlobal(self.selection.topLeft()),
+                self.config.get("screenshot_result_mode", "image"))
+            self._close_after_worker = True
 
     def _finish_api_worker(self):
         if self._close_after_worker and not any(
