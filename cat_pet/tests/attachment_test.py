@@ -273,6 +273,53 @@ class AttachmentTests(unittest.TestCase):
                                        edge_ratio=ratio)
         self.assertEqual(self.pet.pos(), expected)
 
+    def test_maximized_overlap_uses_configured_screen_edge_distance(self):
+        screen = SimpleNamespace(geometry=lambda: QRect(0, 0, 800, 600))
+        target = Target(9, 8, 'Maximized', 'App', QRect(0, 0, 800, 600), True, True)
+        with patch.object(QApplication, 'screenAt', return_value=screen), \
+                patch.object(QApplication, 'keyboardModifiers', return_value=Qt.NoModifier):
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(4, 300)), 'screen')
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(5, 300)), 'software')
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(796, 300)), 'screen')
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(795, 300)), 'software')
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(400, 4)), 'screen')
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(400, 595)), 'software')
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(400, 596)), 'screen')
+
+    def test_screen_edge_distance_is_configurable(self):
+        screen = SimpleNamespace(geometry=lambda: QRect(0, 0, 800, 600))
+        target = Target(9, 8, 'Maximized', 'App', QRect(0, 0, 800, 600), True, True)
+        self.pet.config = {'screen_edge_intent_px': 10}
+        with patch.object(QApplication, 'screenAt', return_value=screen), \
+                patch.object(QApplication, 'keyboardModifiers', return_value=Qt.NoModifier):
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(9, 300)), 'screen')
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(10, 300)), 'software')
+
+    def test_non_maximized_window_keeps_software_attachment_at_screen_edge(self):
+        screen = SimpleNamespace(geometry=lambda: QRect(0, 0, 800, 600))
+        target = Target(9, 8, 'Normal', 'App', QRect(0, 0, 800, 600), True, False)
+        with patch.object(QApplication, 'screenAt', return_value=screen), \
+                patch.object(QApplication, 'keyboardModifiers', return_value=Qt.NoModifier):
+            self.assertEqual(self.controller._resolve_intent(target, QPoint(0, 300)), 'auto')
+
+    def test_shift_and_ctrl_force_overlap_intent(self):
+        screen = SimpleNamespace(geometry=lambda: QRect(0, 0, 800, 600))
+        target = Target(9, 8, 'Maximized', 'App', QRect(0, 0, 800, 600), True, True)
+        with patch.object(QApplication, 'screenAt', return_value=screen):
+            with patch.object(QApplication, 'keyboardModifiers', return_value=Qt.ShiftModifier):
+                self.assertEqual(self.controller._resolve_intent(target, QPoint(0, 300), 1), 'software')
+            with patch.object(QApplication, 'keyboardModifiers', return_value=Qt.ControlModifier):
+                self.assertEqual(self.controller._resolve_intent(target, QPoint(30, 300), 2), 'screen')
+
+    def test_screen_intent_is_consumed_once_on_release(self):
+        self.controller.begin_drag()
+        self.controller.intent_mode = 'screen'
+        self.controller.intent_edge = 'left'
+        with patch.object(self.controller, 'update_drag'):
+            self.assertFalse(self.controller.end_drag(100))
+        self.assertEqual(self.controller.take_screen_intent(), 'left')
+        self.assertIsNone(self.controller.take_screen_intent())
+
     def test_stale_folder_result_and_menu(self):
         self.attach()
         token = self.controller.generation

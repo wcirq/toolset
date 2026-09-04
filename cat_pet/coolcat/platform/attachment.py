@@ -16,6 +16,7 @@ class Target:
     kind: str
     rect: QRect
     visible: bool = True
+    maximized: bool = False
 
 
 class NativeWindows:
@@ -27,6 +28,7 @@ class NativeWindows:
             'IsWindow': ([w.HWND], w.BOOL),
             'IsWindowVisible': ([w.HWND], w.BOOL),
             'IsIconic': ([w.HWND], w.BOOL),
+            'IsZoomed': ([w.HWND], w.BOOL),
             'GetWindowRect': ([w.HWND, ctypes.POINTER(w.RECT)], w.BOOL),
             'GetWindowThreadProcessId': ([w.HWND, ctypes.POINTER(w.DWORD)], w.DWORD),
             'GetWindowTextW': ([w.HWND, w.LPWSTR, ctypes.c_int], ctypes.c_int),
@@ -89,7 +91,9 @@ class NativeWindows:
         self.dwm.DwmGetWindowAttribute(hwnd, 14, ctypes.byref(cloaked), ctypes.sizeof(cloaked))
         visible = bool(self.api.IsWindowVisible(hwnd) and not self.api.IsIconic(hwnd)
                        and not cloaked.value)
-        return Target(int(hwnd), pid, title.value, kind.value, self.logical_rect(hwnd, rect), visible)
+        return Target(int(hwnd), pid, title.value, kind.value,
+                      self.logical_rect(hwnd, rect), visible,
+                      bool(self.api.IsZoomed(hwnd)))
 
     def all(self):
         targets = []

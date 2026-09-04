@@ -621,6 +621,13 @@ class SettingsDialog(QDialog):
             "对所有吸附窗口生效。最小化/隐藏仍隐藏宠物；任一切换规则要求隐藏时优先隐藏，生气优先于开心。")
         f3.addRow("吸附软件焦点切换:", self.attached_focus_behavior_combo)
 
+        self.screen_edge_intent_spin = QSpinBox()
+        self.screen_edge_intent_spin.setRange(1, 50)
+        self.screen_edge_intent_spin.setSuffix(" px")
+        self.screen_edge_intent_spin.setToolTip(
+            "最大化软件与屏幕边缘重合时，鼠标距屏幕边缘小于此值才判定为屏幕贴边。")
+        f3.addRow("屏幕边缘判定:", self.screen_edge_intent_spin)
+
         self.cat_color_combo = QComboBox()
         for i, color in enumerate(COLORS):
             self.cat_color_combo.addItem(color["name"], i)
@@ -1032,6 +1039,7 @@ class SettingsDialog(QDialog):
         self.locked_tab_behavior_combo.setCurrentIndex(max(0, behavior_index))
         focus_index = self.attached_focus_behavior_combo.findData(cfg.get("attached_focus_behavior", "hide"))
         self.attached_focus_behavior_combo.setCurrentIndex(max(0, focus_index))
+        self.screen_edge_intent_spin.setValue(int(cfg.get("screen_edge_intent_px", 5)))
         category = cfg.get("character_category", "cat")
         category_idx = self.character_category_combo.findData(category)
         self.character_category_combo.setCurrentIndex(
@@ -1436,6 +1444,7 @@ class SettingsDialog(QDialog):
         self.scale_slider.setValue(100)
         self.locked_tab_behavior_combo.setCurrentIndex(0)
         self.attached_focus_behavior_combo.setCurrentIndex(0)
+        self.screen_edge_intent_spin.setValue(DEFAULT_CONFIG["screen_edge_intent_px"])
         self.character_category_combo.setCurrentIndex(
             self.character_category_combo.findData("cat"))
         self.cat_style_combo.setCurrentIndex(DEFAULT_CONFIG["cat_style"])
@@ -1555,6 +1564,7 @@ class SettingsDialog(QDialog):
             "cat_scale": self.scale_slider.value() / 100.0,
             "locked_tab_behavior": self.locked_tab_behavior_combo.currentData(),
             "attached_focus_behavior": self.attached_focus_behavior_combo.currentData(),
+            "screen_edge_intent_px": self.screen_edge_intent_spin.value(),
             "character_category": self.character_category_combo.currentData() or "cat",
             "cat_style": self.cat_style_combo.currentData(),
             "cat_color": self.cat_color_combo.currentData(),

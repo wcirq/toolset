@@ -17,6 +17,7 @@ DEFAULT_CONFIG = {
     "cat_scale": 1.0,          # 小猫尺寸倍率 (0.01 ~ 2.0)
     "locked_tab_behavior": "emotion",  # emotion / hide / none
     "attached_focus_behavior": "hide",  # hide / emotion / none
+    "screen_edge_intent_px": 5,  # 最大化窗口与屏幕边缘重合时的贴屏判定距离
     "camera_index": 0,         # 摄像头编号
     "target_exe": "devenv",    # 目标程序可执行名关键字 (devenv=VS, Code=VSCode, idea64=IDEA...)
     "target_title": "visual studio",  # 目标程序窗口标题关键字

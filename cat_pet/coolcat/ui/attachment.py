@@ -61,10 +61,12 @@ class AttachmentPreview(QWidget):
         self.target_rect = QRect()
         self.markers = {}
         self.anchor = self.placement = None
+        self.mode = 'software'
         self.origin = QPoint()
 
-    def display(self, target, size, anchor, placement, edge_ratio=None):
+    def display(self, target, size, anchor, placement, edge_ratio=None, mode='software'):
         self.target, self.anchor, self.placement = target, anchor, placement
+        self.mode = mode
         margin_x, margin_y = size.width() + 60, size.height() + 60
         bounds = target.rect.adjusted(-margin_x, -margin_y, margin_x, margin_y)
         self.origin = bounds.topLeft()
@@ -84,26 +86,64 @@ class AttachmentPreview(QWidget):
     def paintEvent(self, _):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QPen(QColor('#54b9ff'), 2))
+        theme = {'software': QColor('#54b9ff'),
+                 'screen': QColor('#a970ff')}[self.mode]
+        painter.setPen(QPen(theme, 3 if self.mode != 'software' else 2))
         painter.drawRoundedRect(self.target_rect.adjusted(1, 1, -2, -2), 6, 6)
         for cell, rect in self.markers.items():
             chosen = cell == self.placement
-            painter.setPen(QPen(QColor('#35c5ff' if chosen else '#79cfff'),
+            painter.setPen(QPen(theme.lighter(105 if chosen else 135),
                                 3 if chosen else 1,
                                 Qt.SolidLine if chosen else Qt.DashLine))
-            painter.setBrush(QColor(65, 175, 255, 90 if chosen else 18))
+            fill = QColor(theme); fill.setAlpha(90 if chosen else 18)
+            painter.setBrush(fill)
             painter.drawRoundedRect(rect.adjusted(2, 2, -3, -3), 7, 7)
-        # Keep the title below the top grids so it cannot dim/select-cover them.
-        title_rect = QRect(self.target_rect.left() + 10, self.target_rect.top() + 55,
-                           max(0, self.target_rect.width() - 20), 48)
-        painter.fillRect(title_rect, QColor(20, 35, 55, 220))
+        # Screen-snap feedback follows the cursor and is clamped to the active
+        # screen. A fixed target-top label can be clipped when a maximized
+        # window shares the physical top/left/right screen edge.
+        screen_hint = '屏幕贴边 · 松开确认（紫色）'
+        if self.mode == 'screen':
+            cursor = QCursor.pos()
+            screen = QApplication.screenAt(cursor) or QApplication.primaryScreen()
+            area = screen.geometry()
+            metrics = painter.fontMetrics()
+            width = min(metrics.horizontalAdvance(screen_hint) + 28,
+                        max(1, area.width() - 16))
+            height = max(32, metrics.height() + 14)
+            global_x = cursor.x() + 18
+            global_y = cursor.y() + 18
+            if global_x + width > area.right() + 1 - 8:
+                global_x = cursor.x() - width - 18
+            if global_y + height > area.bottom() + 1 - 8:
+                global_y = cursor.y() - height - 18
+            global_x = max(area.left() + 8,
+                           min(global_x, area.right() + 1 - width - 8))
+            global_y = max(area.top() + 8,
+                           min(global_y, area.bottom() + 1 - height - 8))
+            local = self.mapFromGlobal(QPoint(global_x, global_y))
+            title_rect = QRect(local.x(), local.y(), width, height)
+        else:
+            # Keep the software title below the top grids so it cannot
+            # dim/select-cover them.
+            title_rect = QRect(self.target_rect.left() + 10, self.target_rect.top() + 55,
+                               max(0, self.target_rect.width() - 20), 48)
+        if self.mode == 'screen':
+            painter.setPen(QPen(theme.lighter(125), 1))
+            painter.setBrush(QColor(20, 25, 42, 232))
+            painter.drawRoundedRect(title_rect, 8, 8)
+        else:
+            painter.fillRect(title_rect, QColor(20, 35, 55, 220))
         painter.setPen(Qt.white)
-        hint = ('吸附到：' + self.target.title[:55] + '  ·  Esc 取消')
-        if self.anchor and self.placement is not None:
+        if self.mode == 'screen':
+            hint = screen_hint
+        else:
+            hint = ('吸附到：' + self.target.title[:55] + '  ·  Esc 取消')
+        if self.mode == 'software' and self.anchor and self.placement is not None:
             hint += '\n' + ANCHOR_NAMES[self.anchor] + ' · ' + placement_label(self.anchor, self.placement)
-        elif self.anchor:
+        elif self.mode == 'software' and self.anchor:
             hint += '\n' + ANCHOR_NAMES[self.anchor] + ' · 将宠物移入一个矩形'
-        painter.drawText(title_rect.adjusted(6, 3, -6, -3), Qt.AlignLeft | Qt.AlignVCenter, hint)
+        alignment = Qt.AlignCenter if self.mode == 'screen' else Qt.AlignLeft | Qt.AlignVCenter
+        painter.drawText(title_rect.adjusted(8, 3, -8, -3), alignment, hint)
 
 
 class WindowAttachment(QObject):
@@ -120,6 +160,9 @@ class WindowAttachment(QObject):
         self.candidate_corner = None
         self.candidate_placement = None
         self.candidate_edge_ratio = None
+        self.intent_mode = 'auto'
+        self.intent_edge = None
+        self.release_screen_edge = None
         self.dragging = False
         self.cancelled = False
         self.manual_hidden = False
@@ -151,7 +194,66 @@ class WindowAttachment(QObject):
         self.dragging, self.cancelled = True, False
         self.start_pos = QPoint(self.pet.pos())
         self.next_scan = 0.0
+        self.intent_mode = 'auto'
+        self.intent_edge = None
+        self.release_screen_edge = None
         self.pet.follow = False
+
+    def _screen_edge_intent_px(self):
+        try:
+            value = int(getattr(self.pet, 'config', {}).get('screen_edge_intent_px', 5))
+        except (TypeError, ValueError):
+            value = 5
+        return max(1, min(50, value))
+
+    def _overlap_screen_edge(self, target, cursor, limit=None):
+        if not target or not target.maximized:
+            return None, None
+        screen = QApplication.screenAt(cursor)
+        if screen is None:
+            return None, None
+        area = screen.geometry()
+        checks = (
+            ('left', cursor.x() - area.left()),
+            ('right', area.right() + 1 - cursor.x()),
+            ('top', cursor.y() - area.top()),
+            ('bottom', area.bottom() + 1 - cursor.y()),
+        )
+        limit = self._screen_edge_intent_px() if limit is None else limit
+        matches = [(edge, inward) for edge, inward in checks if 0 <= inward < limit]
+        return min(matches, key=lambda item: item[1]) if matches else (None, None)
+
+    @staticmethod
+    def _cursor_screen_edge(cursor, limit=80):
+        screen = QApplication.screenAt(cursor)
+        if screen is None:
+            return None
+        area = screen.geometry()
+        distances = {'left': cursor.x() - area.left(),
+                     'right': area.right() + 1 - cursor.x(),
+                     'top': cursor.y() - area.top(),
+                     'bottom': area.bottom() + 1 - cursor.y()}
+        edge = min(distances, key=distances.get)
+        return edge if 0 <= distances[edge] < limit else None
+
+    def _resolve_intent(self, target, cursor, _now=None):
+        modifiers = QApplication.keyboardModifiers()
+        if modifiers & Qt.ControlModifier:
+            edge = self._cursor_screen_edge(cursor)
+            self.intent_mode = 'screen' if edge else 'auto'
+            self.intent_edge = edge
+            return self.intent_mode
+        if modifiers & Qt.ShiftModifier:
+            self.intent_mode = 'software'
+            self.intent_edge = None
+            return 'software'
+        edge, _ = self._overlap_screen_edge(target, cursor)
+        if target and target.maximized:
+            self.intent_mode = 'screen' if edge else 'software'
+        else:
+            self.intent_mode = 'auto'
+        self.intent_edge = edge
+        return self.intent_mode
 
     def update_drag(self, force=False):
         if self.cancelled or not self.enabled:
@@ -214,8 +316,15 @@ class WindowAttachment(QObject):
                     edge_ratio = edge_ratios.get(corner)
                     if choices[nearest] <= select_limit:
                         placement = nearest[1]
-            self.preview.display(candidate, self.pet.size(), corner, placement, edge_ratio)
+            mode = self._resolve_intent(candidate, cursor, now)
+            if mode == 'screen':
+                corner = placement = None
+                self.preview.display(candidate, self.pet.size(), None, None, None, mode)
+            else:
+                self.preview.display(candidate, self.pet.size(), corner, placement,
+                                     edge_ratio, 'software')
         else:
+            self._resolve_intent(None, cursor, now)
             self.preview.hide()
         self.candidate_corner = corner
         self.candidate_placement = placement
@@ -231,6 +340,14 @@ class WindowAttachment(QObject):
             self.update_drag(force=True)
         self.dragging = False
         self.preview.hide()
+        if distance >= 8 and self.intent_mode == 'screen' and self.intent_edge:
+            self.release_screen_edge = self.intent_edge
+            self.dragging = False
+            self.candidate = None
+            self.candidate_corner = None
+            self.candidate_placement = None
+            self.candidate_edge_ratio = None
+            return False
         if self.target and distance < 40:
             self.tick()
             return True
@@ -244,6 +361,11 @@ class WindowAttachment(QObject):
         self.candidate_placement = None
         self.candidate_edge_ratio = None
         return False
+
+    def take_screen_intent(self):
+        edge = self.release_screen_edge
+        self.release_screen_edge = None
+        return edge
 
     def cancel_drag(self):
         self.cancelled = True
@@ -306,6 +428,8 @@ class WindowAttachment(QObject):
         if self.dragging:
             if self.backend.escape_pressed():
                 self.cancel_drag()
+            else:
+                self.update_drag()
             return
         if not self.target:
             return

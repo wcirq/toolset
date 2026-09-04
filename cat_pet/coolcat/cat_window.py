@@ -7,6 +7,7 @@ from .ui.attachment import WindowAttachment
 from .ui.dialogs import AuthDialog, SettingsDialog
 from .ui.screenshot import (PinnedImageWindow, ScreenshotOverlay,
                             TranslationResultController)
+from PyQt5.QtCore import QRect
 
 # ======================== 小猫主窗口 ========================
 class CatWindow(QWidget):
@@ -548,6 +549,7 @@ class CatWindow(QWidget):
 
         # 贴边吸附
         self.snap_edge = None       # None / "left" / "right" / "top" / "bottom"
+        self.snap_screen_geometry = None
         self.snap_anim = 1.0        # 0=隐藏 1=完全可见
         self.snap_target = 1.0      # 动画目标值
         self.snap_pos = 0           # 吸附时的次要坐标 (左右吸附记录Y, 上下吸附记录X)
@@ -904,29 +906,33 @@ class CatWindow(QWidget):
 
     # ======================== 贴边吸附 ========================
 
-    def _check_snap(self):
+    def _check_snap(self, forced_edge=None):
         """拖拽释放时检测是否应该吸附到屏幕边缘"""
-        screen = QApplication.primaryScreen().geometry()
+        screen_obj = QApplication.screenAt(QCursor.pos()) or QApplication.screenAt(self.frameGeometry().center())
+        screen = (screen_obj or QApplication.primaryScreen()).geometry()
         x, y = self.x(), self.y()
         win_w, win_h = self.width(), self.height()
         threshold = 80
 
-        snap_to = None
-        if x < threshold:
+        snap_to = forced_edge
+        if snap_to:
+            self.snap_pos = y if snap_to in ('left', 'right') else x
+        elif x < screen.left() + threshold:
             snap_to = "left"
             self.snap_pos = y
-        elif x + win_w > screen.width() - threshold:
+        elif x + win_w > screen.right() + 1 - threshold:
             snap_to = "right"
             self.snap_pos = y
-        elif y < threshold:
+        elif y < screen.top() + threshold:
             snap_to = "top"
             self.snap_pos = x
-        elif y + win_h > screen.height() - threshold:
+        elif y + win_h > screen.bottom() + 1 - threshold:
             snap_to = "bottom"
             self.snap_pos = x
 
         if snap_to:
             self.snap_edge = snap_to
+            self.snap_screen_geometry = QRect(screen)
             self.snap_anim = 1.0
             self.snap_target = 0.0  # 开始向边缘缩入
             self._say("嗖~", 80)
@@ -944,30 +950,30 @@ class CatWindow(QWidget):
         speed = 0.12
         self.snap_anim += (self.snap_target - self.snap_anim) * speed
 
-        screen = QApplication.primaryScreen().geometry()
+        screen = self.snap_screen_geometry or QApplication.primaryScreen().geometry()
         win_w, win_h = self.width(), self.height()
 
         if self.snap_edge == "left":
-            full_x = 0
-            hidden_x = self._peek_amount() - win_w
+            full_x = screen.left()
+            hidden_x = screen.left() + self._peek_amount() - win_w
             new_x = hidden_x + (full_x - hidden_x) * self.snap_anim
             self.move(int(new_x), self.snap_pos)
 
         elif self.snap_edge == "right":
-            full_x = screen.width() - win_w
-            hidden_x = screen.width() - self._peek_amount()
+            full_x = screen.right() + 1 - win_w
+            hidden_x = screen.right() + 1 - self._peek_amount()
             new_x = hidden_x + (full_x - hidden_x) * self.snap_anim
             self.move(int(new_x), self.snap_pos)
 
         elif self.snap_edge == "top":
-            full_y = 0
-            hidden_y = self._peek_amount() - win_h
+            full_y = screen.top()
+            hidden_y = screen.top() + self._peek_amount() - win_h
             new_y = hidden_y + (full_y - hidden_y) * self.snap_anim
             self.move(self.snap_pos, int(new_y))
 
         elif self.snap_edge == "bottom":
-            full_y = screen.height() - win_h
-            hidden_y = screen.height() - self._peek_amount()
+            full_y = screen.bottom() + 1 - win_h
+            hidden_y = screen.bottom() + 1 - self._peek_amount()
             new_y = hidden_y + (full_y - hidden_y) * self.snap_anim
             self.move(self.snap_pos, int(new_y))
 
@@ -1836,7 +1842,7 @@ class CatWindow(QWidget):
             elif was_dragging and self.drag_distance >= 8:
                 # 拖拽释放后检查贴边吸附
                 if not attached_release:
-                    self._check_snap()
+                    self._check_snap(self.attachment.take_screen_intent())
 
     def mouseMoveEvent(self, event):
         if self.dragging:
