@@ -39,4 +39,12 @@ for style in HUMAN_STYLES:
         for y in range(H) for x in range(W)
     )
     assert visible > 2500, (style["name"], visible)
+    for mood in ('angry', 'happy'):
+        subject._tab_mood = mood
+        expression = QImage(W, H, QImage.Format_ARGB32_Premultiplied)
+        expression.fill(Qt.transparent)
+        painter = QPainter(expression)
+        CatWindow._draw_human_character(subject, painter)
+        painter.end()
+        assert expression != image, (style['name'], mood, 'expression did not change')
 print("PASS: 6 human styles, 6 linked palettes, 3 render levels")

@@ -607,6 +607,20 @@ class SettingsDialog(QDialog):
         self.cat_style_combo = QComboBox()
         f3.addRow("具体形象:", self.cat_style_combo)
 
+        self.locked_tab_behavior_combo = QComboBox()
+        self.locked_tab_behavior_combo.addItem("切走生气，返回开心", "emotion")
+        self.locked_tab_behavior_combo.addItem("切走隐藏，返回显示", "hide")
+        self.locked_tab_behavior_combo.addItem("不改变角色表现", "none")
+        self.locked_tab_behavior_combo.setToolTip("仅在启用资源管理器标签页目录锁定后生效；返回开心表情持续约 2.5 秒。")
+        f3.addRow("锁定标签页切换:", self.locked_tab_behavior_combo)
+        self.attached_focus_behavior_combo = QComboBox()
+        self.attached_focus_behavior_combo.addItem("失焦隐藏，返回显示", "hide")
+        self.attached_focus_behavior_combo.addItem("失焦生气，返回开心", "emotion")
+        self.attached_focus_behavior_combo.addItem("保持显示，不改变表情", "none")
+        self.attached_focus_behavior_combo.setToolTip(
+            "对所有吸附窗口生效。最小化/隐藏仍隐藏宠物；任一切换规则要求隐藏时优先隐藏，生气优先于开心。")
+        f3.addRow("吸附软件焦点切换:", self.attached_focus_behavior_combo)
+
         self.cat_color_combo = QComboBox()
         for i, color in enumerate(COLORS):
             self.cat_color_combo.addItem(color["name"], i)
@@ -1014,6 +1028,10 @@ class SettingsDialog(QDialog):
             bool(cfg.get("auto_pause_fullscreen", False)))
         self.dedup_spin.setValue(cfg.get("dedup_iou", 0.55))
         self.scale_slider.setValue(int(cfg["cat_scale"] * 100))
+        behavior_index = self.locked_tab_behavior_combo.findData(cfg.get("locked_tab_behavior", "emotion"))
+        self.locked_tab_behavior_combo.setCurrentIndex(max(0, behavior_index))
+        focus_index = self.attached_focus_behavior_combo.findData(cfg.get("attached_focus_behavior", "hide"))
+        self.attached_focus_behavior_combo.setCurrentIndex(max(0, focus_index))
         category = cfg.get("character_category", "cat")
         category_idx = self.character_category_combo.findData(category)
         self.character_category_combo.setCurrentIndex(
@@ -1416,6 +1434,8 @@ class SettingsDialog(QDialog):
             DEFAULT_CONFIG["auto_pause_fullscreen"])
         self.dedup_spin.setValue(DEFAULT_CONFIG["dedup_iou"])
         self.scale_slider.setValue(100)
+        self.locked_tab_behavior_combo.setCurrentIndex(0)
+        self.attached_focus_behavior_combo.setCurrentIndex(0)
         self.character_category_combo.setCurrentIndex(
             self.character_category_combo.findData("cat"))
         self.cat_style_combo.setCurrentIndex(DEFAULT_CONFIG["cat_style"])
@@ -1533,6 +1553,8 @@ class SettingsDialog(QDialog):
             "auto_pause_fullscreen": self.auto_pause_fullscreen_check.isChecked(),
             "dedup_iou": round(self.dedup_spin.value(), 2),
             "cat_scale": self.scale_slider.value() / 100.0,
+            "locked_tab_behavior": self.locked_tab_behavior_combo.currentData(),
+            "attached_focus_behavior": self.attached_focus_behavior_combo.currentData(),
             "character_category": self.character_category_combo.currentData() or "cat",
             "cat_style": self.cat_style_combo.currentData(),
             "cat_color": self.cat_color_combo.currentData(),

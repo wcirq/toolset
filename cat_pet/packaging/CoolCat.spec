@@ -13,7 +13,8 @@ a = Analysis(
     pathex=[project_root],
     binaries=[],
     datas=rapidocr_datas,
-    hiddenimports=rapidocr_hiddenimports,
+    hiddenimports=rapidocr_hiddenimports + [
+        'pythoncom', 'pywintypes', 'win32gui', 'win32com.client', 'win32com.shell.shell'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[os.path.join(SPECPATH, 'runtime_hooks',

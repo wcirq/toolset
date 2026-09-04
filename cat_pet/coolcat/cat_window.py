@@ -3,6 +3,7 @@ from .effects import Particle, MonitorEdgeEffect
 from .detection import CameraThread
 from .ui.chat import ChatOverlay
 from .ui.preview import CameraPreview
+from .ui.attachment import WindowAttachment
 from .ui.dialogs import AuthDialog, SettingsDialog
 from .ui.screenshot import (PinnedImageWindow, ScreenshotOverlay,
                             TranslationResultController)
@@ -39,6 +40,7 @@ class CatWindow(QWidget):
         self._setup_window()
         self.monitor_edge_effect = MonitorEdgeEffect()
         self._init_state()
+        self.attachment = WindowAttachment(self)
         self.chat = ChatOverlay(self)
         self._setup_tray()
         self._apply_scale(self.cat_scale, keep_center=False)
@@ -578,6 +580,7 @@ class CatWindow(QWidget):
         interact.addAction("玩耍", lambda: self._set_state(self.PLAY, 180))
         interact.addAction("睡觉/起床", self._toggle_sleep)
         interact.addAction("跟随鼠标", self._toggle_follow)
+        self.attachment.add_menu(menu)
         menu.addAction("区域截图...", self._on_screenshot_hotkey)
         menu.addAction("设置...", self._open_settings)
         # 开机启动 (勾选状态在弹出时刷新)
@@ -639,11 +642,17 @@ class CatWindow(QWidget):
             self.show_cat()
 
     def show_cat(self):
+        self.attachment.manual_hidden = False
+        if self.attachment.target:
+            # Explicitly showing the pet releases a hidden binding; otherwise
+            # the tracker would immediately hide it again behind another app.
+            self.attachment.detach()
         self.show()
         self.raise_()
         self.activateWindow()
 
     def _quit(self):
+        self.attachment.close()
         # 注销全局快捷键
         try:
             self.hotkey_mgr.unregister()
@@ -712,6 +721,8 @@ class CatWindow(QWidget):
     def _toggle_follow(self):
         self.follow = not self.follow
         if self.follow:
+            self.attachment.detach(reveal=False)
+            self.snap_edge = None
             self._say("来追我呀~")
         else:
             self._say("不追了~")
@@ -781,7 +792,7 @@ class CatWindow(QWidget):
             self._update_particles()
             self._update_speech()
 
-            if self.follow:
+            if self.follow and not self.dragging and not self.attachment.target:
                 self._update_follow()
 
             # 闲置自动睡觉 (40秒)
@@ -804,8 +815,9 @@ class CatWindow(QWidget):
                     random.choice(["star", "sparkle"])
                 ))
 
-            self._update_snap()
-            self._check_snap_hover()
+            if not self.attachment.target and not self.dragging:
+                self._update_snap()
+                self._check_snap_hover()
 
             self.update()
         except Exception as e:
@@ -1090,8 +1102,19 @@ class CatWindow(QWidget):
 
         # 眼睛跟随与眨眼。
         blink = self.blink_left > 0
+        tab_mood = getattr(self, '_tab_mood', '')
         for ex in (CX - 16, CX + 16):
-            if blink:
+            if tab_mood in ('angry', 'happy'):
+                p.setPen(QPen(hair, 2.6, Qt.SolidLine, Qt.RoundCap))
+                p.setBrush(Qt.NoBrush)
+                if tab_mood == 'angry':
+                    side = -1 if ex < CX else 1
+                    p.drawLine(QPointF(ex - 8, hy + 4 + side * 4),
+                               QPointF(ex + 8, hy + 4 - side * 4))
+                else:
+                    eye = QPainterPath(); eye.moveTo(ex - 7, hy + 6)
+                    eye.quadTo(ex, hy - 3, ex + 7, hy + 6); p.drawPath(eye)
+            elif blink:
                 p.setPen(QPen(hair, 2.4, Qt.SolidLine, Qt.RoundCap))
                 p.drawLine(QPointF(ex - 7, hy + 5), QPointF(ex + 7, hy + 5))
             else:
@@ -1111,7 +1134,12 @@ class CatWindow(QWidget):
         p.drawEllipse(QPointF(CX + 30, hy + 20), 10, 5)
         p.setPen(QPen(QColor(210, 125, 110, 140), 1.2))
         p.drawLine(QPointF(CX - 2, hy + 16), QPointF(CX + 2, hy + 17))
-        if mode == "abstract":
+        if tab_mood == 'angry':
+            p.setPen(QPen(QColor(164, 78, 76), 2.4, Qt.SolidLine, Qt.RoundCap))
+            p.setBrush(Qt.NoBrush)
+            mouth = QPainterPath(); mouth.moveTo(CX - 10, hy + 32)
+            mouth.quadTo(CX, hy + 22, CX + 10, hy + 32); p.drawPath(mouth)
+        elif mode == "abstract":
             p.setPen(QPen(QColor(164, 78, 76), 2.4, Qt.SolidLine, Qt.RoundCap))
             p.setBrush(Qt.NoBrush)
             mouth = QPainterPath(); mouth.moveTo(CX - 10, hy + 28)
@@ -1404,8 +1432,14 @@ class CatWindow(QWidget):
         eye_y = hy - 2
         lex = CX - self.style["eye_x"]
         rex = CX + self.style["eye_x"]
+        expression = getattr(self, '_tab_mood', '') or self.state
 
-        if self.state == self.HAPPY:
+        if expression == 'angry':
+            p.setPen(QPen(QColor('#2C2C2C'), 3, Qt.SolidLine, Qt.RoundCap))
+            p.setBrush(Qt.NoBrush)
+            p.drawLine(QPointF(lex - 8, eye_y - 5), QPointF(lex + 8, eye_y + 3))
+            p.drawLine(QPointF(rex - 8, eye_y + 3), QPointF(rex + 8, eye_y - 5))
+        elif expression == self.HAPPY:
             # ^ ^ 开心眯眼
             pen = QPen(QColor("#2C2C2C"), 2.5)
             p.setPen(pen)
@@ -1501,7 +1535,12 @@ class CatWindow(QWidget):
         p.setPen(pen)
         p.setBrush(Qt.NoBrush)
 
-        if self.state == self.HAPPY:
+        expression = getattr(self, '_tab_mood', '') or self.state
+        if expression == 'angry':
+            path = QPainterPath(); path.moveTo(CX - 9, mouth_y + 6)
+            path.quadTo(CX, mouth_y - 3, CX + 9, mouth_y + 6)
+            p.drawPath(path)
+        elif expression == self.HAPPY:
             # 大笑 + 舌头
             path = QPainterPath()
             path.moveTo(CX, mouth_y)
@@ -1748,6 +1787,7 @@ class CatWindow(QWidget):
             self.drag_start = QPoint(event.globalPos())
             self.drag_offset = QPoint(event.pos())
             self.drag_distance = 0.0
+            self.attachment.begin_drag()
             # 启动长按计时器: 500ms 内未拖动未释放 → 长按显示摄像头
             if not self.longpress_active:
                 self.press_timer.start(500)
@@ -1767,12 +1807,14 @@ class CatWindow(QWidget):
             if self.longpress_active:
                 self._hide_preview()
                 self.dragging = False
+                self.attachment.end_drag(0)
                 if self.state == self.DRAG:
                     self._set_state(self.IDLE, 0)
                 return
 
             was_dragging = self.dragging
             self.dragging = False
+            attached_release = self.attachment.end_drag(self.drag_distance)
             if self.state == self.DRAG:
                 self._set_state(self.IDLE, 0)
             # 短距离释放 = 点击
@@ -1793,7 +1835,8 @@ class CatWindow(QWidget):
                     self._pet()
             elif was_dragging and self.drag_distance >= 8:
                 # 拖拽释放后检查贴边吸附
-                self._check_snap()
+                if not attached_release:
+                    self._check_snap()
 
     def mouseMoveEvent(self, event):
         if self.dragging:
@@ -1806,6 +1849,8 @@ class CatWindow(QWidget):
             if not self.longpress_active:
                 new_pos = QPoint(event.globalPos() - self.drag_offset)
                 self.move(new_pos)
+                if self.drag_distance >= 8:
+                    self.attachment.update_drag()
                 # 预览显示中则跟随小猫移动
                 if self.preview.isVisible():
                     self._position_preview()
@@ -1838,6 +1883,16 @@ class CatWindow(QWidget):
             }
         """)
 
+        # While attached, expose the target-specific actions directly instead
+        # of mixing them with screenshot/settings/pet interaction commands.
+        if self.attachment.target:
+            self.attachment.populate_menu(menu)
+            try:
+                menu.exec_(event.globalPos())
+            finally:
+                menu.deleteLater()
+            return
+
         state_names = {
             "idle": "闲逛中", "happy": "开心",
             "sleep": "睡觉中", "play": "玩耍中", "drag": "被抓住"
@@ -1859,6 +1914,7 @@ class CatWindow(QWidget):
             interact.addAction("睡觉/起床", self._toggle_sleep)
         follow_text = "取消跟随" if self.follow else "跟随鼠标"
         interact.addAction(follow_text, self._toggle_follow)
+        self.attachment.add_menu(menu)
         monitor_text = "暂停监控" if self._monitoring_requested else "启用监控"
         menu.addAction(monitor_text, self._toggle_monitoring)
         cam_text = "隐藏摄像头预览" if self.preview.isVisible() else "摄像头预览"
@@ -1893,6 +1949,7 @@ class CatWindow(QWidget):
 
     def closeEvent(self, event):
         event.ignore()
+        self.attachment.manual_hidden = True
         self.hide()
         self.tray.showMessage(
             "桌面小猫",

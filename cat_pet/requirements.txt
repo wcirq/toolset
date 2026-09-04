@@ -4,6 +4,7 @@
 
 # ===== 运行必需 =====
 PyQt5==5.15.11
+pywin32>=306
 opencv-python==4.10.0.84
 numpy==2.5.2
 rapidocr==3.9.2

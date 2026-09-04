@@ -42,13 +42,21 @@ check("预览透明度可调至 0%", all(
 titles = [dlg.tabs.tabText(i) for i in range(5)]
 print("  分页:", titles)
 check("分页标题正确", titles == [
-    "检测与触发", "小猫与摄像头", "目标与快捷键", "截图与贴图", "安全"])
+    "检测与触发", "形象与摄像头", "目标与快捷键", "截图与贴图", "安全"])
 check("窗口可见高度受控 (有 tab 容器)", dlg.tabs.isVisible() or True)  # offscreen 未show
 
 # ---------- 2. 默认无密码 ----------
 dlg.pwd_old_edit.clear(); dlg.pwd_new_edit.clear(); dlg.pwd_new2_edit.clear()
 out = dlg.get_config()
 check("默认不设置密码", out["settings_password_hash"] == "")
+check("标签页切换行为默认为表情", out["locked_tab_behavior"] == "emotion")
+check("软件焦点行为默认隐藏", out["attached_focus_behavior"] == "hide")
+for behavior in ('emotion', 'none', 'hide'):
+    dlg.attached_focus_behavior_combo.setCurrentIndex(dlg.attached_focus_behavior_combo.findData(behavior))
+    check("保存软件焦点行为 " + behavior, dlg.get_config()["attached_focus_behavior"] == behavior)
+for behavior in ('hide', 'none', 'emotion'):
+    dlg.locked_tab_behavior_combo.setCurrentIndex(dlg.locked_tab_behavior_combo.findData(behavior))
+    check("保存标签页行为 " + behavior, dlg.get_config()["locked_tab_behavior"] == behavior)
 check("未设置密码时当前密码输入框禁用", not dlg.pwd_old_edit.isEnabled())
 check("get_config 保留 cat_color", "cat_color" in out)
 check("get_config 保留 preview_scale", out.get("preview_scale") == cfg.get("preview_scale", 1.0))

@@ -15,6 +15,8 @@ DEFAULT_CONFIG = {
     "sustain_sec": 1.5,        # 持续检出超过该秒数才触发 (0 = 立即)
     "trigger_cooldown_sec": 10.0,  # 触发切换后的冷却时间 (0 = 不冷却)
     "cat_scale": 1.0,          # 小猫尺寸倍率 (0.01 ~ 2.0)
+    "locked_tab_behavior": "emotion",  # emotion / hide / none
+    "attached_focus_behavior": "hide",  # hide / emotion / none
     "camera_index": 0,         # 摄像头编号
     "target_exe": "devenv",    # 目标程序可执行名关键字 (devenv=VS, Code=VSCode, idea64=IDEA...)
     "target_title": "visual studio",  # 目标程序窗口标题关键字
