@@ -383,6 +383,11 @@ class AuthDialog(QDialog):
 
 
 # ======================== 设置对话框 ========================
+SETTINGS_HINT_STYLE = (
+    "color: #C7D0E5; font-size: 12px; font-weight: 400; padding: 3px 0;"
+)
+
+
 class SettingsDialog(QDialog):
     """
     配置页面: 检测模型 / 触发规则 / 形象尺寸 / 摄像头。
@@ -531,8 +536,8 @@ class SettingsDialog(QDialog):
         self.kpt_conf_spin.setToolTip("pose 模型: 头部关键点(鼻/眼/耳)置信度达到该值才算一个出现的头部")
         f1.addRow("头部关键点置信度:", self.kpt_conf_spin)
 
-        pose_hint = QLabel("提示: 权重名含 -pose 时为姿态模型, 触发按\"出现头部数\"计算 (身体被挡也能数到)")
-        pose_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        pose_hint = QLabel("权重文件名包含 -pose 时使用姿态模型，触发人数按可见头部计算。")
+        pose_hint.setStyleSheet(SETTINGS_HINT_STYLE)
         pose_hint.setWordWrap(True)
         f1.addRow("", pose_hint)
         l1.addWidget(g1)
@@ -573,7 +578,7 @@ class SettingsDialog(QDialog):
         self.dedup_spin.setValue(0.55)
         f2.addRow("重复框合并阈值:", self.dedup_spin)
         dedup_hint = QLabel("重叠率超过该值的两个框视为同一人 (解决一人被识别成两人); 值越小合并越激进")
-        dedup_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        dedup_hint.setStyleSheet(SETTINGS_HINT_STYLE)
         dedup_hint.setWordWrap(True)
         f2.addRow("", dedup_hint)
         l1.addWidget(g2)
@@ -621,6 +626,11 @@ class SettingsDialog(QDialog):
             "对所有吸附窗口生效。最小化/隐藏仍隐藏宠物；任一切换规则要求隐藏时优先隐藏，生气优先于开心。")
         f3.addRow("吸附软件焦点切换:", self.attached_focus_behavior_combo)
 
+        self.attached_roam_check = QCheckBox("吸附后自主活动")
+        self.attached_roam_check.setToolTip(
+            "宠物会沿窗口边缘散步，偶尔探头、翻身或睡觉；最大化时改为沿屏幕边缘活动。")
+        f3.addRow("", self.attached_roam_check)
+
         self.screen_edge_intent_spin = QSpinBox()
         self.screen_edge_intent_spin.setRange(1, 50)
         self.screen_edge_intent_spin.setSuffix(" px")
@@ -632,9 +642,6 @@ class SettingsDialog(QDialog):
         for i, color in enumerate(COLORS):
             self.cat_color_combo.addItem(color["name"], i)
         f3.addRow("配色:", self.cat_color_combo)
-        hint = QLabel("提示: 也可以用右键菜单中的 +/- 快速调整")
-        hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
-        f3.addRow("", hint)
         l2.addWidget(g3)
 
         # ---------- 摄像头 ----------
@@ -647,7 +654,7 @@ class SettingsDialog(QDialog):
         self.debug_check = QCheckBox("调试模式: 满足切换条件时保存检测图片 (debug_shots/)")
         f4.addRow("", self.debug_check)
         dbg_hint = QLabel("图片按天分目录保存, 自动保留最近 3 天; 默认关闭")
-        dbg_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        dbg_hint.setStyleSheet(SETTINGS_HINT_STYLE)
         dbg_hint.setWordWrap(True)
         f4.addRow("", dbg_hint)
 
@@ -668,7 +675,7 @@ class SettingsDialog(QDialog):
         self.preview_video_opacity_slider = add_opacity_row("摄像头画面:", 85)
         self.preview_overlay_opacity_slider = add_opacity_row("检测标注:", 100)
         opacity_hint = QLabel("窗口、视频画面、人体框/关键点/标签可分别调整")
-        opacity_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        opacity_hint.setStyleSheet(SETTINGS_HINT_STYLE)
         opacity_hint.setWordWrap(True)
         f4.addRow("", opacity_hint)
         l2.addWidget(g4)
@@ -711,7 +718,7 @@ class SettingsDialog(QDialog):
         f5.addRow("离开后等待:", self.auto_return_delay_spin)
 
         hint2 = QLabel("列表中程序员工具 (VS/VSCode/IDEA 等) 已排在前面; 也可手动输入如 devenv / Code")
-        hint2.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        hint2.setStyleSheet(SETTINGS_HINT_STYLE)
         hint2.setWordWrap(True)
         f5.addRow("", hint2)
         l3.addWidget(g5)
@@ -779,8 +786,7 @@ class SettingsDialog(QDialog):
         effect_row.addWidget(self.monitor_effect_size_label)
         f6_monitor.addRow("闪烁范围:", effect_row)
         effect_hint = QLabel("拖动滑块可实时预览左上角提示范围")
-        effect_hint.setStyleSheet(
-            "color: #8888A0; font-size: 11px; font-weight: normal;")
+        effect_hint.setStyleSheet(SETTINGS_HINT_STYLE)
         f6_monitor.addRow("", effect_hint)
         l3.addWidget(g6_monitor)
 
@@ -943,8 +949,7 @@ class SettingsDialog(QDialog):
             "RapidOCR SMALL 模型直接在当前进程离线识别，无需 EXE 或本地服务；"
             "OCR 与翻译服务相互独立，可分别启用和配置。")
         screenshot_hint.setWordWrap(True)
-        screenshot_hint.setStyleSheet(
-            "color:#8888A0;font-size:11px;font-weight:normal;")
+        screenshot_hint.setStyleSheet(SETTINGS_HINT_STYLE)
         f6_screenshot.addRow("", screenshot_hint)
         l3.addStretch()
         self.tabs.addTab(page3, "目标与快捷键")
@@ -998,7 +1003,7 @@ class SettingsDialog(QDialog):
         self.pwd_new2_edit.setPlaceholderText("再输入一遍新密码")
         f7.addRow("确认新密码:", self.pwd_new2_edit)
         pwd_hint = QLabel("首次设置密码无需填写当前密码；已有密码时修改密码才需验证当前密码。修改后点击下方\"保存并应用\"生效；配置文件只保存 SHA-256 哈希，不保存明文。")
-        pwd_hint.setStyleSheet("color: #8888A0; font-size: 11px; font-weight: normal;")
+        pwd_hint.setStyleSheet(SETTINGS_HINT_STYLE)
         pwd_hint.setWordWrap(True)
         f7.addRow("", pwd_hint)
         l4.addWidget(g7)
@@ -1039,6 +1044,7 @@ class SettingsDialog(QDialog):
         self.locked_tab_behavior_combo.setCurrentIndex(max(0, behavior_index))
         focus_index = self.attached_focus_behavior_combo.findData(cfg.get("attached_focus_behavior", "hide"))
         self.attached_focus_behavior_combo.setCurrentIndex(max(0, focus_index))
+        self.attached_roam_check.setChecked(bool(cfg.get("attached_roam_enabled", True)))
         self.screen_edge_intent_spin.setValue(int(cfg.get("screen_edge_intent_px", 5)))
         category = cfg.get("character_category", "cat")
         category_idx = self.character_category_combo.findData(category)
@@ -1444,6 +1450,7 @@ class SettingsDialog(QDialog):
         self.scale_slider.setValue(100)
         self.locked_tab_behavior_combo.setCurrentIndex(0)
         self.attached_focus_behavior_combo.setCurrentIndex(0)
+        self.attached_roam_check.setChecked(DEFAULT_CONFIG["attached_roam_enabled"])
         self.screen_edge_intent_spin.setValue(DEFAULT_CONFIG["screen_edge_intent_px"])
         self.character_category_combo.setCurrentIndex(
             self.character_category_combo.findData("cat"))
@@ -1564,6 +1571,7 @@ class SettingsDialog(QDialog):
             "cat_scale": self.scale_slider.value() / 100.0,
             "locked_tab_behavior": self.locked_tab_behavior_combo.currentData(),
             "attached_focus_behavior": self.attached_focus_behavior_combo.currentData(),
+            "attached_roam_enabled": self.attached_roam_check.isChecked(),
             "screen_edge_intent_px": self.screen_edge_intent_spin.value(),
             "character_category": self.character_category_combo.currentData() or "cat",
             "cat_style": self.cat_style_combo.currentData(),

@@ -1,4 +1,6 @@
-"""Window corner attachment, independent from the pet animation and screen snap."""
+"""Window attachment, tracking and autonomous edge activity."""
+import math
+import random
 import time
 
 from PyQt5.QtCore import QObject, QPoint, QRect, Qt, QTimer
@@ -98,50 +100,42 @@ class AttachmentPreview(QWidget):
             fill = QColor(theme); fill.setAlpha(90 if chosen else 18)
             painter.setBrush(fill)
             painter.drawRoundedRect(rect.adjusted(2, 2, -3, -3), 7, 7)
-        # Screen-snap feedback follows the cursor and is clamped to the active
-        # screen. A fixed target-top label can be clipped when a maximized
-        # window shares the physical top/left/right screen edge.
-        screen_hint = '屏幕贴边 · 松开确认（紫色）'
         if self.mode == 'screen':
-            cursor = QCursor.pos()
-            screen = QApplication.screenAt(cursor) or QApplication.primaryScreen()
-            area = screen.geometry()
-            metrics = painter.fontMetrics()
-            width = min(metrics.horizontalAdvance(screen_hint) + 28,
-                        max(1, area.width() - 16))
-            height = max(32, metrics.height() + 14)
-            global_x = cursor.x() + 18
-            global_y = cursor.y() + 18
-            if global_x + width > area.right() + 1 - 8:
-                global_x = cursor.x() - width - 18
-            if global_y + height > area.bottom() + 1 - 8:
-                global_y = cursor.y() - height - 18
-            global_x = max(area.left() + 8,
-                           min(global_x, area.right() + 1 - width - 8))
-            global_y = max(area.top() + 8,
-                           min(global_y, area.bottom() + 1 - height - 8))
-            local = self.mapFromGlobal(QPoint(global_x, global_y))
-            title_rect = QRect(local.x(), local.y(), width, height)
-        else:
-            # Keep the software title below the top grids so it cannot
-            # dim/select-cover them.
-            title_rect = QRect(self.target_rect.left() + 10, self.target_rect.top() + 55,
-                               max(0, self.target_rect.width() - 20), 48)
-        if self.mode == 'screen':
-            painter.setPen(QPen(theme.lighter(125), 1))
-            painter.setBrush(QColor(20, 25, 42, 232))
-            painter.drawRoundedRect(title_rect, 8, 8)
-        else:
-            painter.fillRect(title_rect, QColor(20, 35, 55, 220))
-        painter.setPen(Qt.white)
-        if self.mode == 'screen':
-            hint = screen_hint
+            hint = '屏幕贴边 · 松开确认（紫色）'
         else:
             hint = ('吸附到：' + self.target.title[:55] + '  ·  Esc 取消')
         if self.mode == 'software' and self.anchor and self.placement is not None:
             hint += '\n' + ANCHOR_NAMES[self.anchor] + ' · ' + placement_label(self.anchor, self.placement)
         elif self.mode == 'software' and self.anchor:
             hint += '\n' + ANCHOR_NAMES[self.anchor] + ' · 将宠物移入一个矩形'
+
+        # Both kinds of feedback follow the cursor, size to their text and stay
+        # inside the active screen. This also avoids clipping around maximized
+        # windows whose preview overlay extends beyond a physical screen edge.
+        cursor = QCursor.pos()
+        screen = QApplication.screenAt(cursor) or QApplication.primaryScreen()
+        area = screen.geometry()
+        metrics = painter.fontMetrics()
+        lines = hint.splitlines() or ['']
+        width = min(max(metrics.horizontalAdvance(line) for line in lines) + 28,
+                    max(1, area.width() - 16))
+        height = max(32, len(lines) * metrics.lineSpacing() + 14)
+        global_x = cursor.x() + 18
+        global_y = cursor.y() + 18
+        if global_x + width > area.right() + 1 - 8:
+            global_x = cursor.x() - width - 18
+        if global_y + height > area.bottom() + 1 - 8:
+            global_y = cursor.y() - height - 18
+        global_x = max(area.left() + 8,
+                       min(global_x, area.right() + 1 - width - 8))
+        global_y = max(area.top() + 8,
+                       min(global_y, area.bottom() + 1 - height - 8))
+        local = self.mapFromGlobal(QPoint(global_x, global_y))
+        title_rect = QRect(local.x(), local.y(), width, height)
+        painter.setPen(QPen(theme.lighter(125), 1))
+        painter.setBrush(QColor(20, 25, 42, 232))
+        painter.drawRoundedRect(title_rect, 8, 8)
+        painter.setPen(Qt.white)
         alignment = Qt.AlignCenter if self.mode == 'screen' else Qt.AlignLeft | Qt.AlignVCenter
         painter.drawText(title_rect.adjusted(8, 3, -8, -3), alignment, hint)
 
@@ -184,6 +178,16 @@ class WindowAttachment(QObject):
         self._focus_away = False
         self._focus_hidden = False
         self._focus_happy_until = 0.0
+        self.roam_mode = 'home'
+        self.roam_progress = 0.0
+        self.roam_target = 0.0
+        self.roam_deadline = 0.0
+        self.roam_started = 0.0
+        self.roam_last_at = 0.0
+        self.roam_last_rect = QRect()
+        self.roam_was_maximized = False
+        self.roam_return_from = QPoint()
+        self.fling_x = self.fling_y = 0.0
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.PreciseTimer)
         self.timer.timeout.connect(self.tick)
@@ -403,6 +407,7 @@ class WindowAttachment(QObject):
         self.pet.setToolTip(current.title + '\n' + ANCHOR_NAMES[corner] + ' · ' +
                             placement_label(corner, self.placement))
         self.next_folder = 0.0
+        self._reset_roam(current)
         self.tick()
         return True
 
@@ -411,6 +416,7 @@ class WindowAttachment(QObject):
         self._reset_focus_behavior()
         self.generation += 1
         self.target = None
+        self._reset_roam()
         self.folder_name = self.folder_path = ''
         self.pet.setToolTip('')
         self.preview.hide()
@@ -449,9 +455,7 @@ class WindowAttachment(QObject):
                     self.pet.preview.hide()
                 self.auto_hidden = not self.manual_hidden
             return
-        self.pet.move(attachment_position(current.rect, self.pet.size(),
-                                          self.corner, self.placement,
-                                          edge_ratio=self.edge_ratio))
+        self.pet.move(self._activity_position(current, time.monotonic()))
         if self.auto_hidden:
             self.pet.show()  # WA_ShowWithoutActivating: don't steal target focus.
             self.auto_hidden = False
@@ -459,6 +463,210 @@ class WindowAttachment(QObject):
         if current.kind in ('CabinetWClass', 'ExploreWClass') and now >= self.next_folder:
             self.next_folder = now + 1.0
             self.reader.request(current.hwnd, self.generation, self.backend.api.IsWindowVisible)
+
+    def _roam_enabled(self):
+        # Test/minimal hosts without a config retain the original fixed behavior.
+        return bool(getattr(self.pet, 'config', {}).get('attached_roam_enabled', False))
+
+    def _set_activity_state(self, name, duration=0):
+        state = getattr(self.pet, name, None)
+        if state is not None and hasattr(self.pet, '_set_state') and not getattr(self.pet, 'dragging', False):
+            self.pet._set_state(state, duration)
+
+    def _reset_roam(self, current=None):
+        now = time.monotonic()
+        previous_mode = getattr(self, 'roam_mode', 'home')
+        self.roam_mode = 'home'
+        self.roam_deadline = now + random.uniform(4.0, 8.0)
+        self.roam_started = self.roam_last_at = now
+        self.roam_target = self.roam_progress = 0.0
+        self.roam_last_rect = QRect(current.rect) if current else QRect()
+        self.roam_was_maximized = bool(current and current.maximized)
+        self.roam_return_from = QPoint(self.pet.pos())
+        self.fling_x = self.fling_y = 0.0
+        self.pet._attachment_roll_angle = 0.0
+        if previous_mode in ('peek', 'roll', 'sleep'):
+            self._set_activity_state('IDLE')
+
+    def _track_bounds(self, rect):
+        size, gap = self.pet.size(), 10
+        x_align, y_align = self.placement
+        x_cross = x_align == 0 if ('-' in self.corner or self.corner in ('left', 'right')) else True
+        y_cross = y_align == 0 if ('-' in self.corner or self.corner in ('top', 'bottom')) else True
+        if x_cross:
+            left = rect.left() - size.width() // 2
+            right = rect.right() + 1 - size.width() // 2
+        else:
+            left = rect.left() + gap
+            right = rect.right() + 1 - size.width() - gap
+        if y_cross:
+            top = rect.top() - size.height() // 2
+            bottom = rect.bottom() + 1 - size.height() // 2
+        else:
+            top = rect.top() + gap
+            bottom = rect.bottom() + 1 - size.height() - gap
+        if right < left:
+            left = right = rect.center().x() - size.width() // 2
+        if bottom < top:
+            top = bottom = rect.center().y() - size.height() // 2
+        return left, top, right, bottom
+
+    def _perimeter_position(self, rect, progress):
+        left, top, right, bottom = self._track_bounds(rect)
+        width, height = right - left, bottom - top
+        total = 2.0 * (width + height)
+        if total <= 0:
+            return QPoint(left, top), (0.0, -1.0), 1.0
+        distance = (progress % 1.0) * total
+        if distance <= width:
+            return QPoint(round(left + distance), top), (0.0, -1.0), total
+        distance -= width
+        if distance <= height:
+            return QPoint(right, round(top + distance)), (1.0, 0.0), total
+        distance -= height
+        if distance <= width:
+            return QPoint(round(right - distance), bottom), (0.0, 1.0), total
+        distance -= width
+        return QPoint(left, round(bottom - distance)), (-1.0, 0.0), total
+
+    def _nearest_progress(self, rect, point):
+        left, top, right, bottom = self._track_bounds(rect)
+        width, height = right - left, bottom - top
+        total = 2.0 * (width + height)
+        if total <= 0:
+            return 0.0
+        candidates = (
+            (QPoint(max(left, min(point.x(), right)), top),
+             max(left, min(point.x(), right)) - left),
+            (QPoint(right, max(top, min(point.y(), bottom))),
+             width + max(top, min(point.y(), bottom)) - top),
+            (QPoint(max(left, min(point.x(), right)), bottom),
+             width + height + right - max(left, min(point.x(), right))),
+            (QPoint(left, max(top, min(point.y(), bottom))),
+             2 * width + height + bottom - max(top, min(point.y(), bottom))),
+        )
+        chosen = min(candidates, key=lambda item: (item[0] - point).manhattanLength())
+        return chosen[1] / total
+
+    def _start_random_activity(self, rect, now):
+        choice = random.random()
+        if choice < .58:
+            self.roam_mode = 'walk'
+            _, _, total = self._perimeter_position(rect, self.roam_progress)
+            top_share = max(0.0, self._track_bounds(rect)[2] - self._track_bounds(rect)[0]) / total
+            # Most walks visit the title bar; others continue around the frame.
+            self.roam_target = (random.random() * top_share if random.random() < .62
+                                else random.random())
+            if abs((self.roam_target - self.roam_progress + .5) % 1.0 - .5) < .08:
+                self.roam_target = (self.roam_target + .32) % 1.0
+            self._set_activity_state('IDLE')
+        elif choice < .75:
+            self.roam_mode = 'peek'
+            self.roam_deadline = now + random.uniform(1.4, 2.2)
+            self._set_activity_state('HAPPY', 100)
+        elif choice < .88:
+            self.roam_mode = 'roll'
+            self.roam_deadline = now + random.uniform(.9, 1.3)
+            self._set_activity_state('PLAY', 90)
+        else:
+            self.roam_mode = 'sleep'
+            self.roam_deadline = now + random.uniform(6.0, 14.0)
+            self._set_activity_state('SLEEP')
+        self.roam_started = now
+
+    def _finish_activity(self, now):
+        self.roam_mode = 'rest'
+        self.roam_started = now
+        self.roam_deadline = now + random.uniform(3.0, 8.0)
+        self.pet._attachment_roll_angle = 0.0
+        self._set_activity_state('IDLE')
+
+    def _activity_position(self, current, now):
+        home = attachment_position(current.rect, self.pet.size(), self.corner,
+                                   self.placement, edge_ratio=self.edge_ratio)
+        if not self._roam_enabled():
+            self.pet._attachment_roll_angle = 0.0
+            return home
+
+        dt = max(0.0, min(.12, now - self.roam_last_at))
+        max_changed = current.maximized != self.roam_was_maximized
+        old_rect = QRect(self.roam_last_rect)
+        if max_changed:
+            self.fling_x = self.fling_y = 0.0
+            if current.maximized:
+                screen = QApplication.screenAt(current.rect.center()) or QApplication.primaryScreen()
+                track_rect = screen.geometry()
+                self.roam_progress = self._nearest_progress(track_rect, self.pet.pos())
+                self.roam_mode = 'rest'
+                self.roam_deadline = now + 2.0
+            else:
+                self.roam_mode = 'return'
+                self.roam_started, self.roam_deadline = now, now + .7
+                self.roam_return_from = QPoint(self.pet.pos())
+        elif not old_rect.isNull() and dt > 0:
+            dx = current.rect.left() - old_rect.left()
+            dy = current.rect.top() - old_rect.top()
+            speed = math.hypot(dx, dy) / dt
+            if math.hypot(dx, dy) >= 10 and speed >= 900:
+                self.fling_x = max(-90.0, min(90.0, self.fling_x - dx * .55))
+                self.fling_y = max(-90.0, min(90.0, self.fling_y - dy * .55))
+
+        self.roam_was_maximized = current.maximized
+        self.roam_last_rect = QRect(current.rect)
+        self.roam_last_at = now
+
+        if self.roam_mode == 'return':
+            amount = min(1.0, (now - self.roam_started) / max(.01, self.roam_deadline - self.roam_started))
+            eased = 1.0 - (1.0 - amount) ** 3
+            pos = self.roam_return_from + (home - self.roam_return_from) * eased
+            if amount >= 1.0:
+                self._finish_activity(now)
+                self.roam_progress = self._nearest_progress(current.rect, home)
+                pos = home
+            return QPoint(round(pos.x()), round(pos.y()))
+
+        if self.roam_mode == 'home':
+            if now < self.roam_deadline:
+                return home
+            self.roam_progress = self._nearest_progress(current.rect, home)
+            self.roam_mode = 'rest'
+
+        track_rect = current.rect
+        if current.maximized:
+            screen = QApplication.screenAt(current.rect.center()) or QApplication.primaryScreen()
+            track_rect = screen.geometry()
+
+        if self.roam_mode == 'rest' and now >= self.roam_deadline:
+            self._start_random_activity(track_rect, now)
+        if self.roam_mode == 'walk':
+            diff = (self.roam_target - self.roam_progress + .5) % 1.0 - .5
+            _, _, total = self._perimeter_position(track_rect, self.roam_progress)
+            step = min(abs(diff), 48.0 * dt / total)
+            self.roam_progress = (self.roam_progress + math.copysign(step, diff)) % 1.0
+            if abs(diff) <= max(.002, step):
+                self.roam_progress = self.roam_target
+                self._finish_activity(now)
+        elif self.roam_mode in ('peek', 'roll', 'sleep') and now >= self.roam_deadline:
+            self._finish_activity(now)
+
+        pos, normal, _ = self._perimeter_position(track_rect, self.roam_progress)
+        if self.roam_mode == 'peek':
+            phase = (now - self.roam_started) / max(.01, self.roam_deadline - self.roam_started)
+            amount = math.sin(math.pi * max(0.0, min(1.0, phase)))
+            depth = min(self.pet.width(), self.pet.height()) * .28 * amount
+            pos += QPoint(round(normal[0] * depth), round(normal[1] * depth))
+        if self.roam_mode == 'roll':
+            phase = (now - self.roam_started) / max(.01, self.roam_deadline - self.roam_started)
+            self.pet._attachment_roll_angle = 360.0 * max(0.0, min(1.0, phase))
+
+        decay = .90 ** (dt * 60.0)
+        self.fling_x *= decay
+        self.fling_y *= decay
+        if abs(self.fling_x) < .3:
+            self.fling_x = 0.0
+        if abs(self.fling_y) < .3:
+            self.fling_y = 0.0
+        return pos + QPoint(round(self.fling_x), round(self.fling_y))
 
     def _folder_ready(self, hwnd, generation, name, path):
         if self.target and self.target.hwnd == hwnd and self.generation == generation:
@@ -481,6 +689,10 @@ class WindowAttachment(QObject):
             menu.addAction('拖动宠物至软件窗口四角，松开吸附').setEnabled(False)
             return
         menu.addAction(('已吸附：' + self.target.title).replace('&', '&&')).setEnabled(False)
+        roam = menu.addAction('吸附后自主活动')
+        roam.setCheckable(True)
+        roam.setChecked(self._roam_enabled())
+        roam.toggled.connect(self._set_roam_enabled)
         menu.addAction('脱离软件窗口', lambda: self.detach())
         positions = menu.addMenu('吸附位置')
         for key, label in ANCHOR_NAMES.items():
@@ -612,6 +824,18 @@ class WindowAttachment(QObject):
             self.candidate_corner = None
             self.candidate_placement = None
             self.candidate_edge_ratio = None
+
+    def _set_roam_enabled(self, enabled):
+        if not hasattr(self.pet, 'config'):
+            return
+        self.pet.config['attached_roam_enabled'] = bool(enabled)
+        try:
+            from ..config import save_config
+            save_config(self.pet.config)
+        except Exception:
+            pass
+        self._reset_roam(self.target)
+        self.tick()
 
     def close(self):
         self.unlock_folder(notify=False)

@@ -311,6 +311,10 @@ class CatWindow(QWidget):
         # 正式保存后在内存配置中确保保留新值。
         self.config["cat_scale"] = new_cfg["cat_scale"]
 
+        if new_cfg.get("attached_roam_enabled", True) != old.get("attached_roam_enabled", True):
+            self.attachment._reset_roam(self.attachment.target)
+            self.attachment.tick()
+
         cam_keys = ("model", "yolo_model", "yolo_conf", "pose_kpt_conf",
                     "trigger_count", "sustain_sec", "camera_index", "dedup_iou")
         if any(new_cfg[k] != old.get(k) for k in cam_keys):
@@ -1010,12 +1014,19 @@ class CatWindow(QWidget):
             edge_face = self.snap_edge is not None and self.snap_anim < 0.3
             if not edge_face:
                 self._draw_shadow(p)
+                p.save()
+                roll_angle = float(getattr(self, '_attachment_roll_angle', 0.0))
+                if roll_angle:
+                    p.translate(CX, CY)
+                    p.rotate(roll_angle)
+                    p.translate(-CX, -CY)
                 if self.character_category == "human":
                     self._draw_human_character(p)
                 else:
                     self._draw_tail(p)
                     self._draw_body(p)
                     self._draw_head(p)
+                p.restore()
 
                 for prt in self.particles:
                     prt.draw(p)

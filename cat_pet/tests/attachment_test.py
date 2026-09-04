@@ -97,6 +97,59 @@ class AttachmentTests(unittest.TestCase):
         self.controller.tick()
         self.assertEqual(self.pet.pos(), QPoint(270, 735))
 
+    def test_autonomous_track_handles_title_bar_full_frame_and_narrow_window(self):
+        self.pet.config = {'attached_roam_enabled': True}
+        self.attach()
+        rect = self.backend.target.rect
+        top_left, top_normal, _ = self.controller._perimeter_position(rect, 0.0)
+        self.assertEqual(top_normal, (0.0, -1.0))
+        self.assertEqual(top_left.y(), rect.top() + 10)
+        points = [self.controller._perimeter_position(rect, i / 8.0)[0] for i in range(8)]
+        self.assertGreater(len(set((point.x(), point.y()) for point in points)), 4)
+
+        narrow = QRect(200, 100, 100, 120)
+        point, _, _ = self.controller._perimeter_position(narrow, .5)
+        self.assertEqual(point.x(), narrow.center().x() - self.pet.width() // 2)
+        self.assertEqual(point.y(), narrow.center().y() - self.pet.height() // 2)
+
+    def test_maximize_uses_screen_track_then_restore_returns_home(self):
+        self.pet.config = {'attached_roam_enabled': True}
+        self.attach()
+        screen = SimpleNamespace(geometry=lambda: QRect(0, 0, 1200, 800))
+        self.backend.target.rect = QRect(0, 0, 1200, 800)
+        self.backend.target.maximized = True
+        now = self.controller.roam_last_at + .02
+        with patch.object(QApplication, 'screenAt', return_value=screen):
+            self.controller._activity_position(self.backend.target, now)
+        self.assertEqual(self.controller.roam_mode, 'rest')
+        self.assertTrue(self.controller.roam_was_maximized)
+
+        self.backend.target.rect = QRect(100, 100, 900, 700)
+        self.backend.target.maximized = False
+        now += .02
+        self.controller._activity_position(self.backend.target, now)
+        self.assertEqual(self.controller.roam_mode, 'return')
+        home = attachment_position(self.backend.target.rect, self.pet.size(),
+                                   self.controller.corner, self.controller.placement)
+        returned = self.controller._activity_position(self.backend.target, now + .8)
+        self.assertEqual(returned, home)
+
+    def test_fast_window_move_creates_bounded_lag_then_decays(self):
+        self.pet.config = {'attached_roam_enabled': True}
+        self.attach()
+        self.controller.roam_mode = 'rest'
+        self.controller.roam_deadline += 100
+        now = self.controller.roam_last_at + .05
+        self.backend.target.rect.translate(100, 0)
+        position = self.controller._activity_position(self.backend.target, now)
+        base, _, _ = self.controller._perimeter_position(
+            self.backend.target.rect, self.controller.roam_progress)
+        self.assertLess(position.x(), base.x())
+        self.assertGreaterEqual(self.controller.fling_x, -90.0)
+        previous = abs(self.controller.fling_x)
+        self.controller._activity_position(self.backend.target, now + .1)
+        self.assertLess(abs(self.controller.fling_x), previous)
+
     def test_hide_restore_background_minimize_manual(self):
         self.attach()
         self.backend.foreground = False
