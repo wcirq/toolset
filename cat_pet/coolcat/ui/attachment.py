@@ -1,5 +1,6 @@
 """Window attachment, tracking and autonomous edge activity."""
 import math
+import os
 import random
 import time
 
@@ -11,6 +12,12 @@ from ..platform.attachment import (ANCHOR_NAMES, NativeWindows, anchor_placement
                                    attachment_position, default_placement)
 from ..platform.explorer import ExplorerReader
 from ..platform.folder_lock import ExplorerFolderLock
+from ..platform.close_guard import CloseGuard
+from ..platform.wechat import is_wechat_window
+from .dialogs import StyledMessageDialog
+from .send_review import SendReview
+from .wechat_assistant import (WeChatAnalysisWorker,
+                                WeChatSuggestionDialog)
 
 
 CORNERS = {key: ANCHOR_NAMES[key] for key in
@@ -147,6 +154,11 @@ class WindowAttachment(QObject):
         self.backend = backend or NativeWindows()
         self.preview = AttachmentPreview()
         self.target = None
+        self.target_executable = ''
+        self.target_background = False
+        self.wait_executable = ''
+        self.wait_kind = self.wait_title = ''
+        self.wait_next_scan = 0.0
         self.corner = 'bottom-right'
         self.placement = default_placement(self.corner)
         self.edge_ratio = None
@@ -172,6 +184,13 @@ class WindowAttachment(QObject):
         self.folder_lock = ExplorerFolderLock(self)
         self.folder_lock.changed.connect(self._lock_changed)
         self.lock_state = self.lock_path = self.lock_error = ''
+        self.close_guard = CloseGuard(self)
+        self.close_guard.close_requested.connect(self._confirm_target_close)
+        self._confirming_close = False
+        self._close_guard_notice_shown = False
+        self.wechat_worker = None
+        self.wechat_dialogs = []
+        self.send_review = SendReview(self)
         self._tab_away = False
         self._tab_hidden = False
         self._tab_happy_until = 0.0
@@ -347,6 +366,12 @@ class WindowAttachment(QObject):
         if distance >= 8 and self.intent_mode == 'screen' and self.intent_edge:
             self.release_screen_edge = self.intent_edge
             self.dragging = False
+            # Screen-edge snapping and application attachment are mutually
+            # exclusive.  Keeping the old target here lets the 16 ms tracking
+            # timer move the pet back to that window before the snap animation
+            # gets a chance to run, so explicitly leave the application first.
+            if self.target:
+                self.detach(reveal=False)
             self.candidate = None
             self.candidate_corner = None
             self.candidate_placement = None
@@ -379,6 +404,7 @@ class WindowAttachment(QObject):
         if getattr(self.pet, 'longpress_active', False):
             self.pet._hide_preview()
         self.pet.dragging = False
+        self.pet._left_pressed = False
         self.dragging = False
         self.candidate = None
         self.candidate_corner = None
@@ -392,9 +418,14 @@ class WindowAttachment(QObject):
         current = self.backend.get(target.hwnd)
         if not current or current.pid != target.pid or not current.visible:
             return False
-        if not self.target or (current.hwnd, current.pid) != (self.target.hwnd, self.target.pid):
+        changed_target = (not self.target or
+                          (current.hwnd, current.pid) != (self.target.hwnd, self.target.pid))
+        if changed_target:
             self.unlock_folder(notify=False)
             self._reset_focus_behavior()
+            self.cancel_wait_restart()
+            executable = getattr(self.backend, 'process_executable', lambda _pid: '')(current.pid)
+            self.target_executable = executable or self.target_executable
         self.generation += 1
         self.target, self.corner = current, corner
         self.placement = placement or default_placement(corner)
@@ -404,18 +435,25 @@ class WindowAttachment(QObject):
         self.pet.snap_edge = None
         self.pet.snap_anim = self.pet.snap_target = 1.0
         self.folder_name = self.folder_path = ''
+        self.target_background = False
         self.pet.setToolTip(current.title + '\n' + ANCHOR_NAMES[corner] + ' · ' +
                             placement_label(corner, self.placement))
         self.next_folder = 0.0
         self._reset_roam(current)
+        self._sync_close_guard()
         self.tick()
         return True
 
     def detach(self, reveal=True):
+        self.close_guard.uninstall()
         self.unlock_folder(notify=False)
         self._reset_focus_behavior()
         self.generation += 1
         self.target = None
+        self.target_executable = ''
+        self.target_background = False
+        self.send_review.sync()
+        self.cancel_wait_restart()
         self._reset_roam()
         self.folder_name = self.folder_path = ''
         self.pet.setToolTip('')
@@ -430,7 +468,126 @@ class WindowAttachment(QObject):
         if reveal:
             self.manual_hidden = False
 
+    def _close_confirmation_enabled(self):
+        return bool(getattr(self.pet, 'config', {}).get(
+            'confirm_attached_app_close', False))
+
+    def _sync_close_guard(self):
+        if not self.target or not self._close_confirmation_enabled():
+            self.close_guard.uninstall()
+            return
+        if (self.close_guard.target_hwnd, self.close_guard.target_pid) == (
+                self.target.hwnd, self.target.pid):
+            return
+        if not self.close_guard.install(self.target.hwnd, self.target.pid):
+            if not self._close_guard_notice_shown and self.close_guard.error:
+                self._close_guard_notice_shown = True
+                self.pet._say('关闭确认组件不可用~', 140)
+
+    def _confirm_target_close(self, hwnd, pid):
+        if (self._confirming_close or not self.target or
+                (hwnd, pid) != (self.target.hwnd, self.target.pid)):
+            self.close_guard.cancel_close()
+            return
+        self._confirming_close = True
+        title = self.target.title or '已吸附的软件'
+        dialog = StyledMessageDialog(
+            '确认关闭软件',
+            '小猫正在跟随“%s”。\n确定要关闭这个软件吗？\n'
+            '注：软件可能自行选择最小化到系统托盘。' % title[:80],
+            [('取消', 'cancel', 'normal'),
+             ('继续关闭', 'close', 'danger')],
+            self.pet, '×')
+        dialog.exec_()
+        self._confirming_close = False
+        if dialog.choice == 'close':
+            if not self.close_guard.allow_close():
+                self.pet._say('目标窗口已失效~', 100)
+        else:
+            self.close_guard.cancel_close()
+
+    def _enter_target_background(self):
+        if not self.target_background:
+            self.target_background = True
+            tray = getattr(self.pet, 'tray', None)
+            if tray is not None:
+                tray.showMessage('软件仍在后台运行',
+                                 '已吸附的窗口已隐藏，小猫会等待它恢复。')
+        if self.pet.isVisible():
+            self.pet.hide()
+            if hasattr(self.pet, 'preview'):
+                self.pet.preview.hide()
+            self.auto_hidden = not self.manual_hidden
+
+    def _find_replacement_window(self):
+        now = time.monotonic()
+        if now < self.wait_next_scan or not self.target:
+            return False
+        self.wait_next_scan = now + .75
+        replacement = next((item for item in self.backend.all()
+                            if item.pid == self.target.pid and
+                            item.kind == self.target.kind), None)
+        if not replacement:
+            return False
+        return self.attach(replacement, self.corner, self.placement, self.edge_ratio)
+
+    def _handle_target_exit(self):
+        title = self.target.title if self.target else '已吸附的软件'
+        executable = self.target_executable
+        kind = self.target.kind if self.target else ''
+        self.auto_hidden = False
+        self.detach(reveal=False)
+        dialog = StyledMessageDialog(
+            '软件已退出',
+            '“%s”的进程已结束。\n小猫要留在桌面，还是等待它重新打开？' % title[:80],
+            [('留在桌面', 'desktop', 'primary'),
+             ('等待重开', 'wait', 'normal')],
+            self.pet, '↻')
+        dialog.exec_()
+        if dialog.choice == 'wait' and executable:
+            self.wait_executable = executable
+            self.wait_kind = kind
+            self.wait_title = title
+            self.wait_next_scan = 0.0
+            tray = getattr(self.pet, 'tray', None)
+            if tray is not None:
+                tray.showMessage('正在等待软件重开',
+                                 '检测到该软件的新窗口后会自动重新吸附。')
+        else:
+            self.detach(reveal=True)
+
+    def _tick_wait_restart(self):
+        if not self.wait_executable or time.monotonic() < self.wait_next_scan:
+            return
+        self.wait_next_scan = time.monotonic() + 1.0
+        expected = os.path.normcase(os.path.abspath(self.wait_executable))
+        for candidate in self.backend.all():
+            executable = getattr(self.backend, 'process_executable', lambda _pid: '')(
+                candidate.pid)
+            if executable and os.path.normcase(os.path.abspath(executable)) == expected:
+                title = self.wait_title
+                self.cancel_wait_restart()
+                if self.attach(candidate, self.corner, self.placement, self.edge_ratio):
+                    self.pet.show()
+                    self.pet._say(('“%s”回来啦~' % title[:35]), 140)
+                return
+
+    def cancel_wait_restart(self):
+        self.wait_executable = ''
+        self.wait_kind = self.wait_title = ''
+        self.wait_next_scan = 0.0
+
+    def _cancel_wait_and_reveal(self):
+        self.cancel_wait_restart()
+        self.pet.show()
+        self.pet.raise_()
+
     def tick(self):
+        overlay = getattr(self.pet, '_screenshot_overlay', None)
+        if overlay is not None and overlay.isVisible():
+            return
+        if getattr(self.pet, '_left_pressed', False) and not self.dragging:
+            return
         if self.dragging:
             if self.backend.escape_pressed():
                 self.cancel_drag()
@@ -438,23 +595,36 @@ class WindowAttachment(QObject):
                 self.update_drag()
             return
         if not self.target:
+            self._tick_wait_restart()
             return
         current = self.backend.get(self.target.hwnd)
         if not current or current.pid != self.target.pid or current.kind != self.target.kind:
-            self.detach(reveal=False)
+            alive = getattr(self.backend, 'process_alive', lambda _pid: None)(self.target.pid)
+            if alive:
+                self._enter_target_background()
+                self._find_replacement_window()
+                return
+            if alive is False:
+                self._handle_target_exit()
+            else:
+                self.detach(reveal=False)
             return
         self.target = current
+        self._sync_close_guard()
         self._sync_tab_behavior()
         self._sync_focus_behavior(self.backend.active(current))
         visible = (current.visible and not self._focus_hidden
                    and not self.manual_hidden and not self._tab_hidden)
         if not visible:
+            if not current.visible:
+                self._enter_target_background()
             if self.pet.isVisible():
                 self.pet.hide()
                 if hasattr(self.pet, 'preview'):
                     self.pet.preview.hide()
                 self.auto_hidden = not self.manual_hidden
             return
+        self.target_background = False
         self.pet.move(self._activity_position(current, time.monotonic()))
         if self.auto_hidden:
             self.pet.show()  # WA_ShowWithoutActivating: don't steal target focus.
@@ -686,6 +856,10 @@ class WindowAttachment(QObject):
         enabled.setChecked(self.enabled)
         enabled.toggled.connect(self._set_enabled)
         if not self.target:
+            if self.wait_executable:
+                menu.addAction(('正在等待：' + self.wait_title).replace('&', '&&')).setEnabled(False)
+                menu.addAction('取消等待并显示小猫', self._cancel_wait_and_reveal)
+                return
             menu.addAction('拖动宠物至软件窗口四角，松开吸附').setEnabled(False)
             return
         menu.addAction(('已吸附：' + self.target.title).replace('&', '&&')).setEnabled(False)
@@ -693,6 +867,14 @@ class WindowAttachment(QObject):
         roam.setCheckable(True)
         roam.setChecked(self._roam_enabled())
         roam.toggled.connect(self._set_roam_enabled)
+        close_confirm = menu.addAction('关闭软件前确认（实验性）')
+        close_confirm.setCheckable(True)
+        close_confirm.setChecked(self._close_confirmation_enabled())
+        close_confirm.toggled.connect(self._set_close_confirmation_enabled)
+        if self._close_confirmation_enabled() and not self.close_guard.available:
+            unavailable = menu.addAction('关闭确认不可用：' +
+                                         (self.close_guard.error or '未知错误'))
+            unavailable.setEnabled(False)
         menu.addAction('脱离软件窗口', lambda: self.detach())
         positions = menu.addMenu('吸附位置')
         for key, label in ANCHOR_NAMES.items():
@@ -725,6 +907,74 @@ class WindowAttachment(QObject):
                 lock.setEnabled(bool(fresh and self.folder_path))
                 if self.lock_error:
                     menu.addAction(self.lock_error.replace('&', '&&')).setEnabled(False)
+        if self._is_wechat_target():
+            menu.addSeparator()
+            assistant = menu.addMenu('微信聊天助手（实验性）')
+            guard_action = assistant.addAction('发送前检查（回车 / 鼠标）')
+            guard_action.setCheckable(True)
+            guard_action.setChecked(self.send_review.enabled)
+            guard_action.toggled.connect(self._toggle_send_review)
+            shortcut = assistant.addAction('发送快捷键：' + ('Ctrl+Enter' if self.send_review.ctrl else 'Enter'))
+            shortcut.triggered.connect(self._toggle_send_shortcut)
+            state = ('目标已确认 Hook 生效' if self.send_review.guard.ready else
+                     self.send_review.guard.error or ('等待目标确认' if self.send_review.guard._hook else '未启用'))
+            assistant.addAction('发送检查状态：' + state).setEnabled(False)
+            mouse_ready = (self.send_review.mouse_ready and self.send_review.guard.ready and
+                           time.monotonic() - self.send_review.probed_at < .45)
+            assistant.addAction('鼠标发送按钮：' + ('已定位' if mouse_ready else '未定位或已过期')).setEnabled(False)
+            assistant.addAction('查看当前读取内容（无需 AI）',
+                                lambda: self.analyze_wechat('read'))
+            assistant.addAction('分析当前聊天并建议回复',
+                                lambda: self.analyze_wechat('conversation'))
+            assistant.addAction('检查输入框待发送内容',
+                                lambda: self.analyze_wechat('draft'))
+            privacy = assistant.addAction('仅读取当前窗口，不读取数据库、不自动发送')
+            privacy.setEnabled(False)
+
+    def _toggle_send_review(self, enabled):
+        self.send_review.enabled = enabled
+        self.send_review.sync()
+
+    def _toggle_send_shortcut(self):
+        self.send_review.ctrl = not self.send_review.ctrl
+        self.send_review.guard.pulse(False, self.send_review.ctrl)
+
+    def _is_wechat_target(self):
+        return bool(self.target and is_wechat_window(
+            self.target.title, self.target.kind, self.target_executable))
+
+    def analyze_wechat(self, mode='conversation'):
+        if not self._is_wechat_target():
+            self.pet._say('请先吸附到微信窗口~', 120)
+            return
+        if self.wechat_worker and self.wechat_worker.isRunning():
+            self.pet._say('正在分析，请稍候~', 100)
+            return
+        self.pet._say('正在读取当前聊天文本…', 120)
+        worker = WeChatAnalysisWorker(
+            self.target.hwnd, getattr(self.pet, 'config', {}), mode, self)
+        self.wechat_worker = worker
+        worker.completed.connect(
+            lambda ok, text, snapshot, worker=worker, mode=mode:
+            self._wechat_analysis_ready(worker, mode, ok, text, snapshot))
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+    def _wechat_analysis_ready(self, worker, mode, ok, text, snapshot):
+        if self.wechat_worker is worker:
+            self.wechat_worker = None
+        if not ok:
+            StyledMessageDialog('微信聊天助手', text,
+                                [('知道了', 'ok', 'primary')], self.pet, '!').exec_()
+            return
+        title = ('微信读取内容' if mode == 'read' else
+                 '发送前内容建议' if mode == 'draft' else '微信回复建议')
+        dialog = WeChatSuggestionDialog(title, text, snapshot, self.pet)
+        self.wechat_dialogs.append(dialog)
+        dialog.finished.connect(lambda _result, dialog=dialog:
+                                self.wechat_dialogs.remove(dialog)
+                                if dialog in self.wechat_dialogs else None)
+        dialog.show()
 
     def lock_folder(self):
         if not self.target or self.target.kind not in ('CabinetWClass', 'ExploreWClass'):
@@ -837,9 +1087,28 @@ class WindowAttachment(QObject):
         self._reset_roam(self.target)
         self.tick()
 
+    def _set_close_confirmation_enabled(self, enabled):
+        if not hasattr(self.pet, 'config'):
+            return
+        self.pet.config['confirm_attached_app_close'] = bool(enabled)
+        try:
+            from ..config import save_config
+            save_config(self.pet.config)
+        except Exception:
+            pass
+        self._close_guard_notice_shown = False
+        self._sync_close_guard()
+
     def close(self):
+        self.send_review.close()
         self.unlock_folder(notify=False)
         self._reset_focus_behavior()
         self.timer.stop()
         self.reader.closed = True
+        self.close_guard.close()
+        if self.wechat_worker and self.wechat_worker.isRunning():
+            self.wechat_worker.requestInterruption()
+            self.wechat_worker.wait(100)
+        for dialog in tuple(self.wechat_dialogs):
+            dialog.close()
         self.preview.close()

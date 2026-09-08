@@ -22,6 +22,7 @@ class Target:
 class NativeWindows:
     def __init__(self):
         self.api = ctypes.WinDLL('user32', use_last_error=True)
+        self.kernel = ctypes.WinDLL('kernel32', use_last_error=True)
         self.dwm = ctypes.WinDLL('dwmapi')
         self.callback = ctypes.WINFUNCTYPE(w.BOOL, w.HWND, w.LPARAM)
         signatures = {
@@ -44,6 +45,16 @@ class NativeWindows:
         for name, (args, result) in signatures.items():
             fn = getattr(self.api, name)
             fn.argtypes, fn.restype = args, result
+        kernel_signatures = {
+            'OpenProcess': ([w.DWORD, w.BOOL, w.DWORD], w.HANDLE),
+            'GetExitCodeProcess': ([w.HANDLE, ctypes.POINTER(w.DWORD)], w.BOOL),
+            'CloseHandle': ([w.HANDLE], w.BOOL),
+            'QueryFullProcessImageNameW': ([w.HANDLE, w.DWORD, w.LPWSTR,
+                                            ctypes.POINTER(w.DWORD)], w.BOOL),
+        }
+        for name, (args, result) in kernel_signatures.items():
+            fn = getattr(self.kernel, name)
+            fn.argtypes, fn.restype = args, result
         self.dwm.DwmGetWindowAttribute.argtypes = [w.HWND, w.DWORD, ctypes.c_void_p, w.DWORD]
         self.dwm.DwmGetWindowAttribute.restype = ctypes.c_long
 
@@ -51,6 +62,34 @@ class NativeWindows:
         pid = w.DWORD()
         self.api.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
         return pid.value
+
+    def process_alive(self, pid):
+        """Return True/False for a process, or None when access is denied."""
+        handle = self.kernel.OpenProcess(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            # ERROR_INVALID_PARAMETER is returned for a PID which no longer
+            # exists; access-denied/other failures remain indeterminate.
+            return False if ctypes.get_last_error() == 87 else None
+        try:
+            code = w.DWORD()
+            return bool(self.kernel.GetExitCodeProcess(handle, ctypes.byref(code))
+                        and code.value == 259)  # STILL_ACTIVE
+        finally:
+            self.kernel.CloseHandle(handle)
+
+    def process_executable(self, pid):
+        handle = self.kernel.OpenProcess(0x1000, False, int(pid))
+        if not handle:
+            return ''
+        try:
+            capacity = w.DWORD(32768)
+            path = ctypes.create_unicode_buffer(capacity.value)
+            if self.kernel.QueryFullProcessImageNameW(
+                    handle, 0, path, ctypes.byref(capacity)):
+                return path.value
+            return ''
+        finally:
+            self.kernel.CloseHandle(handle)
 
     def logical_rect(self, hwnd, rect):
         class MonitorInfo(ctypes.Structure):

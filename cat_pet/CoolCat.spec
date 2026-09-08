@@ -1,12 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 
+from comtypes.client import GetModule
+uia_module = GetModule('UIAutomationCore.dll')
+uia_imports = [uia_module.__name__, uia_module.__wrapper_module__.__name__]
+
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=[('native/send_guard/bin/x64/Release/CoolCatSendGuardV2_64.dll', '.')],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=uia_imports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -14,6 +14,7 @@ from coolcat.platform.attachment import (ANCHOR_NAMES, Target, anchor_placements
                                          attachment_position, corner_position)
 from coolcat.ui.attachment import WindowAttachment, secondary_selection_zone
 from coolcat.platform.explorer import select_folder
+from coolcat.platform.wechat import is_wechat_window
 
 APP = QApplication.instance() or QApplication([])
 
@@ -70,6 +71,11 @@ class AttachmentTests(unittest.TestCase):
 
     def attach(self):
         self.assertTrue(self.controller.attach(self.backend.target, 'bottom-right'))
+
+    def test_wechat_window_detection_uses_title_or_executable(self):
+        self.assertTrue(is_wechat_window(title='微信'))
+        self.assertTrue(is_wechat_window(executable=r'C:\Program Files\Tencent\Weixin.exe'))
+        self.assertFalse(is_wechat_window(title='Visual Studio', executable='devenv.exe'))
 
     def test_geometry_negative_monitor_and_oversize(self):
         rect = QRect(-1920, -200, 1000, 800)
@@ -178,6 +184,40 @@ class AttachmentTests(unittest.TestCase):
         self.assertIsNone(self.controller.target)
         self.assertTrue(self.pet.isVisible())
 
+    def test_process_exit_can_wait_for_restart_and_reattach(self):
+        executable = r'C:\Apps\Demo\demo.exe'
+        self.backend.process_executable = lambda _pid: executable
+        self.backend.process_alive = lambda _pid: False
+        self.attach()
+        old_corner, old_placement = self.controller.corner, self.controller.placement
+        self.backend.target = None
+        dialog = SimpleNamespace(choice='wait', exec_=lambda: None)
+        with patch('coolcat.ui.attachment.StyledMessageDialog', return_value=dialog):
+            self.controller.tick()
+        self.assertIsNone(self.controller.target)
+        self.assertEqual(self.controller.wait_executable, executable)
+
+        self.backend.target = Target(202, 333, 'Demo restarted', 'App',
+                                     QRect(200, 120, 900, 700))
+        self.controller.wait_next_scan = 0.0
+        self.controller.tick()
+        self.assertEqual(self.controller.target.hwnd, 202)
+        self.assertEqual((self.controller.corner, self.controller.placement),
+                         (old_corner, old_placement))
+        self.assertEqual(self.controller.wait_executable, '')
+
+    def test_hidden_target_is_background_not_exit(self):
+        self.attach()
+        self.backend.target.visible = False
+        self.controller.tick()
+        self.assertTrue(self.controller.target_background)
+        self.assertIsNotNone(self.controller.target)
+        self.assertFalse(self.pet.isVisible())
+        self.backend.target.visible = True
+        self.controller.tick()
+        self.assertFalse(self.controller.target_background)
+        self.assertTrue(self.pet.isVisible())
+
     def test_pid_reuse_detaches(self):
         self.attach()
         self.backend.target = Target(101, 999, 'New process', 'App', QRect(0, 0, 500, 500))
@@ -208,6 +248,16 @@ class AttachmentTests(unittest.TestCase):
         with patch.object(self.controller, 'update_drag'):
             self.assertFalse(self.controller.end_drag(200))
         self.assertIsNone(self.controller.target)
+
+    def test_attached_pet_screen_snap_detaches_before_release(self):
+        self.attach()
+        self.controller.begin_drag()
+        self.controller.intent_mode = 'screen'
+        self.controller.intent_edge = 'left'
+        with patch.object(self.controller, 'update_drag'):
+            self.assertFalse(self.controller.end_drag(200))
+        self.assertIsNone(self.controller.target)
+        self.assertEqual(self.controller.take_screen_intent(), 'left')
 
     def test_corner_preview_release_and_disable(self):
         self.controller.begin_drag()

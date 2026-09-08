@@ -45,7 +45,11 @@ class ApiConfigTestWorker(QThread):
         try:
             from .screenshot import (call_openai_compatible,
                                      call_translation_lines, call_umi_ocr)
-            if self.kind == "ocr":
+            if self.kind == "wechat":
+                from .wechat_assistant import analyze_wechat_text
+                result = analyze_wechat_text(
+                    self.config, '对方：明天下午三点方便开会吗？', self.text, 'draft')
+            elif self.kind == "ocr":
                 provider = self.config.get(
                     "screenshot_ocr_provider", "rapidocr_local")
                 if provider == "openai_compatible":
@@ -631,6 +635,12 @@ class SettingsDialog(QDialog):
             "宠物会沿窗口边缘散步，偶尔探头、翻身或睡觉；最大化时改为沿屏幕边缘活动。")
         f3.addRow("", self.attached_roam_check)
 
+        self.confirm_attached_app_close_check = QCheckBox("关闭吸附软件前确认（实验性）")
+        self.confirm_attached_app_close_check.setToolTip(
+            "仅支持同权限的 64 位传统 Win32 窗口；需要 CoolCatCloseGuard64.dll。"
+            "任务管理器强制结束、崩溃和系统关机无法拦截。")
+        f3.addRow("", self.confirm_attached_app_close_check)
+
         self.screen_edge_intent_spin = QSpinBox()
         self.screen_edge_intent_spin.setRange(1, 50)
         self.screen_edge_intent_spin.setSuffix(" px")
@@ -980,7 +990,56 @@ class SettingsDialog(QDialog):
         screenshot_layout.addWidget(screenshot_scroll)
         self.tabs.addTab(screenshot_page, "截图与贴图")
 
-        # ========== Tab 5: 安全 ==========
+        # ========== Tab 5: 微信助手 ==========
+        wechat_page = QWidget()
+        wechat_layout = QVBoxLayout(wechat_page)
+        wechat_layout.setContentsMargins(8, 8, 8, 8)
+        wechat_group = QGroupBox("微信聊天助手大模型（独立配置）")
+        wechat_form = QFormLayout(wechat_group)
+        self.wechat_ai_endpoint_edit = QLineEdit()
+        self.wechat_ai_endpoint_edit.setPlaceholderText(
+            "https://服务地址/v1/chat/completions")
+        wechat_form.addRow("接口地址:", self.wechat_ai_endpoint_edit)
+        self.wechat_ai_api_key_edit = QLineEdit()
+        self.wechat_ai_api_key_edit.setEchoMode(QLineEdit.Password)
+        self.wechat_ai_api_key_edit.setPlaceholderText(
+            "Bearer API Key（仅保存在本机配置）")
+        wechat_form.addRow("API Key:", self.wechat_ai_api_key_edit)
+        self.wechat_ai_model_edit = QLineEdit()
+        self.wechat_ai_model_edit.setPlaceholderText("文本大模型名称")
+        wechat_form.addRow("模型:", self.wechat_ai_model_edit)
+        self.wechat_history_pages_spin = QSpinBox()
+        self.wechat_history_pages_spin.setRange(2, 20)
+        self.wechat_history_pages_spin.setSuffix(" 页")
+        self.wechat_history_pages_spin.setToolTip(
+            "当前仅通过 UI Automation 读取已加载消息，不滚动读取历史")
+        self.wechat_history_pages_spin.setEnabled(False)
+        wechat_form.addRow("历史读取上限（暂未启用）:", self.wechat_history_pages_spin)
+        self.wechat_ai_test_input = QLineEdit()
+        self.wechat_ai_test_input.setPlaceholderText("输入一段测试消息")
+        self.wechat_ai_test_input.setText("好的，我明天下午三点参加")
+        self.wechat_ai_test_button = QPushButton("测试大模型")
+        wechat_test_row = QHBoxLayout()
+        wechat_test_row.addWidget(self.wechat_ai_test_input, 1)
+        wechat_test_row.addWidget(self.wechat_ai_test_button)
+        wechat_form.addRow("接口测试:", wechat_test_row)
+        self.wechat_ai_test_result = QLabel("尚未测试")
+        self.wechat_ai_test_result.setWordWrap(True)
+        self.wechat_ai_test_result.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        wechat_form.addRow("测试结果:", self.wechat_ai_test_result)
+        wechat_hint = QLabel(
+            "此配置只供微信聊天分析使用，与截图 OCR、截图翻译完全独立。"
+            "当前可见聊天和输入框内容会发送至所配置的服务，请使用可信接口。")
+        wechat_hint.setWordWrap(True)
+        wechat_hint.setStyleSheet(SETTINGS_HINT_STYLE)
+        wechat_form.addRow("", wechat_hint)
+        wechat_layout.addWidget(wechat_group)
+        wechat_layout.addStretch()
+        self.tabs.addTab(wechat_page, "微信助手")
+        self.wechat_ai_test_button.clicked.connect(
+            lambda: self._start_api_config_test("wechat"))
+
+        # ========== Tab 6: 安全 ==========
         page4 = QWidget()
         l4 = QVBoxLayout(page4)
         l4.setContentsMargins(8, 8, 8, 8)
@@ -1045,6 +1104,8 @@ class SettingsDialog(QDialog):
         focus_index = self.attached_focus_behavior_combo.findData(cfg.get("attached_focus_behavior", "hide"))
         self.attached_focus_behavior_combo.setCurrentIndex(max(0, focus_index))
         self.attached_roam_check.setChecked(bool(cfg.get("attached_roam_enabled", True)))
+        self.confirm_attached_app_close_check.setChecked(
+            bool(cfg.get("confirm_attached_app_close", True)))
         self.screen_edge_intent_spin.setValue(int(cfg.get("screen_edge_intent_px", 5)))
         category = cfg.get("character_category", "cat")
         category_idx = self.character_category_combo.findData(category)
@@ -1180,6 +1241,11 @@ class SettingsDialog(QDialog):
                 legacy_names.get(str(target_language), target_language))
         self.screenshot_language_combo.setCurrentIndex(
             target_idx if target_idx >= 0 else 0)
+        self.wechat_ai_endpoint_edit.setText(cfg.get("wechat_ai_endpoint", ""))
+        self.wechat_ai_api_key_edit.setText(cfg.get("wechat_ai_api_key", ""))
+        self.wechat_ai_model_edit.setText(cfg.get("wechat_ai_model", ""))
+        self.wechat_history_pages_spin.setValue(
+            max(2, min(20, int(cfg.get("wechat_history_pages", 5)))))
 
         self.character_category_combo.currentIndexChanged.connect(
             self._update_character_styles)
@@ -1238,12 +1304,16 @@ class SettingsDialog(QDialog):
 
     def _start_api_config_test(self, kind):
         is_ocr = kind == "ocr"
-        input_widget = (self.screenshot_ocr_test_input if is_ocr
-                        else self.screenshot_translate_test_input)
-        button = (self.screenshot_ocr_test_button if is_ocr
-                  else self.screenshot_translate_test_button)
-        result_label = (self.screenshot_ocr_test_result if is_ocr
-                        else self.screenshot_translate_test_result)
+        is_wechat = kind == "wechat"
+        input_widget = (self.wechat_ai_test_input if is_wechat else
+                        self.screenshot_ocr_test_input if is_ocr else
+                        self.screenshot_translate_test_input)
+        button = (self.wechat_ai_test_button if is_wechat else
+                  self.screenshot_ocr_test_button if is_ocr else
+                  self.screenshot_translate_test_button)
+        result_label = (self.wechat_ai_test_result if is_wechat else
+                        self.screenshot_ocr_test_result if is_ocr else
+                        self.screenshot_translate_test_result)
         test_text = input_widget.text().strip()
         if not test_text:
             result_label.setText("请输入测试文本")
@@ -1272,10 +1342,13 @@ class SettingsDialog(QDialog):
 
     def _api_config_test_completed(self, kind, success, elapsed, result):
         is_ocr = kind == "ocr"
-        button = (self.screenshot_ocr_test_button if is_ocr
-                  else self.screenshot_translate_test_button)
-        result_label = (self.screenshot_ocr_test_result if is_ocr
-                        else self.screenshot_translate_test_result)
+        is_wechat = kind == "wechat"
+        button = (self.wechat_ai_test_button if is_wechat else
+                  self.screenshot_ocr_test_button if is_ocr else
+                  self.screenshot_translate_test_button)
+        result_label = (self.wechat_ai_test_result if is_wechat else
+                        self.screenshot_ocr_test_result if is_ocr else
+                        self.screenshot_translate_test_result)
         button.setEnabled(True)
         status = "成功" if success else "失败"
         result_label.setText(
@@ -1451,6 +1524,8 @@ class SettingsDialog(QDialog):
         self.locked_tab_behavior_combo.setCurrentIndex(0)
         self.attached_focus_behavior_combo.setCurrentIndex(0)
         self.attached_roam_check.setChecked(DEFAULT_CONFIG["attached_roam_enabled"])
+        self.confirm_attached_app_close_check.setChecked(
+            DEFAULT_CONFIG["confirm_attached_app_close"])
         self.screen_edge_intent_spin.setValue(DEFAULT_CONFIG["screen_edge_intent_px"])
         self.character_category_combo.setCurrentIndex(
             self.character_category_combo.findData("cat"))
@@ -1572,6 +1647,7 @@ class SettingsDialog(QDialog):
             "locked_tab_behavior": self.locked_tab_behavior_combo.currentData(),
             "attached_focus_behavior": self.attached_focus_behavior_combo.currentData(),
             "attached_roam_enabled": self.attached_roam_check.isChecked(),
+            "confirm_attached_app_close": self.confirm_attached_app_close_check.isChecked(),
             "screen_edge_intent_px": self.screen_edge_intent_spin.value(),
             "character_category": self.character_category_combo.currentData() or "cat",
             "cat_style": self.cat_style_combo.currentData(),
@@ -1630,6 +1706,10 @@ class SettingsDialog(QDialog):
                 self.screenshot_xfyun_from_combo.currentData() or "cn"),
             "screenshot_translate_language": (
                 self.screenshot_language_combo.currentData() or "cn"),
+            "wechat_ai_endpoint": self.wechat_ai_endpoint_edit.text().strip(),
+            "wechat_ai_api_key": self.wechat_ai_api_key_edit.text().strip(),
+            "wechat_ai_model": self.wechat_ai_model_edit.text().strip(),
+            "wechat_history_pages": self.wechat_history_pages_spin.value(),
             "chat_enabled": False,   # 聊天输入功能暂时禁用
             "debug_save": self.debug_check.isChecked(),
             # 非 UI 项原样保留 (预览窗口缩放等由滚轮实时修改)

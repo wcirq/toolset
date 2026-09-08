@@ -42,15 +42,47 @@ def main():
     print("=" * 40)
 
     # 1. 生成图标
-    print("\n[1/4] 生成图标...")
+    print("\n[1/5] 生成图标...")
     ret = subprocess.call([python, os.path.join("tools", "make_icon.py"),
                            os.path.join("assets", "cat.ico")])
     if ret != 0:
         print("图标生成失败, 将使用默认图标构建")
 
-    # 2. 构建 EXE (onedir 模式: ONNX Runtime, 比 onefile 启动快)
+    # 2. 构建目标窗口关闭确认 Hook DLL
+    print("\n[2/5] 构建关闭确认原生组件...")
+    native_build = os.path.join("native", "close_guard", "build.bat")
+    native_result = subprocess.run(
+        ["cmd", "/c", native_build], capture_output=True)
+    # MSBuild/VS may mix the active console code page and UTF-8. Read bytes
+    # first so Python's subprocess reader thread cannot fail on a hard-coded
+    # GBK decoder, then decode with a tolerant fallback for diagnostics.
+    native_stdout = (native_result.stdout or b"").decode(
+        "utf-8", errors="replace")
+    native_stderr = (native_result.stderr or b"").decode(
+        "utf-8", errors="replace")
+    if native_stdout:
+        print(native_stdout, end="")
+    if native_stderr:
+        print(native_stderr, end="")
+    ret = native_result.returncode
+    if ret != 0:
+        output = (native_stdout + native_stderr).lower()
+        if "lnk1104" in output or "coolcatcloseguard64.dll" in output:
+            print("关闭确认组件构建失败：目标 DLL 无法覆盖，通常是旧版小猫/"
+                  "Python、Visual Studio 调试会话或安全软件仍占用该文件。")
+            print("请退出所有 CoolCat/python 进程后重试；若仍失败，暂时关闭实时防护或清理该 DLL 的占用。")
+        else:
+            print("关闭确认组件构建失败，请安装 Visual Studio C++ 生成工具。")
+        sys.exit(1)
+
+    print('构建回车发送检查原生组件...')
+    if subprocess.call(['cmd', '/c', os.path.join('native', 'send_guard', 'build.bat')]) != 0:
+        print('回车发送检查组件构建失败')
+        sys.exit(1)
+
+    # 3. 构建 EXE (onedir 模式: ONNX Runtime, 比 onefile 启动快)
     workdir = "build"  # 将 PyInstaller 中间产物固定在项目 build 目录
-    print("\n[2/4] 使用 packaging/CoolCat.spec 构建 EXE, 工作目录: %s" % workdir)
+    print("\n[3/5] 使用 packaging/CoolCat.spec 构建 EXE, 工作目录: %s" % workdir)
 
     # 预清理旧 dist 输出目录; 删不掉(如 exe 正在运行占用文件)就提示用户手动删, 不强删
     out_dir = os.path.join("dist", "CoolCat")
@@ -82,8 +114,8 @@ def main():
         print("构建失败!")
         sys.exit(1)
 
-    # 3. 复制 YOLO 权重到输出目录；配置由程序首次保存设置时创建
-    print("\n[3/4] 复制 YOLO 权重...")
+    # 4. 复制 YOLO 权重到输出目录；配置由程序首次保存设置时创建
+    print("\n[4/5] 复制 YOLO 权重...")
     out_dir = os.path.join("dist", "CoolCat")
     missing = copy_resources(project_dir, os.path.abspath(out_dir))
     if missing:
@@ -92,11 +124,18 @@ def main():
             print("  - " + path)
         sys.exit(1)
 
-    # 4. 完成
+    # 5. 完成
     exe_path = os.path.join("dist", "CoolCat", "CoolCat.exe")
-    print("\n[4/4] 构建完成!")
+    print("\n[5/5] 构建完成!")
     if not os.path.isfile(exe_path):
         print("未找到预期的 EXE 文件: " + os.path.abspath(exe_path))
+        sys.exit(1)
+    hook_candidates = [
+        os.path.join("dist", "CoolCat", "CoolCatCloseGuard64.dll"),
+        os.path.join("dist", "CoolCat", "_internal", "CoolCatCloseGuard64.dll"),
+    ]
+    if not any(os.path.isfile(path) for path in hook_candidates):
+        print("未找到关闭确认 Hook DLL")
         sys.exit(1)
     print("EXE 文件: " + os.path.abspath(exe_path))
 

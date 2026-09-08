@@ -27,7 +27,7 @@ StyledMessageDialog.warning = staticmethod(
 # ---------- 1. 对话框构造 + 分页 ----------
 cfg = dict(m.DEFAULT_CONFIG)
 dlg = m.SettingsDialog(cfg, yolo_available=False)
-check("共 5 个分页", dlg.tabs.count() == 5)
+check("共 6 个分页", dlg.tabs.count() == 6)
 check("默认使用 YOLO 姿态模型",
       cfg["model"] == "yolo" and
       cfg["yolo_model"] == "yolo26n-pose.onnx")
@@ -39,10 +39,10 @@ check("预览透明度可调至 0%", all(
         dlg.preview_window_opacity_slider,
         dlg.preview_video_opacity_slider,
         dlg.preview_overlay_opacity_slider)))
-titles = [dlg.tabs.tabText(i) for i in range(5)]
+titles = [dlg.tabs.tabText(i) for i in range(6)]
 print("  分页:", titles)
 check("分页标题正确", titles == [
-    "检测与触发", "形象与摄像头", "目标与快捷键", "截图与贴图", "安全"])
+    "检测与触发", "形象与摄像头", "目标与快捷键", "截图与贴图", "微信助手", "安全"])
 check("窗口可见高度受控 (有 tab 容器)", dlg.tabs.isVisible() or True)  # offscreen 未show
 
 # ---------- 2. 默认无密码 ----------
@@ -52,6 +52,8 @@ check("默认不设置密码", out["settings_password_hash"] == "")
 check("标签页切换行为默认为表情", out["locked_tab_behavior"] == "emotion")
 check("软件焦点行为默认隐藏", out["attached_focus_behavior"] == "hide")
 check("吸附后自主活动默认开启", out["attached_roam_enabled"] is True)
+check("关闭吸附软件前确认默认开启",
+      out["confirm_attached_app_close"] is True)
 check("屏幕边缘判定默认 5px", out["screen_edge_intent_px"] == 5)
 dlg.screen_edge_intent_spin.setValue(12)
 check("保存屏幕边缘判定距离", dlg.get_config()["screen_edge_intent_px"] == 12)
@@ -79,6 +81,19 @@ check("OCR 默认启用本地 RapidOCR",
 check("翻译结果默认在原图显示", dlg.get_config()["screenshot_result_mode"] == "image")
 check("翻译服务默认独立关闭",
       dlg.get_config()["screenshot_translate_provider"] == "disabled")
+check("微信助手与翻译 API 独立",
+      dlg.get_config()["wechat_ai_endpoint"] == "" and
+      dlg.get_config()["wechat_ai_api_key"] == "" and
+      dlg.get_config()["wechat_ai_model"] == "")
+dlg.wechat_ai_endpoint_edit.setText("https://wechat.example/v1/chat/completions")
+dlg.wechat_ai_api_key_edit.setText("wechat-secret")
+dlg.wechat_ai_model_edit.setText("wechat-model")
+wechat_cfg = dlg.get_config()
+check("微信助手独立配置可保存",
+      wechat_cfg["wechat_ai_endpoint"].startswith("https://wechat.example/") and
+      wechat_cfg["wechat_ai_api_key"] == "wechat-secret" and
+      wechat_cfg["wechat_ai_model"] == "wechat-model" and
+      wechat_cfg["screenshot_translate_api_endpoint"] == "")
 check("OCR 与翻译配置使用独立分组框",
       dlg.screenshot_ocr_group.title() == "OCR 配置" and
       dlg.screenshot_translate_group.title() == "翻译配置")

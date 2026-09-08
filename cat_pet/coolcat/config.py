@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "locked_tab_behavior": "emotion",  # emotion / hide / none
     "attached_focus_behavior": "hide",  # hide / emotion / none
     "attached_roam_enabled": True,  # 吸附后沿窗口/屏幕边缘自主活动
+    "confirm_attached_app_close": True,  # 实验性：关闭吸附软件前确认
     "screen_edge_intent_px": 5,  # 最大化窗口与屏幕边缘重合时的贴屏判定距离
     "camera_index": 0,         # 摄像头编号
     "target_exe": "devenv",    # 目标程序可执行名关键字 (devenv=VS, Code=VSCode, idea64=IDEA...)
@@ -50,6 +51,10 @@ DEFAULT_CONFIG = {
     "screenshot_xfyun_api_secret": "",
     "screenshot_xfyun_from": "cn",
     "screenshot_translate_language": "cn",
+    "wechat_ai_endpoint": "",  # 微信聊天助手独立 OpenAI-compatible 接口
+    "wechat_ai_api_key": "",
+    "wechat_ai_model": "",
+    "wechat_history_pages": 5,  # 主动读取最近聊天时最多向上翻页数
     "chat_enabled": False,     # 聊天输入功能 (暂时禁用)
     "debug_save": False,       # 调试: 满足切换条件时保存标注检测图片到 debug_shots/
     "auto_pause_fullscreen": False,  # 全屏游戏/会议/演示时自动暂停监控
@@ -128,6 +133,7 @@ def save_config(cfg):
             json.dump(cfg, f, ensure_ascii=False, indent=2)
         logged = dict(cfg)
         for key in ("screenshot_ocr_api_key", "screenshot_translate_api_key",
+                    "wechat_ai_api_key",
                     "screenshot_xfyun_api_key", "screenshot_xfyun_api_secret",
                     "screenshot_xfyun_v1_api_key",
                     "screenshot_xfyun_v1_api_secret"):

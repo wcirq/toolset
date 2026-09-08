@@ -33,6 +33,7 @@ class CatWindow(QWidget):
         self.camera_thread = None
         self._previous_window_hwnd = None
         self._screenshot_overlay = None
+        self._screenshot_overlays = set()
         self._pinned_images = []
         self._translation_results = []
         # 开机启动状态 (从注册表读取)
@@ -139,14 +140,24 @@ class CatWindow(QWidget):
             _log(f"截图快捷键注册异常: {e}\n{traceback.format_exc()}")
 
     def _on_screenshot_hotkey(self):
-        if self._screenshot_overlay is not None:
-            self._screenshot_overlay.close()
+        previous = self._screenshot_overlay
+        if previous is not None and previous.isVisible():
+            # Duplicate hotkey deliveries must not discard the current selection.
+            return
         overlay = ScreenshotOverlay(self.config)
         overlay.pin_requested.connect(self._create_pinned_image)
         overlay.translation_requested.connect(self._show_translation_result)
-        overlay.destroyed.connect(lambda: setattr(self, "_screenshot_overlay", None))
+        overlay.destroyed.connect(lambda _=None, window=overlay:
+                                  self._screenshot_closed(window))
+        # Hidden OCR windows/workers must remain alive when another capture opens.
+        self._screenshot_overlays.add(overlay)
         self._screenshot_overlay = overlay
         overlay.show(); overlay.raise_(); overlay.activateWindow(); overlay.setFocus()
+
+    def _screenshot_closed(self, window):
+        self._screenshot_overlays.discard(window)
+        if self._screenshot_overlay is window:
+            self._screenshot_overlay = None
 
     def _create_pinned_image(self, pixmap, position):
         window = PinnedImageWindow(pixmap, position)
@@ -314,6 +325,10 @@ class CatWindow(QWidget):
         if new_cfg.get("attached_roam_enabled", True) != old.get("attached_roam_enabled", True):
             self.attachment._reset_roam(self.attachment.target)
             self.attachment.tick()
+        if new_cfg.get("confirm_attached_app_close", True) != old.get(
+                "confirm_attached_app_close", True):
+            self.attachment._close_guard_notice_shown = False
+            self.attachment._sync_close_guard()
 
         cam_keys = ("model", "yolo_model", "yolo_conf", "pose_kpt_conf",
                     "trigger_count", "sustain_sec", "camera_index", "dedup_iou")
@@ -450,7 +465,7 @@ class CatWindow(QWidget):
 
     def _on_long_press(self):
         """左键按住 500ms 且未拖动 → 显示摄像头预览"""
-        if self.dragging and self.drag_distance < 8:
+        if self._left_pressed and not self.dragging and self.drag_distance < 8:
             self.longpress_active = True
             self._set_state(self.PLAY, 0)
             self._say("看看谁在偷看~")
@@ -542,6 +557,7 @@ class CatWindow(QWidget):
 
         # 拖拽
         self.dragging = False
+        self._left_pressed = False
         self.drag_start = QPoint(0, 0)
         self.drag_offset = QPoint(0, 0)
         self.drag_distance = 0.0
@@ -649,6 +665,7 @@ class CatWindow(QWidget):
 
     def show_cat(self):
         self.attachment.manual_hidden = False
+        self.attachment.cancel_wait_restart()
         if self.attachment.target:
             # Explicitly showing the pet releases a hidden binding; otherwise
             # the tracker would immediately hide it again behind another app.
@@ -798,7 +815,7 @@ class CatWindow(QWidget):
             self._update_particles()
             self._update_speech()
 
-            if self.follow and not self.dragging and not self.attachment.target:
+            if self.follow and not self._left_pressed and not self.dragging and not self.attachment.target:
                 self._update_follow()
 
             # 闲置自动睡觉 (40秒)
@@ -821,7 +838,7 @@ class CatWindow(QWidget):
                     random.choice(["star", "sparkle"])
                 ))
 
-            if not self.attachment.target and not self.dragging:
+            if not self.attachment.target and not self._left_pressed and not self.dragging:
                 self._update_snap()
                 self._check_snap_hover()
 
@@ -1800,42 +1817,40 @@ class CatWindow(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.dragging = True
+            self._left_pressed = True
+            self.dragging = False
             self.drag_start = QPoint(event.globalPos())
             self.drag_offset = QPoint(event.pos())
             self.drag_distance = 0.0
-            self.attachment.begin_drag()
-            # 启动长按计时器: 500ms 内未拖动未释放 → 长按显示摄像头
+            # Defer attachment, movement and unsnapping until an actual drag.
             if not self.longpress_active:
                 self.press_timer.start(500)
-            # 如果处于吸附状态，拖拽时先弹出再拖动
-            if self.snap_edge:
-                self.snap_target = 1.0
-                self.snap_anim = 1.0
-                self.snap_edge = None
-            if self.state != self.SLEEP:
-                self._set_state(self.DRAG, 0)
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.press_timer.stop()
+            was_pressed = self._left_pressed
+            self._left_pressed = False
 
             # 长按预览状态 → 松开隐藏预览, 不触发点击逻辑
             if self.longpress_active:
                 self._hide_preview()
                 self.dragging = False
-                self.attachment.end_drag(0)
                 if self.state == self.DRAG:
                     self._set_state(self.IDLE, 0)
                 return
 
             was_dragging = self.dragging
             self.dragging = False
-            attached_release = self.attachment.end_drag(self.drag_distance)
+            cancelled = self.attachment.cancelled
+            attached_release = (self.attachment.end_drag(self.drag_distance)
+                                if was_dragging or cancelled else False)
+            if cancelled:
+                return
             if self.state == self.DRAG:
                 self._set_state(self.IDLE, 0)
             # 短距离释放 = 点击
-            if was_dragging and self.drag_distance < 8:
+            if was_pressed and not was_dragging:
                 # 判断点击位置：头部附近 → 聊天框，身体 → 摸猫
                 # 屏幕坐标 → 逻辑画布坐标 (除以缩放倍率)
                 click_x = event.pos().x() / self.cat_scale
@@ -1856,21 +1871,26 @@ class CatWindow(QWidget):
                     self._check_snap(self.attachment.take_screen_intent())
 
     def mouseMoveEvent(self, event):
-        if self.dragging:
-            dx = event.globalPos().x() - self.drag_start.x()
-            dy = event.globalPos().y() - self.drag_start.y()
-            self.drag_distance = math.sqrt(dx * dx + dy * dy)
-            # 拖动超过阈值 → 取消长按判定 (是拖拽不是长按)
-            if self.drag_distance >= 8 and not self.longpress_active:
-                self.press_timer.stop()
-            if not self.longpress_active:
-                new_pos = QPoint(event.globalPos() - self.drag_offset)
-                self.move(new_pos)
-                if self.drag_distance >= 8:
-                    self.attachment.update_drag()
-                # 预览显示中则跟随小猫移动
-                if self.preview.isVisible():
-                    self._position_preview()
+        if not self._left_pressed or self.longpress_active:
+            return
+        dx = event.globalPos().x() - self.drag_start.x()
+        dy = event.globalPos().y() - self.drag_start.y()
+        self.drag_distance = max(self.drag_distance, math.hypot(dx, dy))
+        if not self.dragging:
+            if self.drag_distance < 8:
+                return
+            self.press_timer.stop()
+            self.dragging = True
+            self.attachment.begin_drag()
+            if self.snap_edge:
+                self.snap_target = self.snap_anim = 1.0
+                self.snap_edge = None
+            if self.state != self.SLEEP:
+                self._set_state(self.DRAG, 0)
+        self.move(QPoint(event.globalPos() - self.drag_offset))
+        self.attachment.update_drag()
+        if self.preview.isVisible():
+            self._position_preview()
 
     def mouseDoubleClickEvent(self, event):
         if event.button() == Qt.LeftButton:
