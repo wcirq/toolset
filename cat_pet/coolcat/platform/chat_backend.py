@@ -38,6 +38,27 @@ def list_sessions(hwnd):
     return _with_uia(lambda automation, uia: [s for s, _ in _items(automation, hwnd)])
 
 
+def require_selected_session(hwnd, session):
+    """Validate a bound row even when its token came from the Qt reader."""
+    def check(automation, uia):
+        matches = [(s, item) for s, item in _items(automation, hwnd)
+                   if s.automation_id == session.automation_id]
+        if len(matches) != 1:
+            raise RuntimeError('无法确认吸附会话，请打开绑定的聊天后重试。')
+        current, item = matches[0]
+        pattern = item.GetCurrentPattern(10010).QueryInterface(uia.IUIAutomationSelectionItemPattern)
+        if not pattern.CurrentIsSelected:
+            raise RuntimeError('当前打开的聊天不是吸附会话，请切回「%s」后重试。' % session.name)
+        identity = _draft_identity(automation, uia, hwnd)[2]
+        if identity[2] != session.name:
+            raise RuntimeError('聊天标题与吸附会话不一致，已停止读取。')
+        return current.runtime_id, identity
+    try:
+        return _with_uia(check)
+    except Exception as exc:
+        raise RuntimeError('吸附会话核对失败，未读取其他聊天：%s' % exc) from exc
+
+
 def session_rectangles(hwnd):
     """Return only realized, uniquely named rows, clipped to the session list."""
     def read(automation, uia):

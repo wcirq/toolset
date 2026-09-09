@@ -45,12 +45,32 @@ def analyze_wechat_text(config, conversation, draft='', mode='conversation'):
 
 class WeChatAnalysisWorker(QThread):
     completed = pyqtSignal(bool, str, object)
+    progress = pyqtSignal(object)
 
-    def __init__(self, hwnd, config, mode, parent=None):
+    def __init__(self, hwnd, config, mode, parent=None, session=None):
         super().__init__(parent)
         self.hwnd, self.config, self.mode = int(hwnd), dict(config), mode
+        self.session = session
+        self.session_identity = None
+
+    def validate_session(self):
+        if self.session is None:
+            return
+        from ..platform.chat_backend import require_selected_session
+        identity = require_selected_session(self.hwnd, self.session)
+        if self.session_identity is not None and identity != self.session_identity:
+            raise RuntimeError('绑定会话页面已变化，请重新读取。')
+        self.session_identity = identity
 
     def run(self):
+        try:
+            self.validate_session()
+            self._run_bound()
+        except Exception as exc:
+            from ..platform.wechat import WeChatSnapshot
+            self.completed.emit(False, str(exc), WeChatSnapshot(error=str(exc)))
+
+    def _run_bound(self):
         if self.mode == 'history':
             snapshot = None
         else:
@@ -63,10 +83,14 @@ class WeChatAnalysisWorker(QThread):
                     self.config.get('wechat_history_pages', 5) if self.mode == 'history' else 1,
                     self.isInterruptionRequested,
                     max_messages=self.config.get('wechat_history_messages', 100)
-                    if self.mode == 'history' else None)
+                    if self.mode == 'history' else None,
+                    validate_session=self.validate_session if self.session else None,
+                    progress=self.progress.emit,
+                    start_latest=self.mode == 'history')
             except Exception as exc:
                 from ..platform.wechat import WeChatSnapshot
                 snapshot = WeChatSnapshot(error=str(exc))
+        self.validate_session()
         if snapshot.error:
             self.completed.emit(False, snapshot.error, snapshot)
             return
@@ -89,6 +113,7 @@ class WeChatAnalysisWorker(QThread):
         try:
             result = analyze_wechat_text(self.config, snapshot.conversation,
                                          snapshot.input_text, self.mode)
+            self.validate_session()
             self.completed.emit(True, result, snapshot)
         except Exception as exc:
             self.completed.emit(False, str(exc), snapshot)

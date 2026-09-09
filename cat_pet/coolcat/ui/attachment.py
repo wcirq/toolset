@@ -1017,8 +1017,14 @@ class WindowAttachment(QObject):
             return
         self.pet._say('正在读取当前聊天文本…', 120)
         worker = WeChatAnalysisWorker(
-            self.target.hwnd, getattr(self.pet, 'config', {}), mode, self)
+            self.target.hwnd, getattr(self.pet, 'config', {}), mode, self,
+            session=self.chat_anchor.session)
         self.wechat_worker = worker
+        from .message_overlay import MessageReadOverlay
+        overlay = MessageReadOverlay(self.backend, self.target.hwnd, self.pet)
+        worker.progress.connect(overlay.display)
+        worker.completed.connect(lambda *_: overlay.hide())
+        worker.finished.connect(overlay.deleteLater)
         worker.completed.connect(
             lambda ok, text, snapshot, worker=worker, mode=mode:
             self._wechat_analysis_ready(worker, mode, ok, text, snapshot))
@@ -1028,6 +1034,8 @@ class WindowAttachment(QObject):
     def _wechat_analysis_ready(self, worker, mode, ok, text, snapshot):
         if self.wechat_worker is worker:
             self.wechat_worker = None
+        if getattr(worker, 'session', None) != self.chat_anchor.session:
+            return  # Discard a result from a detached or rebound conversation.
         if not ok:
             StyledMessageDialog('微信聊天助手', text,
                                 [('知道了', 'ok', 'primary')], self.pet, '!').exec_()

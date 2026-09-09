@@ -21,6 +21,7 @@ def main():
     parser.add_argument('--pid', type=int, required=True)
     parser.add_argument('--base', type=lambda s: int(s, 0), required=True)
     parser.add_argument('--messages', action='store_true', help='Inspect message-list objects, not session-list objects')
+    parser.add_argument('--types', action='store_true', help='Inspect Qt class metadata for session rows too')
     parser.add_argument('--text-fields', action='store_true', help='Inspect bounded QString candidates in message text controls')
     args = parser.parse_args()
     target_name = 'chat_message_list' if args.messages else 'session_list'
@@ -103,7 +104,7 @@ def main():
             private = pointer(obj + 8)
             if not private or pointer(private + 8) != obj:
                 continue
-            if args.messages:
+            if args.messages or args.types:
                 # Inspect static Qt class metadata, without executing virtual methods.
                 method = pointer(pointer(obj))
                 code = read(method, 32)

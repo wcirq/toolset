@@ -2,6 +2,7 @@
 import ctypes as c
 from ctypes import wintypes as w
 import hashlib
+import re
 import struct
 import time
 from pathlib import Path
@@ -34,6 +35,15 @@ class QtChatRows:
         self.candidates = []
         self.next_scan = 0
         self.verified_file = None
+        self.tracking_page = None
+
+    def track(self, hwnd, pid, page):
+        """Read only known bubble geometry; never use this for message merging."""
+        self.tracking_page = page
+        try:
+            return self.read(hwnd, pid)
+        finally:
+            self.tracking_page = None
 
     def physical_rows(self, hwnd, pid):
         api = c.WinDLL('user32', use_last_error=True)
@@ -165,6 +175,26 @@ class QtChatRows:
                     obj = parent
                 return None
 
+            if self.tracking_page is not None:
+                page = self.tracking_page
+                if page['identity'][:-1] != key:
+                    raise RuntimeError('跟踪进程已变化')
+                listing = page['identity'][-1]
+                clip = geometry(listing)
+                if not valid(listing) or not clip:
+                    raise RuntimeError('跟踪消息列表已变化')
+                records, keys, rects = [], [], []
+                for record, token, prior in zip(page['records'], page.get('record_keys', []), page.get('record_rects', [])):
+                    box = geometry(token[-1])
+                    if (record[0] == 'message' and box and clip_rect(box, clip)
+                            and 'chat_bubble_item_view' in name(token[-1])
+                            and (box[2]-box[0], box[3]-box[1]) == (prior[2]-prior[0], prior[3]-prior[1])):
+                        records.append(record)
+                        keys.append(token)
+                        rects.append(box)
+                return {'identity': page['identity'], 'rect': clip, 'records': records,
+                        'record_keys': keys, 'record_rects': rects, 'annotations': []}
+
             if time.monotonic() >= self.next_scan:
                 self.candidates = []
                 marker, address, total = struct.pack('<Q', base + tables[0]), 0, 0
@@ -232,7 +262,7 @@ class QtChatRows:
 
     @staticmethod
     def _messages(read, ptr, name, geometry, valid, base, key, listing, clip):
-        groups, visited, stack = {}, set(), [(listing, None)]
+        groups, visited, stack, annotations = {}, set(), [(listing, None)], []
         deadline = time.monotonic() + 2
         while stack and len(visited) < 5000 and time.monotonic() < deadline:
             obj, bubble = stack.pop()
@@ -244,16 +274,23 @@ class QtChatRows:
                 continue
             identity = name(obj)
             box = geometry(obj)
+            # RecyclerListView keeps entire hidden/offscreen bubble trees.
+            # Their descendants cannot contribute to this visible page.
+            if 'chat_bubble_item_view' in identity and (not box or not clip_rect(box, clip)):
+                continue
             if box and clip_rect(box, clip) and 'chat_bubble_item_view' in identity:
                 bubble = obj
                 groups.setdefault(bubble, {'rect': box, 'parts': [], 'kind': 'message'})
             # Confirm the actual XTextView static meta-object before reading
             # the Text getter's storage chain. No virtual function invocation.
-            method = ptr(ptr(obj))
-            code = read(method, 32)
+            eligible = box and (bubble in groups or clip_rect(box, clip))
+            method = ptr(ptr(obj)) if eligible else 0
+            code = read(method, 32) if method else b''
             index = code.find(b'\x48\x8d\x05')
             meta = (method + index + 7 + struct.unpack_from('<i', code, index + 3)[0]
                     if 0 <= index <= 24 else 0)
+            if box and clip_rect(box, clip) and meta == base + 0x8b38e48:
+                annotations.append({'kind': 'avatar', 'rect': box})
             if box and (bubble in groups or clip_rect(box, clip)) and meta == base + 0x8b54db8:
                 engine = ptr(ptr(obj + 0x3e0))
                 if engine and ptr(ptr(engine) + 0x150) == base + 0x2370fe0:
@@ -267,6 +304,12 @@ class QtChatRows:
                                 raise RuntimeError('消息读取时发生变化，请重新读取')
                             value = raw.decode('utf-8', 'strict').strip()
                             if value:
+                                kind = 'text'
+                                if re.fullmatch(r'(?:(?:\d{2,4}[-年/.]\d{1,2}[-月/.]\d{1,2}日?|昨天|今天|星期[一二三四五六日天])\s*)?\d{1,2}:\d{2}', value):
+                                    kind = 'time'
+                                elif re.fullmatch(r'https?://\S+', value):
+                                    kind = 'link'
+                                annotations.append({'kind': kind, 'rect': box})
                                 group = bubble if bubble in groups else obj
                                 entry = groups.setdefault(group, {'rect': box, 'parts': [], 'kind': 'label'})
                                 entry['parts'].append((box[1], box[0], value))
@@ -280,7 +323,8 @@ class QtChatRows:
                         if child and ptr(ptr(child + 8) + 0x10) == obj:
                             stack.append((child, bubble))
         if stack:
-            raise RuntimeError('消息控件超过读取上限，本次未作为完整页面返回')
+            reason = '读取超时' if time.monotonic() >= deadline else '控件数量超限'
+            raise RuntimeError('消息页面%s（已检查 %d 个控件），请稍后重试' % (reason, len(visited)))
         if not valid(listing) or geometry(listing) != clip:
             raise RuntimeError('消息列表读取期间发生变化')
         records, record_keys, record_rects = [], [], []
@@ -294,4 +338,5 @@ class QtChatRows:
             record_keys.append(key + (listing, obj))
             record_rects.append(group['rect'])
         return {'identity': key + (listing,), 'rect': clip, 'records': records,
-                'record_keys': record_keys, 'record_rects': record_rects}
+                'record_keys': record_keys, 'record_rects': record_rects,
+                'annotations': annotations}
