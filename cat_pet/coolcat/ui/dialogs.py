@@ -996,6 +996,10 @@ class SettingsDialog(QDialog):
         wechat_layout.setContentsMargins(8, 8, 8, 8)
         wechat_group = QGroupBox("微信聊天助手大模型（独立配置）")
         wechat_form = QFormLayout(wechat_group)
+        self.wechat_backend_combo = QComboBox()
+        self.wechat_backend_combo.addItem('UIA 会话切换与回复填写（实验性）', 'uia')
+        self.wechat_backend_combo.addItem('进程内收发（当前版本未适配，不可用）', 'native')
+        wechat_form.addRow('会话接入方式:', self.wechat_backend_combo)
         self.wechat_ai_endpoint_edit = QLineEdit()
         self.wechat_ai_endpoint_edit.setPlaceholderText(
             "https://服务地址/v1/chat/completions")
@@ -1012,9 +1016,14 @@ class SettingsDialog(QDialog):
         self.wechat_history_pages_spin.setRange(2, 20)
         self.wechat_history_pages_spin.setSuffix(" 页")
         self.wechat_history_pages_spin.setToolTip(
-            "当前仅通过 UI Automation 读取已加载消息，不滚动读取历史")
-        self.wechat_history_pages_spin.setEnabled(False)
-        wechat_form.addRow("历史读取上限（暂未启用）:", self.wechat_history_pages_spin)
+            "用于右键菜单的向上滚动读取历史；有重叠、非完整历史，用户操作时停止")
+        self.wechat_history_pages_spin.hide()  # Retain legacy config round-trip.
+        self.wechat_history_messages_spin = QSpinBox()
+        self.wechat_history_messages_spin.setRange(1, 1000)
+        self.wechat_history_messages_spin.setSuffix(' 条')
+        self.wechat_history_messages_spin.setToolTip(
+            '从当前阅读位置向上读取，达到指定消息条数或连续无法取得更早消息时停止；时间标签不计数。')
+        wechat_form.addRow('历史消息数量上限:', self.wechat_history_messages_spin)
         self.wechat_ai_test_input = QLineEdit()
         self.wechat_ai_test_input.setPlaceholderText("输入一段测试消息")
         self.wechat_ai_test_input.setText("好的，我明天下午三点参加")
@@ -1244,8 +1253,12 @@ class SettingsDialog(QDialog):
         self.wechat_ai_endpoint_edit.setText(cfg.get("wechat_ai_endpoint", ""))
         self.wechat_ai_api_key_edit.setText(cfg.get("wechat_ai_api_key", ""))
         self.wechat_ai_model_edit.setText(cfg.get("wechat_ai_model", ""))
+        self.wechat_backend_combo.setCurrentIndex(max(0, self.wechat_backend_combo.findData(
+            cfg.get('wechat_backend', 'uia'))))
         self.wechat_history_pages_spin.setValue(
             max(2, min(20, int(cfg.get("wechat_history_pages", 5)))))
+        self.wechat_history_messages_spin.setValue(
+            max(1, min(1000, int(cfg.get('wechat_history_messages', 100)))))
 
         self.character_category_combo.currentIndexChanged.connect(
             self._update_character_styles)
@@ -1709,7 +1722,9 @@ class SettingsDialog(QDialog):
             "wechat_ai_endpoint": self.wechat_ai_endpoint_edit.text().strip(),
             "wechat_ai_api_key": self.wechat_ai_api_key_edit.text().strip(),
             "wechat_ai_model": self.wechat_ai_model_edit.text().strip(),
+            "wechat_backend": self.wechat_backend_combo.currentData(),
             "wechat_history_pages": self.wechat_history_pages_spin.value(),
+            "wechat_history_messages": self.wechat_history_messages_spin.value(),
             "chat_enabled": False,   # 聊天输入功能暂时禁用
             "debug_save": self.debug_check.isChecked(),
             # 非 UI 项原样保留 (预览窗口缩放等由滚轮实时修改)

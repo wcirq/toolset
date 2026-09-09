@@ -77,6 +77,17 @@ class AttachmentTests(unittest.TestCase):
         self.assertTrue(is_wechat_window(executable=r'C:\Program Files\Tencent\Weixin.exe'))
         self.assertFalse(is_wechat_window(title='Visual Studio', executable='devenv.exe'))
 
+    def test_missing_chat_list_preserves_window_edge_selection(self):
+        self.backend.target.title = '微信'
+        self.controller.chat_anchor.error = '客户端没有暴露 session_list'
+        self.pet.move(attachment_position(self.backend.target.rect,
+                                         self.pet.size(), 'top-left', (1, 1)))
+        with patch.object(self.controller.chat_anchor, 'hit', return_value=None), \
+             patch('coolcat.ui.attachment.QCursor.pos', return_value=QPoint(120, 120)):
+            self.controller.update_drag(force=True)
+        self.assertEqual(self.controller.candidate_corner, 'top-left')
+        self.assertEqual(self.controller.candidate_placement, (1, 1))
+
     def test_geometry_negative_monitor_and_oversize(self):
         rect = QRect(-1920, -200, 1000, 800)
         self.assertEqual(corner_position(rect, QSize(240, 290), 'top-left'), QPoint(-1910, -190))

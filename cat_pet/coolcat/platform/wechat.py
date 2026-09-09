@@ -9,6 +9,8 @@ class WeChatSnapshot:
     readable: bool = False
     error: str = ''
     pages_read: int = 1
+    warning: str = ''
+    messages_read: int = 0
 
 
 def is_wechat_window(title='', kind='', executable=''):

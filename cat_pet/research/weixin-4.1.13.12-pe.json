@@ -1,0 +1,2680 @@
+[
+  {
+    "file": "Weixin.dll",
+    "bytes": 196834352,
+    "sha256": "e3240bf8a4d00593a4b3e6ce6c8b6ac26897622c27f410f6655c4eee17cb3b6d",
+    "machine": "0x8664",
+    "image_base": "0x180000000",
+    "exports": [
+      {
+        "name": "??0Engine@mmcronet@@QEAA@$$QEAV01@@Z",
+        "rva": "0x4d76f20"
+      },
+      {
+        "name": "??0Engine@mmcronet@@QEAA@AEBVEngineParams@1@@Z",
+        "rva": "0x4d76eb0"
+      },
+      {
+        "name": "??0Engine@mmcronet@@QEAA@XZ",
+        "rva": "0x4d76e90"
+      },
+      {
+        "name": "??0EngineParams@mmcronet@@QEAA@$$QEAV01@@Z",
+        "rva": "0x103570"
+      },
+      {
+        "name": "??0EngineParams@mmcronet@@QEAA@XZ",
+        "rva": "0x4d766e0"
+      },
+      {
+        "name": "??0Executor@mmcronet@@AEAA@XZ",
+        "rva": "0x4d77320"
+      },
+      {
+        "name": "??0Executor@mmcronet@@QEAA@$$QEAV01@@Z",
+        "rva": "0x4d773c0"
+      },
+      {
+        "name": "??0Executor@mmcronet@@QEAA@V?$function@$$A6AXPEAUCronet_Runnable@@@Z@std@@@Z",
+        "rva": "0x4d77170"
+      },
+      {
+        "name": "??0MultipartPart@mmcronet@@QEAA@$$QEAU01@@Z",
+        "rva": "0xde8590"
+      },
+      {
+        "name": "??0MultipartPart@mmcronet@@QEAA@AEBU01@@Z",
+        "rva": "0xde80b0"
+      },
+      {
+        "name": "??0MultipartPart@mmcronet@@QEAA@XZ",
+        "rva": "0xde8d60"
+      },
+      {
+        "name": "??0RequestBody@mmcronet@@QEAA@$$QEAU01@@Z",
+        "rva": "0xde93d0"
+      },
+      {
+        "name": "??0RequestBody@mmcronet@@QEAA@AEBU01@@Z",
+        "rva": "0xde8de0"
+      },
+      {
+        "name": "??0RequestBody@mmcronet@@QEAA@XZ",
+        "rva": "0xde9b90"
+      },
+      {
+        "name": "??0TransferCallbacks@mmcronet@@QEAA@$$QEAU01@@Z",
+        "rva": "0xde7220"
+      },
+      {
+        "name": "??0TransferCallbacks@mmcronet@@QEAA@AEBU01@@Z",
+        "rva": "0xde6b30"
+      },
+      {
+        "name": "??0TransferCallbacks@mmcronet@@QEAA@XZ",
+        "rva": "0xde7ec0"
+      },
+      {
+        "name": "??0TransferError@mmcronet@@QEAA@$$QEAU01@@Z",
+        "rva": "0xde6390"
+      },
+      {
+        "name": "??0TransferError@mmcronet@@QEAA@AEBU01@@Z",
+        "rva": "0xde62b0"
+      },
+      {
+        "name": "??0TransferError@mmcronet@@QEAA@XZ",
+        "rva": "0xde6540"
+      },
+      {
+        "name": "??0TransferHandle@mmcronet@@AEAA@V?$shared_ptr@VTransferImpl@mmcronet@@@std@@@Z",
+        "rva": "0x4d77940"
+      },
+      {
+        "name": "??0TransferHandle@mmcronet@@QEAA@$$QEAV01@@Z",
+        "rva": "0x4d77960"
+      },
+      {
+        "name": "??0TransferMetrics@mmcronet@@QEAA@XZ",
+        "rva": "0xde6560"
+      },
+      {
+        "name": "??0TransferOptions@mmcronet@@QEAA@$$QEAU01@@Z",
+        "rva": "0xdea430"
+      },
+      {
+        "name": "??0TransferOptions@mmcronet@@QEAA@AEBU01@@Z",
+        "rva": "0xde9e70"
+      },
+      {
+        "name": "??0TransferOptions@mmcronet@@QEAA@XZ",
+        "rva": "0xdeb2b0"
+      },
+      {
+        "name": "??0TransferRequestFinishedInfo@mmcronet@@QEAA@$$QEAU01@@Z",
+        "rva": "0xde6800"
+      },
+      {
+        "name": "??0TransferRequestFinishedInfo@mmcronet@@QEAA@AEBU01@@Z",
+        "rva": "0xde66a0"
+      },
+      {
+        "name": "??0TransferRequestFinishedInfo@mmcronet@@QEAA@XZ",
+        "rva": "0xde65d0"
+      },
+      {
+        "name": "??0TransferResponseInfo@mmcronet@@QEAA@$$QEAU01@@Z",
+        "rva": "0xde5d80"
+      },
+      {
+        "name": "??0TransferResponseInfo@mmcronet@@QEAA@AEBU01@@Z",
+        "rva": "0xde5960"
+      },
+      {
+        "name": "??0TransferResponseInfo@mmcronet@@QEAA@XZ",
+        "rva": "0xde6260"
+      },
+      {
+        "name": "??0TransferSocketOptions@mmcronet@@QEAA@$$QEAU01@@Z",
+        "rva": "0xde9cb0"
+      },
+      {
+        "name": "??0TransferSocketOptions@mmcronet@@QEAA@AEBU01@@Z",
+        "rva": "0xde9be0"
+      },
+      {
+        "name": "??0TransferSocketOptions@mmcronet@@QEAA@XZ",
+        "rva": "0xde9e30"
+      },
+      {
+        "name": "??1Engine@mmcronet@@QEAA@XZ",
+        "rva": "0x4d76ef0"
+      },
+      {
+        "name": "??1EngineParams@mmcronet@@QEAA@XZ",
+        "rva": "0x4d76e40"
+      },
+      {
+        "name": "??1Executor@mmcronet@@QEAA@XZ",
+        "rva": "0x4d77370"
+      },
+      {
+        "name": "??1MultipartPart@mmcronet@@QEAA@XZ",
+        "rva": "0xde8ba0"
+      },
+      {
+        "name": "??1RequestBody@mmcronet@@QEAA@XZ",
+        "rva": "0xde99b0"
+      },
+      {
+        "name": "??1TransferCallbacks@mmcronet@@QEAA@XZ",
+        "rva": "0xde7f30"
+      },
+      {
+        "name": "??1TransferError@mmcronet@@QEAA@XZ",
+        "rva": "0x11a510"
+      },
+      {
+        "name": "??1TransferHandle@mmcronet@@QEAA@XZ",
+        "rva": "0x20f0"
+      },
+      {
+        "name": "??1TransferOptions@mmcronet@@QEAA@XZ",
+        "rva": "0xdeb040"
+      },
+      {
+        "name": "??1TransferRequestFinishedInfo@mmcronet@@QEAA@XZ",
+        "rva": "0xde6a10"
+      },
+      {
+        "name": "??1TransferResponseInfo@mmcronet@@QEAA@XZ",
+        "rva": "0xde6150"
+      },
+      {
+        "name": "??1TransferSocketOptions@mmcronet@@QEAA@XZ",
+        "rva": "0x11a580"
+      },
+      {
+        "name": "??4Engine@mmcronet@@QEAAAEAV01@$$QEAV01@@Z",
+        "rva": "0x4d76f40"
+      },
+      {
+        "name": "??4EngineParams@mmcronet@@QEAAAEAV01@$$QEAV01@@Z",
+        "rva": "0x4d76e50"
+      },
+      {
+        "name": "??4Executor@mmcronet@@QEAAAEAV01@$$QEAV01@@Z",
+        "rva": "0x4d773f0"
+      },
+      {
+        "name": "??4MultipartPart@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde8900"
+      },
+      {
+        "name": "??4MultipartPart@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde8690"
+      },
+      {
+        "name": "??4RequestBody@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde96e0"
+      },
+      {
+        "name": "??4RequestBody@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde94b0"
+      },
+      {
+        "name": "??4TransferCallbacks@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde7a60"
+      },
+      {
+        "name": "??4TransferCallbacks@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde7580"
+      },
+      {
+        "name": "??4TransferError@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde6470"
+      },
+      {
+        "name": "??4TransferError@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde63e0"
+      },
+      {
+        "name": "??4TransferHandle@mmcronet@@QEAAAEAV01@$$QEAV01@@Z",
+        "rva": "0x4d77980"
+      },
+      {
+        "name": "??4TransferMetrics@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde65c0"
+      },
+      {
+        "name": "??4TransferMetrics@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde65c0"
+      },
+      {
+        "name": "??4TransferOptions@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xdeaa40"
+      },
+      {
+        "name": "??4TransferOptions@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xdea6f0"
+      },
+      {
+        "name": "??4TransferProgress@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde5950"
+      },
+      {
+        "name": "??4TransferProgress@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde5950"
+      },
+      {
+        "name": "??4TransferRequestFinishedInfo@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde69c0"
+      },
+      {
+        "name": "??4TransferRequestFinishedInfo@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde6730"
+      },
+      {
+        "name": "??4TransferResponseInfo@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde5f80"
+      },
+      {
+        "name": "??4TransferResponseInfo@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde5e30"
+      },
+      {
+        "name": "??4TransferSocketOptions@mmcronet@@QEAAAEAU01@$$QEAU01@@Z",
+        "rva": "0xde9d70"
+      },
+      {
+        "name": "??4TransferSocketOptions@mmcronet@@QEAAAEAU01@AEBU01@@Z",
+        "rva": "0xde9cf0"
+      },
+      {
+        "name": "?Cancel@TransferHandle@mmcronet@@QEAAXXZ",
+        "rva": "0x4d779d0"
+      },
+      {
+        "name": "?CancelAndWait@TransferHandle@mmcronet@@QEAAXXZ",
+        "rva": "0x4d77a50"
+      },
+      {
+        "name": "?CancelCronetTask@mmcronet@@YAHV?$shared_ptr@UCronetTaskContext@mmcronet@@@std@@@Z",
+        "rva": "0x6e15820"
+      },
+      {
+        "name": "?CancelCronetTask@mmcronet@@YAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x4de8290"
+      },
+      {
+        "name": "?CreateDirect@Executor@mmcronet@@SA?AV12@XZ",
+        "rva": "0x4d77320"
+      },
+      {
+        "name": "?Default@EngineParams@mmcronet@@SA?AV12@XZ",
+        "rva": "0x4d76700"
+      },
+      {
+        "name": "?Fetch@mmcronet@@YA?AV?$optional@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@std@@PEAUCronet_Engine@@PEAUCronet_Executor@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@3@AEBUTransferOptions@1@IUTransferCallbacks@1@@Z",
+        "rva": "0x4d7a160"
+      },
+      {
+        "name": "?FetchWith@mmcronet@@YA?AV?$optional@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@std@@PEAUCronet_Engine@@PEAUCronet_Executor@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@3@22AEBUTransferOptions@1@IUTransferCallbacks@1@@Z",
+        "rva": "0x4d7ad80"
+      },
+      {
+        "name": "?FromBytes@RequestBody@mmcronet@@SA?AU12@V?$vector@EV?$allocator@E@std@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@4@@Z",
+        "rva": "0x4d775c0"
+      },
+      {
+        "name": "?FromFile@RequestBody@mmcronet@@SA?AU12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z",
+        "rva": "0x4d77720"
+      },
+      {
+        "name": "?FromString@RequestBody@mmcronet@@SA?AU12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z",
+        "rva": "0x4d77460"
+      },
+      {
+        "name": "?GetDefaultUserAgent@Engine@mmcronet@@QEBA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x4d770b0"
+      },
+      {
+        "name": "?GetVersionString@Engine@mmcronet@@QEBA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x4d76ff0"
+      },
+      {
+        "name": "?IsDone@TransferHandle@mmcronet@@QEBA_NXZ",
+        "rva": "0x4d78170"
+      },
+      {
+        "name": "?Multipart@RequestBody@mmcronet@@SA?AU12@AEBV?$vector@UMultipartPart@mmcronet@@V?$allocator@UMultipartPart@mmcronet@@@std@@@std@@@Z",
+        "rva": "0x4d77880"
+      },
+      {
+        "name": "?PreconnectStreams@mmcronet@@YAXAEBUEngineParam@CronetTaskProfile@1@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@I@Z",
+        "rva": "0x4de7260"
+      },
+      {
+        "name": "?Request@mmcronet@@YA?AV?$optional@VTransferHandle@mmcronet@@@std@@PEAUCronet_Engine@@PEAUCronet_Executor@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@3@AEBUTransferOptions@1@UTransferCallbacks@1@@Z",
+        "rva": "0x4d781e0"
+      },
+      {
+        "name": "?ResetCronetContext@mmcronet@@YAXXZ",
+        "rva": "0x4de8be0"
+      },
+      {
+        "name": "?SetAcceptLanguage@EngineParams@mmcronet@@QEAAAEAV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x4d76cb0"
+      },
+      {
+        "name": "?SetEnableBrotli@EngineParams@mmcronet@@QEAAAEAV12@_N@Z",
+        "rva": "0x4d76d50"
+      },
+      {
+        "name": "?SetEnableCheckResult@EngineParams@mmcronet@@QEAAAEAV12@_N@Z",
+        "rva": "0x4d76c60"
+      },
+      {
+        "name": "?SetEnableHttp2@EngineParams@mmcronet@@QEAAAEAV12@_N@Z",
+        "rva": "0x4d76d30"
+      },
+      {
+        "name": "?SetEnableNetworkQualityEstimator@EngineParams@mmcronet@@QEAAAEAV12@_N@Z",
+        "rva": "0x4d76d70"
+      },
+      {
+        "name": "?SetEnablePublicKeyPinningBypassForLocalTrustAnchors@EngineParams@mmcronet@@QEAAAEAV12@_N@Z",
+        "rva": "0x4d76dd0"
+      },
+      {
+        "name": "?SetEnableQuic@EngineParams@mmcronet@@QEAAAEAV12@_N@Z",
+        "rva": "0x4d76d10"
+      },
+      {
+        "name": "?SetExperimentalOptions@EngineParams@mmcronet@@QEAAAEAV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x4d76e10"
+      },
+      {
+        "name": "?SetHttpCacheMaxSize@EngineParams@mmcronet@@QEAAAEAV12@_J@Z",
+        "rva": "0x4d76db0"
+      },
+      {
+        "name": "?SetHttpCacheMode@EngineParams@mmcronet@@QEAAAEAV12@W4Cronet_EngineParams_HTTP_CACHE_MODE@@@Z",
+        "rva": "0x4d76d90"
+      },
+      {
+        "name": "?SetNetworkThreadPriority@EngineParams@mmcronet@@QEAAAEAV12@N@Z",
+        "rva": "0x4d76df0"
+      },
+      {
+        "name": "?SetStoragePath@EngineParams@mmcronet@@QEAAAEAV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x4d76ce0"
+      },
+      {
+        "name": "?SetUserAgent@EngineParams@mmcronet@@QEAAAEAV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x4d76c80"
+      },
+      {
+        "name": "?Shutdown@Engine@mmcronet@@QEAA?AW4Cronet_RESULT@@XZ",
+        "rva": "0x4d76fc0"
+      },
+      {
+        "name": "?StartCronetRequest@mmcronet@@YA?AUCreateRequestResult@1@AEAUCronetTaskParams@CronetTaskProfile@1@@Z",
+        "rva": "0x4de7a80"
+      },
+      {
+        "name": "?StartCronetTask@mmcronet@@YA?AV?$shared_ptr@UCronetTaskContext@mmcronet@@@std@@AEBUCronetTaskParams@CronetTaskProfile@1@AEBV?$shared_ptr@VCronetRequestCallback@mmcronet@@@3@@Z",
+        "rva": "0x6e0fc90"
+      },
+      {
+        "name": "?StartCronetUploadRequest@mmcronet@@YA?AUCreateRequestResult@1@AEAUCronetTaskParams@CronetTaskProfile@1@@Z",
+        "rva": "0x4de8280"
+      },
+      {
+        "name": "?StartWithParams@Engine@mmcronet@@QEAA?AW4Cronet_RESULT@@AEBVEngineParams@2@@Z",
+        "rva": "0x4d76f90"
+      },
+      {
+        "name": "?UnInit@mmcronet@@YAXXZ",
+        "rva": "0x4de8430"
+      },
+      {
+        "name": "?WaitForDone@TransferHandle@mmcronet@@QEAA_NI@Z",
+        "rva": "0x4d77b40"
+      },
+      {
+        "name": "?ptr@Engine@mmcronet@@QEBAPEAUCronet_Engine@@XZ",
+        "rva": "0x4da3b0"
+      },
+      {
+        "name": "?ptr@EngineParams@mmcronet@@QEBAPEAUCronet_EngineParams@@XZ",
+        "rva": "0x4da3b0"
+      },
+      {
+        "name": "?ptr@Executor@mmcronet@@QEBAPEAUCronet_Executor@@XZ",
+        "rva": "0x4da3b0"
+      },
+      {
+        "name": "GetHandleVerifier",
+        "rva": "0x12cea50"
+      },
+      {
+        "name": "HostStartupExceptionReport",
+        "rva": "0x7a1240"
+      },
+      {
+        "name": "SetUseUserCA",
+        "rva": "0x4de8b50"
+      },
+      {
+        "name": "SetWeixinCallbackFunc",
+        "rva": "0x305c80"
+      },
+      {
+        "name": "WeChatMain",
+        "rva": "0x1000"
+      }
+    ],
+    "imports": [
+      "KERNEL32.dll"
+    ]
+  },
+  {
+    "file": "ilink2.dll",
+    "bytes": 11079728,
+    "sha256": "bd2a86d9da394b6e23477c31fb3728d848cbe86e2fe25cba6d402337b3351786",
+    "machine": "0x8664",
+    "image_base": "0x180000000",
+    "exports": [
+      {
+        "name": "??0?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x9d3f0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x9d430"
+      },
+      {
+        "name": "??0?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x83f60"
+      },
+      {
+        "name": "??0?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x83fa0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x9d470"
+      },
+      {
+        "name": "??0?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x9d4b0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x83fe0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x84020"
+      },
+      {
+        "name": "??0?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x9d4f0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x9d530"
+      },
+      {
+        "name": "??0?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x84060"
+      },
+      {
+        "name": "??0?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x840a0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x9d570"
+      },
+      {
+        "name": "??0?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x9d5b0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x840e0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x84120"
+      },
+      {
+        "name": "??0?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x9d5f0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x9d630"
+      },
+      {
+        "name": "??0?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerNoPBEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x84160"
+      },
+      {
+        "name": "??0?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerNoPBEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x841a0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x9d670"
+      },
+      {
+        "name": "??0?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x9d6b0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerNoPBEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x841e0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerNoPBEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x84220"
+      },
+      {
+        "name": "??0?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x9d6f0"
+      },
+      {
+        "name": "??0?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x9d730"
+      },
+      {
+        "name": "??0?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x84260"
+      },
+      {
+        "name": "??0?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionNoPBEvents@zidl_export@2@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x842a0"
+      },
+      {
+        "name": "??0?$CallerTemplateNoEvent@VAuthManagerDispatcher@ilink@@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x842e0"
+      },
+      {
+        "name": "??0?$CallerTemplateNoEvent@VAuthManagerDispatcher@ilink@@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x84310"
+      },
+      {
+        "name": "??0?$CallerTemplateNoEvent@VIlinkContextDispatcher@ilink@@@zidl@@QEAA@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEAX@Z",
+        "rva": "0x84340"
+      },
+      {
+        "name": "??0?$CallerTemplateNoEvent@VIlinkContextDispatcher@ilink@@@zidl@@QEAA@PEBDPEAX@Z",
+        "rva": "0x84370"
+      },
+      {
+        "name": "??0AppDeviceSession@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x9dcf0"
+      },
+      {
+        "name": "??0AppDeviceSession@zidl_export@ilink@@QEAA@PEAVAppDeviceSessionBase@2@AEBV?$function@$$A6AXPEAVAppDeviceSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x9dea0"
+      },
+      {
+        "name": "??0AppDeviceSessionNoPB@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x845c0"
+      },
+      {
+        "name": "??0AppDeviceSessionNoPB@zidl_export@ilink@@QEAA@PEAVAppDeviceSessionBase@2@AEBV?$function@$$A6AXPEAVAppDeviceSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x84770"
+      },
+      {
+        "name": "??0AppSession@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x9e1a0"
+      },
+      {
+        "name": "??0AppSession@zidl_export@ilink@@QEAA@PEAVAppSessionBase@2@AEBV?$function@$$A6AXPEAVAppSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x9e350"
+      },
+      {
+        "name": "??0AppSessionNoPB@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x84a70"
+      },
+      {
+        "name": "??0AppSessionNoPB@zidl_export@ilink@@QEAA@PEAVAppSessionBase@2@AEBV?$function@$$A6AXPEAVAppSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x84c20"
+      },
+      {
+        "name": "??0AuthManager@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x9e650"
+      },
+      {
+        "name": "??0AuthManager@zidl_export@ilink@@QEAA@PEAVAuthManagerBase@2@AEBV?$function@$$A6AXPEAVAuthManagerBase@ilink@@@Z@std@@@Z",
+        "rva": "0x9e810"
+      },
+      {
+        "name": "??0AuthManagerNoPB@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x84f20"
+      },
+      {
+        "name": "??0AuthManagerNoPB@zidl_export@ilink@@QEAA@PEAVAuthManagerBase@2@AEBV?$function@$$A6AXPEAVAuthManagerBase@ilink@@@Z@std@@@Z",
+        "rva": "0x850e0"
+      },
+      {
+        "name": "??0CloudSession@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x9ead0"
+      },
+      {
+        "name": "??0CloudSession@zidl_export@ilink@@QEAA@PEAVCloudSessionBase@2@AEBV?$function@$$A6AXPEAVCloudSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x9ec80"
+      },
+      {
+        "name": "??0CloudSessionNoPB@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x853a0"
+      },
+      {
+        "name": "??0CloudSessionNoPB@zidl_export@ilink@@QEAA@PEAVCloudSessionBase@2@AEBV?$function@$$A6AXPEAVCloudSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x85550"
+      },
+      {
+        "name": "??0DeviceSession@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x9efd0"
+      },
+      {
+        "name": "??0DeviceSession@zidl_export@ilink@@QEAA@PEAVDeviceSessionBase@2@AEBV?$function@$$A6AXPEAVDeviceSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x9f180"
+      },
+      {
+        "name": "??0DeviceSessionNoPB@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x858a0"
+      },
+      {
+        "name": "??0DeviceSessionNoPB@zidl_export@ilink@@QEAA@PEAVDeviceSessionBase@2@AEBV?$function@$$A6AXPEAVDeviceSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x85a50"
+      },
+      {
+        "name": "??0IlinkContext@zidl_export@ilink@@AEAA@XZ",
+        "rva": "0x9f690"
+      },
+      {
+        "name": "??0IlinkContextNoPB@zidl_export@ilink@@AEAA@XZ",
+        "rva": "0x85da0"
+      },
+      {
+        "name": "??0IlinkLogManager@zidl_export@ilink@@AEAA@XZ",
+        "rva": "0x9f6d0"
+      },
+      {
+        "name": "??0IlinkLogManagerNoPB@zidl_export@ilink@@AEAA@XZ",
+        "rva": "0x85de0"
+      },
+      {
+        "name": "??0NetworkManager@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x9f7b0"
+      },
+      {
+        "name": "??0NetworkManager@zidl_export@ilink@@QEAA@PEAVNetworkManagerBase@2@AEBV?$function@$$A6AXPEAVNetworkManagerBase@ilink@@@Z@std@@@Z",
+        "rva": "0x9f960"
+      },
+      {
+        "name": "??0NetworkManagerNoPB@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x85ec0"
+      },
+      {
+        "name": "??0NetworkManagerNoPB@zidl_export@ilink@@QEAA@PEAVNetworkManagerBase@2@AEBV?$function@$$A6AXPEAVNetworkManagerBase@ilink@@@Z@std@@@Z",
+        "rva": "0x86070"
+      },
+      {
+        "name": "??0SingletonSession@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x9fd00"
+      },
+      {
+        "name": "??0SingletonSession@zidl_export@ilink@@QEAA@PEAVSingletonSessionBase@2@AEBV?$function@$$A6AXPEAVSingletonSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x9feb0"
+      },
+      {
+        "name": "??0SingletonSessionNoPB@zidl_export@ilink@@QEAA@AEBUObjConstructorKey@zidl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@1@Z",
+        "rva": "0x86410"
+      },
+      {
+        "name": "??0SingletonSessionNoPB@zidl_export@ilink@@QEAA@PEAVSingletonSessionBase@2@AEBV?$function@$$A6AXPEAVSingletonSessionBase@ilink@@@Z@std@@@Z",
+        "rva": "0x865c0"
+      },
+      {
+        "name": "??1?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0xa05e0"
+      },
+      {
+        "name": "??1?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionNoPBEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0x86d60"
+      },
+      {
+        "name": "??1?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0xa0660"
+      },
+      {
+        "name": "??1?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionNoPBEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0x86de0"
+      },
+      {
+        "name": "??1?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0xa06e0"
+      },
+      {
+        "name": "??1?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionNoPBEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0x86e60"
+      },
+      {
+        "name": "??1?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0xa0760"
+      },
+      {
+        "name": "??1?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionNoPBEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0x86ee0"
+      },
+      {
+        "name": "??1?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0xa07e0"
+      },
+      {
+        "name": "??1?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerNoPBEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0x86f60"
+      },
+      {
+        "name": "??1?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0xa0860"
+      },
+      {
+        "name": "??1?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerNoPBEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0x86fe0"
+      },
+      {
+        "name": "??1?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0xa08e0"
+      },
+      {
+        "name": "??1?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionNoPBEvents@zidl_export@2@@zidl@@UEAA@XZ",
+        "rva": "0x87060"
+      },
+      {
+        "name": "??1?$CallerTemplateNoEvent@VAuthManagerDispatcher@ilink@@@zidl@@UEAA@XZ",
+        "rva": "0x870e0"
+      },
+      {
+        "name": "??1?$CallerTemplateNoEvent@VIlinkContextDispatcher@ilink@@@zidl@@UEAA@XZ",
+        "rva": "0x87120"
+      },
+      {
+        "name": "??1AppDeviceSession@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa1bf0"
+      },
+      {
+        "name": "??1AppDeviceSessionNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x88a70"
+      },
+      {
+        "name": "??1AppSession@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa1d60"
+      },
+      {
+        "name": "??1AppSessionNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x88bf0"
+      },
+      {
+        "name": "??1AuthManager@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa1ed0"
+      },
+      {
+        "name": "??1AuthManagerNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x88d60"
+      },
+      {
+        "name": "??1CloudSession@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa2030"
+      },
+      {
+        "name": "??1CloudSessionNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x88ed0"
+      },
+      {
+        "name": "??1DeviceSession@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa21d0"
+      },
+      {
+        "name": "??1DeviceSessionNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x890b0"
+      },
+      {
+        "name": "??1IlinkContext@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa2680"
+      },
+      {
+        "name": "??1IlinkContextNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x89400"
+      },
+      {
+        "name": "??1IlinkLogManager@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa26c0"
+      },
+      {
+        "name": "??1IlinkLogManagerNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x89450"
+      },
+      {
+        "name": "??1NetworkManager@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa2760"
+      },
+      {
+        "name": "??1NetworkManagerNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x894d0"
+      },
+      {
+        "name": "??1SingletonSession@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0xa2990"
+      },
+      {
+        "name": "??1SingletonSessionNoPB@zidl_export@ilink@@UEAA@XZ",
+        "rva": "0x89710"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7df068"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionNoPBEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7dc950"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7df010"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionNoPBEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7dc8f8"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7df0e8"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionNoPBEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7dc9d0"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7defb8"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionNoPBEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7dc8a0"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7deea0"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerNoPBEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7dc750"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7def30"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerNoPBEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7dc7f8"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7df140"
+      },
+      {
+        "name": "??_7?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionNoPBEvents@zidl_export@2@@zidl@@6B@",
+        "rva": "0x7dca40"
+      },
+      {
+        "name": "??_7?$CallerTemplateNoEvent@VAuthManagerDispatcher@ilink@@@zidl@@6B@",
+        "rva": "0x7dc838"
+      },
+      {
+        "name": "??_7?$CallerTemplateNoEvent@VIlinkContextDispatcher@ilink@@@zidl@@6B@",
+        "rva": "0x7dca80"
+      },
+      {
+        "name": "??_7AppDeviceSession@zidl_export@ilink@@6B@",
+        "rva": "0x7df088"
+      },
+      {
+        "name": "??_7AppDeviceSessionNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dc970"
+      },
+      {
+        "name": "??_7AppSession@zidl_export@ilink@@6B@",
+        "rva": "0x7df030"
+      },
+      {
+        "name": "??_7AppSessionNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dc918"
+      },
+      {
+        "name": "??_7AuthManager@zidl_export@ilink@@6B@",
+        "rva": "0x7def70"
+      },
+      {
+        "name": "??_7AuthManagerNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dc858"
+      },
+      {
+        "name": "??_7CloudSession@zidl_export@ilink@@6B@",
+        "rva": "0x7df108"
+      },
+      {
+        "name": "??_7CloudSessionNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dc9f0"
+      },
+      {
+        "name": "??_7DeviceSession@zidl_export@ilink@@6B@",
+        "rva": "0x7defd8"
+      },
+      {
+        "name": "??_7DeviceSessionNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dc8c0"
+      },
+      {
+        "name": "??_7IlinkContext@zidl_export@ilink@@6B@",
+        "rva": "0x7df180"
+      },
+      {
+        "name": "??_7IlinkContextNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dcaa0"
+      },
+      {
+        "name": "??_7IlinkLogManager@zidl_export@ilink@@6B@",
+        "rva": "0x7deec0"
+      },
+      {
+        "name": "??_7IlinkLogManagerNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dc770"
+      },
+      {
+        "name": "??_7NetworkManager@zidl_export@ilink@@6B@",
+        "rva": "0x7def50"
+      },
+      {
+        "name": "??_7NetworkManagerNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dc818"
+      },
+      {
+        "name": "??_7SingletonSession@zidl_export@ilink@@6B@",
+        "rva": "0x7df160"
+      },
+      {
+        "name": "??_7SingletonSessionNoPB@zidl_export@ilink@@6B@",
+        "rva": "0x7dca60"
+      },
+      {
+        "name": "?AppId@AppDeviceSession@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0xa5ce0"
+      },
+      {
+        "name": "?AppId@AppDeviceSessionNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x8c980"
+      },
+      {
+        "name": "?AppId@AppSession@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0xa5d90"
+      },
+      {
+        "name": "?AppId@AppSessionNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x8ca30"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@AppDeviceSession@zidl_export@ilink@@SA?AV?$shared_ptr@VAppDeviceSession@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa5e40"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@AppDeviceSessionNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VAppDeviceSessionNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8cae0"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@AppSession@zidl_export@ilink@@SA?AV?$shared_ptr@VAppSession@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa5f10"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@AppSessionNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VAppSessionNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8cbb0"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@AuthManager@zidl_export@ilink@@SA?AV?$shared_ptr@VAuthManager@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa5fe0"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@AuthManagerNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VAuthManagerNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8cc80"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@CloudSession@zidl_export@ilink@@SA?AV?$shared_ptr@VCloudSession@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa60b0"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@CloudSessionNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VCloudSessionNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8cd50"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@DeviceSession@zidl_export@ilink@@SA?AV?$shared_ptr@VDeviceSession@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa6180"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@DeviceSessionNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VDeviceSessionNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8ce20"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@IlinkContext@zidl_export@ilink@@SA?AV?$shared_ptr@VIlinkContext@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa6250"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@IlinkContextNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VIlinkContextNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8cef0"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@IlinkLogManager@zidl_export@ilink@@SA?AV?$shared_ptr@VIlinkLogManager@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa6270"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@IlinkLogManagerNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VIlinkLogManagerNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8cf10"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@NetworkManager@zidl_export@ilink@@SA?AV?$shared_ptr@VNetworkManager@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa6290"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@NetworkManagerNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VNetworkManagerNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8cf30"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@SingletonSession@zidl_export@ilink@@SA?AV?$shared_ptr@VSingletonSession@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0xa6360"
+      },
+      {
+        "name": "?BuildZidlObjForHolder@SingletonSessionNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VSingletonSessionNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@0@Z",
+        "rva": "0x8d000"
+      },
+      {
+        "name": "?C2CDownload@NetworkManager@zidl_export@ilink@@QEAA?AVIlinkC2CDownloadResult@pb_export@3@AEBVIlinkC2CDownload@53@V?$function@$$A6AX_K0@Z@std@@@Z",
+        "rva": "0xa6430"
+      },
+      {
+        "name": "?C2CDownload@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBV45@V?$function@$$A6AX_K0@Z@5@@Z",
+        "rva": "0x8d0d0"
+      },
+      {
+        "name": "?C2CDownloadAsync@NetworkManager@zidl_export@ilink@@QEAA?AV?$promise2@VIlinkC2CDownloadResult@pb_export@ilink@@@v9@owl@@AEBVIlinkC2CDownload@pb_export@3@V?$function@$$A6AX_K0@Z@std@@@Z",
+        "rva": "0xa6540"
+      },
+      {
+        "name": "?C2CDownloadAsync@NetworkManager@zidl_export@ilink@@QEAAXAEBVIlinkC2CDownload@pb_export@3@V?$function@$$A6AX_K0@Z@std@@V?$function@$$A6AXAEBVIlinkC2CDownloadResult@pb_export@ilink@@@Z@7@@Z",
+        "rva": "0xa66e0"
+      },
+      {
+        "name": "?C2CDownloadAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AX_K0@Z@8@@Z",
+        "rva": "0x8d1e0"
+      },
+      {
+        "name": "?C2CDownloadAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AX_K0@Z@5@V?$function@$$A6AXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x8d380"
+      },
+      {
+        "name": "?C2CDownloadOrigin@NetworkManager@zidl_export@ilink@@QEAA?AVIlinkC2CDownloadOriginResult@pb_export@3@AEBVIlinkC2CDownloadOrigin@53@IV?$function@$$A6AX_K0@Z@std@@@Z",
+        "rva": "0xa6920"
+      },
+      {
+        "name": "?C2CDownloadOrigin@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBV45@IV?$function@$$A6AX_K0@Z@5@@Z",
+        "rva": "0x8d4c0"
+      },
+      {
+        "name": "?C2CDownloadOriginAsync@NetworkManager@zidl_export@ilink@@QEAA?AV?$promise2@VIlinkC2CDownloadOriginResult@pb_export@ilink@@@v9@owl@@AEBVIlinkC2CDownloadOrigin@pb_export@3@IV?$function@$$A6AX_K0@Z@std@@@Z",
+        "rva": "0xa6b50"
+      },
+      {
+        "name": "?C2CDownloadOriginAsync@NetworkManager@zidl_export@ilink@@QEAAXAEBVIlinkC2CDownloadOrigin@pb_export@3@IV?$function@$$A6AX_K0@Z@std@@V?$function@$$A6AXAEBVIlinkC2CDownloadOriginResult@pb_export@ilink@@@Z@7@@Z",
+        "rva": "0xa6d10"
+      },
+      {
+        "name": "?C2CDownloadOriginAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@IV?$function@$$A6AX_K0@Z@8@@Z",
+        "rva": "0x8d5e0"
+      },
+      {
+        "name": "?C2CDownloadOriginAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@IV?$function@$$A6AX_K0@Z@5@V?$function@$$A6AXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x8d7a0"
+      },
+      {
+        "name": "?C2CUpload@NetworkManager@zidl_export@ilink@@QEAA?AVIlinkC2CUploadResult@pb_export@3@AEBVIlinkC2CUpload@53@V?$function@$$A6AX_K0@Z@std@@@Z",
+        "rva": "0xa6f50"
+      },
+      {
+        "name": "?C2CUpload@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AEBV45@V?$function@$$A6AX_K0@Z@5@@Z",
+        "rva": "0x8d900"
+      },
+      {
+        "name": "?C2CUploadAsync@NetworkManager@zidl_export@ilink@@QEAA?AV?$promise2@VIlinkC2CUploadResult@pb_export@ilink@@@v9@owl@@AEBVIlinkC2CUpload@pb_export@3@V?$function@$$A6AX_K0@Z@std@@@Z",
+        "rva": "0xa7060"
+      },
+      {
+        "name": "?C2CUploadAsync@NetworkManager@zidl_export@ilink@@QEAAXAEBVIlinkC2CUpload@pb_export@3@V?$function@$$A6AX_K0@Z@std@@V?$function@$$A6AXAEBVIlinkC2CUploadResult@pb_export@ilink@@@Z@7@@Z",
+        "rva": "0xa7200"
+      },
+      {
+        "name": "?C2CUploadAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AX_K0@Z@8@@Z",
+        "rva": "0x8da10"
+      },
+      {
+        "name": "?C2CUploadAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AX_K0@Z@5@V?$function@$$A6AXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x8dbb0"
+      },
+      {
+        "name": "?CancelAllTask@AuthManager@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xa7440"
+      },
+      {
+        "name": "?CancelAllTask@AuthManagerNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x8dcf0"
+      },
+      {
+        "name": "?CancelAllTask@NetworkManager@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xa74e0"
+      },
+      {
+        "name": "?CancelAllTask@NetworkManagerNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x8dd90"
+      },
+      {
+        "name": "?CancelC2CTask@NetworkManager@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xa7580"
+      },
+      {
+        "name": "?CancelC2CTask@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8de30"
+      },
+      {
+        "name": "?CancelOAuth@AuthManager@zidl_export@ilink@@QEAAHAEBVIlinkCancelOAuthRequest@pb_export@3@@Z",
+        "rva": "0xa7630"
+      },
+      {
+        "name": "?CancelOAuth@AuthManagerNoPB@zidl_export@ilink@@QEAAHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8dee0"
+      },
+      {
+        "name": "?CancelOAuthAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@H@v9@owl@@AEBVIlinkCancelOAuthRequest@pb_export@3@@Z",
+        "rva": "0xa76b0"
+      },
+      {
+        "name": "?CancelOAuthAsync@AuthManager@zidl_export@ilink@@QEAAXAEBVIlinkCancelOAuthRequest@pb_export@3@V?$function@$$A6AXH@Z@std@@@Z",
+        "rva": "0xa7800"
+      },
+      {
+        "name": "?CancelOAuthAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@H@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8df60"
+      },
+      {
+        "name": "?CancelOAuthAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXH@Z@5@@Z",
+        "rva": "0x8e0b0"
+      },
+      {
+        "name": "?ChangeDomain@IlinkContext@zidl_export@ilink@@QEAAXW4IlinkDomainType@pb_export@3@@Z",
+        "rva": "0xa7980"
+      },
+      {
+        "name": "?ChangeDomain@IlinkContextNoPB@zidl_export@ilink@@QEAAXH@Z",
+        "rva": "0x8e1c0"
+      },
+      {
+        "name": "?CheckLoginQrCode@AuthManager@zidl_export@ilink@@QEAA?AUCheckLoginQrCodeRet@123@XZ",
+        "rva": "0xa7a30"
+      },
+      {
+        "name": "?CheckLoginQrCode@AuthManagerNoPB@zidl_export@ilink@@QEAA?AUCheckLoginQrCodeRet@123@XZ",
+        "rva": "0x8e270"
+      },
+      {
+        "name": "?CheckLoginQrCodeAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@UCheckLoginQrCodeRet@AuthManager@zidl_export@ilink@@@v9@owl@@XZ",
+        "rva": "0xa7ab0"
+      },
+      {
+        "name": "?CheckLoginQrCodeAsync@AuthManager@zidl_export@ilink@@QEAAXV?$function@$$A6AXHAEBVIlinkCheckLoginQrCodeResponse@pb_export@ilink@@@Z@std@@@Z",
+        "rva": "0xa7c00"
+      },
+      {
+        "name": "?CheckLoginQrCodeAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@UCheckLoginQrCodeRet@AuthManagerNoPB@zidl_export@ilink@@@v9@owl@@XZ",
+        "rva": "0x8e2f0"
+      },
+      {
+        "name": "?CheckLoginQrCodeAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXV?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@std@@@Z",
+        "rva": "0x8e440"
+      },
+      {
+        "name": "?Close@IlinkLogManager@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xa7dc0"
+      },
+      {
+        "name": "?Close@IlinkLogManagerNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x8e550"
+      },
+      {
+        "name": "?Config@CloudSession@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xa7e60"
+      },
+      {
+        "name": "?Config@CloudSessionNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8e5f0"
+      },
+      {
+        "name": "?Config@IlinkContext@zidl_export@ilink@@QEAA?AVIlinkStartConfig@pb_export@3@XZ",
+        "rva": "0xa7f10"
+      },
+      {
+        "name": "?Config@IlinkContextNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x8e6a0"
+      },
+      {
+        "name": "?Config@SingletonSession@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_NAEBVIlinkAuthConfig@pb_export@3@@Z",
+        "rva": "0xa8090"
+      },
+      {
+        "name": "?Config@SingletonSessionNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@_N0@Z",
+        "rva": "0x8e750"
+      },
+      {
+        "name": "?DeviceLogin@AuthManager@zidl_export@ilink@@QEAA?AUDeviceLoginRet@123@AEBVIlinkDeviceLoginRequest@pb_export@3@@Z",
+        "rva": "0xa81d0"
+      },
+      {
+        "name": "?DeviceLogin@AuthManagerNoPB@zidl_export@ilink@@QEAA?AUDeviceLoginRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8e800"
+      },
+      {
+        "name": "?DeviceLoginAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@UDeviceLoginRet@AuthManager@zidl_export@ilink@@@v9@owl@@AEBVIlinkDeviceLoginRequest@pb_export@3@@Z",
+        "rva": "0xa8250"
+      },
+      {
+        "name": "?DeviceLoginAsync@AuthManager@zidl_export@ilink@@QEAAXAEBVIlinkDeviceLoginRequest@pb_export@3@V?$function@$$A6AXHAEBVIlinkDeviceLoginResponse@pb_export@ilink@@@Z@std@@@Z",
+        "rva": "0xa83a0"
+      },
+      {
+        "name": "?DeviceLoginAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@UDeviceLoginRet@AuthManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8e880"
+      },
+      {
+        "name": "?DeviceLoginAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x8e9d0"
+      },
+      {
+        "name": "?DisableAppMsgBypass@AppSession@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xa85a0"
+      },
+      {
+        "name": "?DisableAppMsgBypass@AppSessionNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x8eae0"
+      },
+      {
+        "name": "?FaceExtVerify@AuthManager@zidl_export@ilink@@QEAA?AUFaceExtVerifyRet@123@AEBVIlinkFaceExtVerifyRequest@pb_export@3@@Z",
+        "rva": "0xa8640"
+      },
+      {
+        "name": "?FaceExtVerify@AuthManagerNoPB@zidl_export@ilink@@QEAA?AUFaceExtVerifyRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8eb80"
+      },
+      {
+        "name": "?FaceExtVerifyAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@UFaceExtVerifyRet@AuthManager@zidl_export@ilink@@@v9@owl@@AEBVIlinkFaceExtVerifyRequest@pb_export@3@@Z",
+        "rva": "0xa86c0"
+      },
+      {
+        "name": "?FaceExtVerifyAsync@AuthManager@zidl_export@ilink@@QEAAXAEBVIlinkFaceExtVerifyRequest@pb_export@3@V?$function@$$A6AXHAEBVIlinkFaceExtVerifyResponse@pb_export@ilink@@@Z@std@@@Z",
+        "rva": "0xa8810"
+      },
+      {
+        "name": "?FaceExtVerifyAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@UFaceExtVerifyRet@AuthManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8ec00"
+      },
+      {
+        "name": "?FaceExtVerifyAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x8ed50"
+      },
+      {
+        "name": "?FaceRecognize@AuthManager@zidl_export@ilink@@QEAA?AUFaceRecognizeRet@123@AEBVIlinkFaceRecognizeRequest@pb_export@3@@Z",
+        "rva": "0xa8a10"
+      },
+      {
+        "name": "?FaceRecognize@AuthManagerNoPB@zidl_export@ilink@@QEAA?AUFaceRecognizeRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8ee60"
+      },
+      {
+        "name": "?FaceRecognizeAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@UFaceRecognizeRet@AuthManager@zidl_export@ilink@@@v9@owl@@AEBVIlinkFaceRecognizeRequest@pb_export@3@@Z",
+        "rva": "0xa8a90"
+      },
+      {
+        "name": "?FaceRecognizeAsync@AuthManager@zidl_export@ilink@@QEAAXAEBVIlinkFaceRecognizeRequest@pb_export@3@V?$function@$$A6AXHAEBVIlinkFaceRecognizeResponse@pb_export@ilink@@@Z@std@@@Z",
+        "rva": "0xa8be0"
+      },
+      {
+        "name": "?FaceRecognizeAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@UFaceRecognizeRet@AuthManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8eee0"
+      },
+      {
+        "name": "?FaceRecognizeAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x8f030"
+      },
+      {
+        "name": "?FaceRecognizeConfig@AuthManager@zidl_export@ilink@@QEAA?AUFaceRecognizeConfigRet@123@AEBVIlinkFaceRecognizeConfigRequest@pb_export@3@@Z",
+        "rva": "0xa8de0"
+      },
+      {
+        "name": "?FaceRecognizeConfig@AuthManagerNoPB@zidl_export@ilink@@QEAA?AUFaceRecognizeConfigRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8f140"
+      },
+      {
+        "name": "?FaceRecognizeConfigAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@UFaceRecognizeConfigRet@AuthManager@zidl_export@ilink@@@v9@owl@@AEBVIlinkFaceRecognizeConfigRequest@pb_export@3@@Z",
+        "rva": "0xa8e60"
+      },
+      {
+        "name": "?FaceRecognizeConfigAsync@AuthManager@zidl_export@ilink@@QEAAXAEBVIlinkFaceRecognizeConfigRequest@pb_export@3@V?$function@$$A6AXHAEBVIlinkFaceRecognizeConfigResponse@pb_export@ilink@@@Z@std@@@Z",
+        "rva": "0xa8fb0"
+      },
+      {
+        "name": "?FaceRecognizeConfigAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@UFaceRecognizeConfigRet@AuthManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8f1c0"
+      },
+      {
+        "name": "?FaceRecognizeConfigAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x8f310"
+      },
+      {
+        "name": "?Flush@IlinkLogManager@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xa91b0"
+      },
+      {
+        "name": "?Flush@IlinkLogManagerNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x8f420"
+      },
+      {
+        "name": "?ForegroundChanged@IlinkContext@zidl_export@ilink@@QEAAX_N@Z",
+        "rva": "0xa9250"
+      },
+      {
+        "name": "?ForegroundChanged@IlinkContextNoPB@zidl_export@ilink@@QEAAX_N@Z",
+        "rva": "0x8f4c0"
+      },
+      {
+        "name": "?GenTaskId@NetworkManager@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0xa9300"
+      },
+      {
+        "name": "?GenTaskId@NetworkManagerNoPB@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0x8f570"
+      },
+      {
+        "name": "?GetAuthManager@AppDeviceSession@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAuthManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xa93b0"
+      },
+      {
+        "name": "?GetAuthManager@AppDeviceSessionNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAuthManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x8f620"
+      },
+      {
+        "name": "?GetAuthManager@AppSession@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAuthManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xa94d0"
+      },
+      {
+        "name": "?GetAuthManager@AppSessionNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAuthManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x8f740"
+      },
+      {
+        "name": "?GetAuthManager@DeviceSession@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAuthManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xa95f0"
+      },
+      {
+        "name": "?GetAuthManager@DeviceSessionNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAuthManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x8f860"
+      },
+      {
+        "name": "?GetAuthRawData@AuthManager@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0xa9710"
+      },
+      {
+        "name": "?GetAuthRawData@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x8f980"
+      },
+      {
+        "name": "?GetCloudSession@IlinkContext@zidl_export@ilink@@QEAA?AV?$shared_ptr@VCloudSession@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xa97c0"
+      },
+      {
+        "name": "?GetCloudSession@IlinkContextNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VCloudSessionNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x8fa30"
+      },
+      {
+        "name": "?GetLoginQrCode@AuthManager@zidl_export@ilink@@QEAA?AUGetLoginQrCodeRet@123@AEBVIlinkGetLoginQrCodeRequest@pb_export@3@@Z",
+        "rva": "0xa98e0"
+      },
+      {
+        "name": "?GetLoginQrCode@AuthManagerNoPB@zidl_export@ilink@@QEAA?AUGetLoginQrCodeRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8fb50"
+      },
+      {
+        "name": "?GetLoginQrCodeAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@UGetLoginQrCodeRet@AuthManager@zidl_export@ilink@@@v9@owl@@AEBVIlinkGetLoginQrCodeRequest@pb_export@3@@Z",
+        "rva": "0xa9960"
+      },
+      {
+        "name": "?GetLoginQrCodeAsync@AuthManager@zidl_export@ilink@@QEAAXAEBVIlinkGetLoginQrCodeRequest@pb_export@3@V?$function@$$A6AXHAEBVIlinkGetLoginQrCodeResponse@pb_export@ilink@@@Z@std@@@Z",
+        "rva": "0xa9ab0"
+      },
+      {
+        "name": "?GetLoginQrCodeAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@UGetLoginQrCodeRet@AuthManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8fbd0"
+      },
+      {
+        "name": "?GetLoginQrCodeAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x8fd20"
+      },
+      {
+        "name": "?GetOAuthCode@AuthManager@zidl_export@ilink@@QEAA?AUGetOAuthCodeRet@123@AEBVIlinkGetOAuthCodeRequest@pb_export@3@@Z",
+        "rva": "0xa9cb0"
+      },
+      {
+        "name": "?GetOAuthCode@AuthManagerNoPB@zidl_export@ilink@@QEAA?AUGetOAuthCodeRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8fe30"
+      },
+      {
+        "name": "?GetOAuthCodeAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@UGetOAuthCodeRet@AuthManager@zidl_export@ilink@@@v9@owl@@AEBVIlinkGetOAuthCodeRequest@pb_export@3@@Z",
+        "rva": "0xa9d30"
+      },
+      {
+        "name": "?GetOAuthCodeAsync@AuthManager@zidl_export@ilink@@QEAAXAEBVIlinkGetOAuthCodeRequest@pb_export@3@V?$function@$$A6AXHAEBVIlinkGetOAuthCodeResponse@pb_export@ilink@@@Z@std@@@Z",
+        "rva": "0xa9e80"
+      },
+      {
+        "name": "?GetOAuthCodeAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@UGetOAuthCodeRet@AuthManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x8feb0"
+      },
+      {
+        "name": "?GetOAuthCodeAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x90000"
+      },
+      {
+        "name": "?GetSession@AuthManager@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0xaa080"
+      },
+      {
+        "name": "?GetSession@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x90110"
+      },
+      {
+        "name": "?GetSingletonSession@IlinkContext@zidl_export@ilink@@QEAA?AV?$shared_ptr@VSingletonSession@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xaa130"
+      },
+      {
+        "name": "?GetSingletonSession@IlinkContextNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VSingletonSessionNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x901c0"
+      },
+      {
+        "name": "?Ident@AppDeviceSession@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0xaa3d0"
+      },
+      {
+        "name": "?Ident@AppDeviceSessionNoPB@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0x902e0"
+      },
+      {
+        "name": "?Ident@AppSession@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0xaa480"
+      },
+      {
+        "name": "?Ident@AppSessionNoPB@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0x90390"
+      },
+      {
+        "name": "?Ident@DeviceSession@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0xaa530"
+      },
+      {
+        "name": "?Ident@DeviceSessionNoPB@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0x90440"
+      },
+      {
+        "name": "?Init@AuthManager@zidl_export@ilink@@QEAAXAEBVIlinkAuthConfig@pb_export@3@@Z",
+        "rva": "0xaa5e0"
+      },
+      {
+        "name": "?Init@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x904f0"
+      },
+      {
+        "name": "?Init@IlinkContext@zidl_export@ilink@@QEAAXAEBVIlinkStartConfig@pb_export@3@@Z",
+        "rva": "0xaa720"
+      },
+      {
+        "name": "?Init@IlinkContextNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x905a0"
+      },
+      {
+        "name": "?Init@IlinkLogManager@zidl_export@ilink@@QEAAXAEBVIlinkLogConfig@pb_export@3@@Z",
+        "rva": "0xaa860"
+      },
+      {
+        "name": "?Init@IlinkLogManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x90650"
+      },
+      {
+        "name": "?Instance@IlinkContext@zidl_export@ilink@@SA?AV?$shared_ptr@VIlinkContext@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xaa9a0"
+      },
+      {
+        "name": "?Instance@IlinkContextNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VIlinkContextNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x90700"
+      },
+      {
+        "name": "?Instance@IlinkLogManager@zidl_export@ilink@@SA?AV?$shared_ptr@VIlinkLogManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xaaaa0"
+      },
+      {
+        "name": "?Instance@IlinkLogManagerNoPB@zidl_export@ilink@@SA?AV?$shared_ptr@VIlinkLogManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x90800"
+      },
+      {
+        "name": "?IsAlreadyGetStrategy@IlinkContext@zidl_export@ilink@@QEAA_NXZ",
+        "rva": "0xaaba0"
+      },
+      {
+        "name": "?IsAlreadyGetStrategy@IlinkContextNoPB@zidl_export@ilink@@QEAA_NXZ",
+        "rva": "0x90900"
+      },
+      {
+        "name": "?LockToUseCustomAuth@CloudSession@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0xaac50"
+      },
+      {
+        "name": "?LockToUseCustomAuth@CloudSessionNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x909b0"
+      },
+      {
+        "name": "?Login@AuthManager@zidl_export@ilink@@QEAA?AULoginRet@123@W4IlinkLoginType@pb_export@3@AEBVIlinkLoginRequest@63@@Z",
+        "rva": "0xaad00"
+      },
+      {
+        "name": "?Login@AuthManagerNoPB@zidl_export@ilink@@QEAA?AULoginRet@123@HAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x90a60"
+      },
+      {
+        "name": "?Login@SingletonSession@zidl_export@ilink@@QEAAXW4IlinkLoginType@pb_export@3@AEBVIlinkLoginRequest@53@@Z",
+        "rva": "0xaad80"
+      },
+      {
+        "name": "?Login@SingletonSessionNoPB@zidl_export@ilink@@QEAAXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x90ae0"
+      },
+      {
+        "name": "?LoginAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@ULoginRet@AuthManager@zidl_export@ilink@@@v9@owl@@W4IlinkLoginType@pb_export@3@AEBVIlinkLoginRequest@83@@Z",
+        "rva": "0xaaec0"
+      },
+      {
+        "name": "?LoginAsync@AuthManager@zidl_export@ilink@@QEAAXW4IlinkLoginType@pb_export@3@AEBVIlinkLoginRequest@53@V?$function@$$A6AXW4IlinkLoginType@pb_export@ilink@@HAEBVIlinkLoginResponse@23@@Z@std@@@Z",
+        "rva": "0xab020"
+      },
+      {
+        "name": "?LoginAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@ULoginRet@AuthManagerNoPB@zidl_export@ilink@@@v9@owl@@HAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x90b90"
+      },
+      {
+        "name": "?LoginAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x90cf0"
+      },
+      {
+        "name": "?Logout@AuthManager@zidl_export@ilink@@QEAAHXZ",
+        "rva": "0xab230"
+      },
+      {
+        "name": "?Logout@AuthManagerNoPB@zidl_export@ilink@@QEAAHXZ",
+        "rva": "0x90e10"
+      },
+      {
+        "name": "?Logout@CloudSession@zidl_export@ilink@@QEAAHXZ",
+        "rva": "0xab2b0"
+      },
+      {
+        "name": "?Logout@CloudSessionNoPB@zidl_export@ilink@@QEAAHXZ",
+        "rva": "0x90e90"
+      },
+      {
+        "name": "?Logout@SingletonSession@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xab330"
+      },
+      {
+        "name": "?Logout@SingletonSessionNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x90f10"
+      },
+      {
+        "name": "?LogoutAsync@AuthManager@zidl_export@ilink@@QEAA?AV?$promise2@H@v9@owl@@XZ",
+        "rva": "0xab3d0"
+      },
+      {
+        "name": "?LogoutAsync@AuthManager@zidl_export@ilink@@QEAAXV?$function@$$A6AXH@Z@std@@@Z",
+        "rva": "0xab520"
+      },
+      {
+        "name": "?LogoutAsync@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@H@v9@owl@@XZ",
+        "rva": "0x90fb0"
+      },
+      {
+        "name": "?LogoutAsync@AuthManagerNoPB@zidl_export@ilink@@QEAAXV?$function@$$A6AXH@Z@std@@@Z",
+        "rva": "0x91100"
+      },
+      {
+        "name": "?LogoutAsync@CloudSession@zidl_export@ilink@@QEAA?AV?$promise2@H@v9@owl@@XZ",
+        "rva": "0xab630"
+      },
+      {
+        "name": "?LogoutAsync@CloudSession@zidl_export@ilink@@QEAAXV?$function@$$A6AXH@Z@std@@@Z",
+        "rva": "0xab780"
+      },
+      {
+        "name": "?LogoutAsync@CloudSessionNoPB@zidl_export@ilink@@QEAA?AV?$promise2@H@v9@owl@@XZ",
+        "rva": "0x91210"
+      },
+      {
+        "name": "?LogoutAsync@CloudSessionNoPB@zidl_export@ilink@@QEAAXV?$function@$$A6AXH@Z@std@@@Z",
+        "rva": "0x91360"
+      },
+      {
+        "name": "?ManualDestroy@AppDeviceSession@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xab890"
+      },
+      {
+        "name": "?ManualDestroy@AppDeviceSessionNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x91470"
+      },
+      {
+        "name": "?ManualDestroy@AppSession@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xab930"
+      },
+      {
+        "name": "?ManualDestroy@AppSessionNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x91510"
+      },
+      {
+        "name": "?ManualDestroy@CloudSession@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xab9d0"
+      },
+      {
+        "name": "?ManualDestroy@CloudSessionNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x915b0"
+      },
+      {
+        "name": "?ManualDestroy@DeviceSession@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xaba70"
+      },
+      {
+        "name": "?ManualDestroy@DeviceSessionNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x91650"
+      },
+      {
+        "name": "?ManualDestroy@NetworkManager@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xabb10"
+      },
+      {
+        "name": "?ManualDestroy@NetworkManagerNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x916f0"
+      },
+      {
+        "name": "?NetworkChanged@IlinkContext@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xabbb0"
+      },
+      {
+        "name": "?NetworkChanged@IlinkContextNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x91790"
+      },
+      {
+        "name": "?NewAppDeviceSession@IlinkContext@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAppDeviceSession@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@_K@Z",
+        "rva": "0xabc50"
+      },
+      {
+        "name": "?NewAppDeviceSession@IlinkContextNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAppDeviceSessionNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@_K@Z",
+        "rva": "0x91830"
+      },
+      {
+        "name": "?NewAppSession@IlinkContext@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAppSession@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@@Z",
+        "rva": "0xabd70"
+      },
+      {
+        "name": "?NewAppSession@IlinkContextNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VAppSessionNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@@Z",
+        "rva": "0x91950"
+      },
+      {
+        "name": "?NewDeviceSession@IlinkContext@zidl_export@ilink@@QEAA?AV?$shared_ptr@VDeviceSession@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xabe90"
+      },
+      {
+        "name": "?NewDeviceSession@IlinkContextNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VDeviceSessionNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x91a70"
+      },
+      {
+        "name": "?NewNetworkManager@AppDeviceSession@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xabfb0"
+      },
+      {
+        "name": "?NewNetworkManager@AppDeviceSessionNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x91b90"
+      },
+      {
+        "name": "?NewNetworkManager@AppSession@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xac0d0"
+      },
+      {
+        "name": "?NewNetworkManager@AppSessionNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x91cb0"
+      },
+      {
+        "name": "?NewNetworkManager@CloudSession@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xac1f0"
+      },
+      {
+        "name": "?NewNetworkManager@CloudSessionNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x91dd0"
+      },
+      {
+        "name": "?NewNetworkManager@DeviceSession@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xac310"
+      },
+      {
+        "name": "?NewNetworkManager@DeviceSessionNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x91ef0"
+      },
+      {
+        "name": "?NewNetworkManager@IlinkContext@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManager@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@_K@Z",
+        "rva": "0xac430"
+      },
+      {
+        "name": "?NewNetworkManager@IlinkContextNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManagerNoPB@zidl_export@ilink@@@std@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@5@_K@Z",
+        "rva": "0x92010"
+      },
+      {
+        "name": "?NewNetworkManager@SingletonSession@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManager@zidl_export@ilink@@@std@@XZ",
+        "rva": "0xac550"
+      },
+      {
+        "name": "?NewNetworkManager@SingletonSessionNoPB@zidl_export@ilink@@QEAA?AV?$shared_ptr@VNetworkManagerNoPB@zidl_export@ilink@@@std@@XZ",
+        "rva": "0x92130"
+      },
+      {
+        "name": "?NotifyAuthResult@CloudSession@zidl_export@ilink@@QEAAXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xac670"
+      },
+      {
+        "name": "?NotifyAuthResult@CloudSessionNoPB@zidl_export@ilink@@QEAAXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x92250"
+      },
+      {
+        "name": "?OnAppSessionTimeout@NetworkManager@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0xac720"
+      },
+      {
+        "name": "?OnAppSessionTimeout@NetworkManagerNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0x92300"
+      },
+      {
+        "name": "?OnCancelCloudCgiRequest@CloudSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXI@Z@v9@owl@@XZ",
+        "rva": "0xac740"
+      },
+      {
+        "name": "?OnCancelCloudCgiRequest@CloudSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXI@Z@v9@owl@@XZ",
+        "rva": "0x92320"
+      },
+      {
+        "name": "?OnFilterLog@IlinkLogManager@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@00H0_K11@Z@v9@owl@@XZ",
+        "rva": "0xac760"
+      },
+      {
+        "name": "?OnFilterLog@IlinkLogManagerNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@00H0_K11@Z@v9@owl@@XZ",
+        "rva": "0x92340"
+      },
+      {
+        "name": "?OnLogin@CloudSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0xac780"
+      },
+      {
+        "name": "?OnLogin@CloudSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0x92360"
+      },
+      {
+        "name": "?OnLonglinkConnected@DeviceSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0xac7a0"
+      },
+      {
+        "name": "?OnLonglinkConnected@DeviceSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0x92380"
+      },
+      {
+        "name": "?OnLonglinkDisconnected@DeviceSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0xac7c0"
+      },
+      {
+        "name": "?OnLonglinkDisconnected@DeviceSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0x923a0"
+      },
+      {
+        "name": "?OnReceiveAppMessage@NetworkManager@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXAEBVIlinkBypassMsgList@pb_export@ilink@@@Z@v9@owl@@XZ",
+        "rva": "0xac7e0"
+      },
+      {
+        "name": "?OnReceiveAppMessage@NetworkManagerNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@v9@owl@@XZ",
+        "rva": "0x923c0"
+      },
+      {
+        "name": "?OnReceiveNotify@NetworkManager@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXIAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@v9@owl@@XZ",
+        "rva": "0xac8f0"
+      },
+      {
+        "name": "?OnReceiveNotify@NetworkManagerNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXIAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@v9@owl@@XZ",
+        "rva": "0x923e0"
+      },
+      {
+        "name": "?OnReceiveSyncMessage@NetworkManager@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXIAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@v9@owl@@XZ",
+        "rva": "0xac910"
+      },
+      {
+        "name": "?OnReceiveSyncMessage@NetworkManagerNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXIAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@v9@owl@@XZ",
+        "rva": "0x92400"
+      },
+      {
+        "name": "?OnRequestUploadLog@NetworkManager@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@v9@owl@@XZ",
+        "rva": "0xac930"
+      },
+      {
+        "name": "?OnRequestUploadLog@NetworkManagerNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@v9@owl@@XZ",
+        "rva": "0x92420"
+      },
+      {
+        "name": "?OnRequireLogin@SingletonSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AX_N@Z@v9@owl@@XZ",
+        "rva": "0xac950"
+      },
+      {
+        "name": "?OnRequireLogin@SingletonSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AX_N@Z@v9@owl@@XZ",
+        "rva": "0x92440"
+      },
+      {
+        "name": "?OnSendCloudCgiRequest@CloudSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXAEBVCloudCgiRequest@pb_export@ilink@@@Z@v9@owl@@XZ",
+        "rva": "0xac970"
+      },
+      {
+        "name": "?OnSendCloudCgiRequest@CloudSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@v9@owl@@XZ",
+        "rva": "0x92460"
+      },
+      {
+        "name": "?OnSessionTimeout@AppDeviceSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0xaca40"
+      },
+      {
+        "name": "?OnSessionTimeout@AppDeviceSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0x92480"
+      },
+      {
+        "name": "?OnSessionTimeout@AppSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0xaca50"
+      },
+      {
+        "name": "?OnSessionTimeout@AppSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0x92490"
+      },
+      {
+        "name": "?OnSessionTimeout@DeviceSession@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0xaca60"
+      },
+      {
+        "name": "?OnSessionTimeout@DeviceSessionNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXXZ@v9@owl@@XZ",
+        "rva": "0x924a0"
+      },
+      {
+        "name": "?OnWriteLog@IlinkLogManager@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@00H0_K11@Z@v9@owl@@XZ",
+        "rva": "0xacaa0"
+      },
+      {
+        "name": "?OnWriteLog@IlinkLogManagerNoPB@zidl_export@ilink@@QEAAAEAV?$xsignal@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@00H0_K11@Z@v9@owl@@XZ",
+        "rva": "0x924e0"
+      },
+      {
+        "name": "?Open@IlinkLogManager@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z",
+        "rva": "0xacac0"
+      },
+      {
+        "name": "?Open@IlinkLogManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@0@Z",
+        "rva": "0x92500"
+      },
+      {
+        "name": "?RealUin@NetworkManager@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0xacb70"
+      },
+      {
+        "name": "?RealUin@NetworkManagerNoPB@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0x925b0"
+      },
+      {
+        "name": "?ReceiveCloudCgiResponse@CloudSession@zidl_export@ilink@@QEAAXIHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xacc20"
+      },
+      {
+        "name": "?ReceiveCloudCgiResponse@CloudSessionNoPB@zidl_export@ilink@@QEAAXIHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x92660"
+      },
+      {
+        "name": "?ReceiveCloudNotify@CloudSession@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xaccd0"
+      },
+      {
+        "name": "?ReceiveCloudNotify@CloudSessionNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x92710"
+      },
+      {
+        "name": "?RequestCheckResource@NetworkManager@zidl_export@ilink@@QEAA?AURequestCheckResourceRet@123@AEBVResourceRequestInfo@pb_export@3@@Z",
+        "rva": "0xacd80"
+      },
+      {
+        "name": "?RequestCheckResource@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AURequestCheckResourceRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x927c0"
+      },
+      {
+        "name": "?RequestCheckResourceAsync@NetworkManager@zidl_export@ilink@@QEAA?AV?$promise2@URequestCheckResourceRet@NetworkManager@zidl_export@ilink@@@v9@owl@@AEBVResourceRequestInfo@pb_export@3@@Z",
+        "rva": "0xace00"
+      },
+      {
+        "name": "?RequestCheckResourceAsync@NetworkManager@zidl_export@ilink@@QEAAXAEBVResourceRequestInfo@pb_export@3@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@std@@@Z",
+        "rva": "0xacf50"
+      },
+      {
+        "name": "?RequestCheckResourceAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@URequestCheckResourceRet@NetworkManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x92840"
+      },
+      {
+        "name": "?RequestCheckResourceAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x92990"
+      },
+      {
+        "name": "?RequestUploadLog@NetworkManager@zidl_export@ilink@@QEAAXII@Z",
+        "rva": "0xad0d0"
+      },
+      {
+        "name": "?RequestUploadLog@NetworkManagerNoPB@zidl_export@ilink@@QEAAXII@Z",
+        "rva": "0x92aa0"
+      },
+      {
+        "name": "?ResetImplStub@AppDeviceSession@zidl_export@ilink@@QEAAXPEAVAppDeviceSessionBase@3@@Z",
+        "rva": "0xad180"
+      },
+      {
+        "name": "?ResetImplStub@AppDeviceSessionNoPB@zidl_export@ilink@@QEAAXPEAVAppDeviceSessionBase@3@@Z",
+        "rva": "0x92b50"
+      },
+      {
+        "name": "?ResetImplStub@AppSession@zidl_export@ilink@@QEAAXPEAVAppSessionBase@3@@Z",
+        "rva": "0xad360"
+      },
+      {
+        "name": "?ResetImplStub@AppSessionNoPB@zidl_export@ilink@@QEAAXPEAVAppSessionBase@3@@Z",
+        "rva": "0x92d30"
+      },
+      {
+        "name": "?ResetImplStub@AuthManager@zidl_export@ilink@@QEAAXPEAVAuthManagerBase@3@@Z",
+        "rva": "0xad540"
+      },
+      {
+        "name": "?ResetImplStub@AuthManagerNoPB@zidl_export@ilink@@QEAAXPEAVAuthManagerBase@3@@Z",
+        "rva": "0x92f10"
+      },
+      {
+        "name": "?ResetImplStub@CloudSession@zidl_export@ilink@@QEAAXPEAVCloudSessionBase@3@@Z",
+        "rva": "0xad720"
+      },
+      {
+        "name": "?ResetImplStub@CloudSessionNoPB@zidl_export@ilink@@QEAAXPEAVCloudSessionBase@3@@Z",
+        "rva": "0x930f0"
+      },
+      {
+        "name": "?ResetImplStub@DeviceSession@zidl_export@ilink@@QEAAXPEAVDeviceSessionBase@3@@Z",
+        "rva": "0xad900"
+      },
+      {
+        "name": "?ResetImplStub@DeviceSessionNoPB@zidl_export@ilink@@QEAAXPEAVDeviceSessionBase@3@@Z",
+        "rva": "0x932d0"
+      },
+      {
+        "name": "?ResetImplStub@NetworkManager@zidl_export@ilink@@QEAAXPEAVNetworkManagerBase@3@@Z",
+        "rva": "0xadae0"
+      },
+      {
+        "name": "?ResetImplStub@NetworkManagerNoPB@zidl_export@ilink@@QEAAXPEAVNetworkManagerBase@3@@Z",
+        "rva": "0x934b0"
+      },
+      {
+        "name": "?ResetImplStub@SingletonSession@zidl_export@ilink@@QEAAXPEAVSingletonSessionBase@3@@Z",
+        "rva": "0xadcc0"
+      },
+      {
+        "name": "?ResetImplStub@SingletonSessionNoPB@zidl_export@ilink@@QEAAXPEAVSingletonSessionBase@3@@Z",
+        "rva": "0x93690"
+      },
+      {
+        "name": "?SendRequest@NetworkManager@zidl_export@ilink@@QEAA?AUSendRequestRet@123@AEBVIlinkRequestInfo@pb_export@3@@Z",
+        "rva": "0xadea0"
+      },
+      {
+        "name": "?SendRequest@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AUSendRequestRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x93870"
+      },
+      {
+        "name": "?SendRequestAsync@NetworkManager@zidl_export@ilink@@QEAA?AV?$promise2@USendRequestRet@NetworkManager@zidl_export@ilink@@@v9@owl@@AEBVIlinkRequestInfo@pb_export@3@@Z",
+        "rva": "0xadf20"
+      },
+      {
+        "name": "?SendRequestAsync@NetworkManager@zidl_export@ilink@@QEAAXAEBVIlinkRequestInfo@pb_export@3@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@std@@@Z",
+        "rva": "0xae070"
+      },
+      {
+        "name": "?SendRequestAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@USendRequestRet@NetworkManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x938f0"
+      },
+      {
+        "name": "?SendRequestAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z@5@@Z",
+        "rva": "0x93a40"
+      },
+      {
+        "name": "?SetLonglinkIplist@IlinkContext@zidl_export@ilink@@QEAAXAEBVIlinkServerIplist@pb_export@3@@Z",
+        "rva": "0xae1f0"
+      },
+      {
+        "name": "?SetLonglinkIplist@IlinkContextNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x93b50"
+      },
+      {
+        "name": "?SetProxy@IlinkContext@zidl_export@ilink@@QEAAXAEBVIlinkNetProxyInfo@pb_export@3@@Z",
+        "rva": "0xae330"
+      },
+      {
+        "name": "?SetProxy@IlinkContextNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x93c00"
+      },
+      {
+        "name": "?SetShortlinkIplist@IlinkContext@zidl_export@ilink@@QEAAXAEBVIlinkServerIplist@pb_export@3@@Z",
+        "rva": "0xae470"
+      },
+      {
+        "name": "?SetShortlinkIplist@IlinkContextNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x93cb0"
+      },
+      {
+        "name": "?SetSmcBaseInfo@NetworkManager@zidl_export@ilink@@QEAAXAEBVIlinkSmcBaseInfo@pb_export@3@@Z",
+        "rva": "0xae5b0"
+      },
+      {
+        "name": "?SetSmcBaseInfo@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x93d60"
+      },
+      {
+        "name": "?SetSmcUin@NetworkManager@zidl_export@ilink@@QEAAXI@Z",
+        "rva": "0xae6f0"
+      },
+      {
+        "name": "?SetSmcUin@NetworkManagerNoPB@zidl_export@ilink@@QEAAXI@Z",
+        "rva": "0x93e10"
+      },
+      {
+        "name": "?ShowUin@NetworkManager@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0xae7a0"
+      },
+      {
+        "name": "?ShowUin@NetworkManagerNoPB@zidl_export@ilink@@QEAA_KXZ",
+        "rva": "0x93ec0"
+      },
+      {
+        "name": "?SmcFlush@NetworkManager@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xae850"
+      },
+      {
+        "name": "?SmcFlush@NetworkManagerNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x93f70"
+      },
+      {
+        "name": "?StartSync@AppSession@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xae8f0"
+      },
+      {
+        "name": "?StartSync@AppSessionNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x94010"
+      },
+      {
+        "name": "?StartSync@DeviceSession@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xae990"
+      },
+      {
+        "name": "?StartSync@DeviceSessionNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x940b0"
+      },
+      {
+        "name": "?SubscribeNotify@NetworkManager@zidl_export@ilink@@QEAAXAEBV?$vector@IV?$allocator@I@std@@@std@@@Z",
+        "rva": "0xaea30"
+      },
+      {
+        "name": "?SubscribeNotify@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$vector@IV?$allocator@I@std@@@std@@@Z",
+        "rva": "0x94150"
+      },
+      {
+        "name": "?SubscribeSyncMessage@NetworkManager@zidl_export@ilink@@QEAAXAEBV?$vector@IV?$allocator@I@std@@@std@@@Z",
+        "rva": "0xaeae0"
+      },
+      {
+        "name": "?SubscribeSyncMessage@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$vector@IV?$allocator@I@std@@@std@@@Z",
+        "rva": "0x94200"
+      },
+      {
+        "name": "?Uninit@IlinkContext@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0xaeb90"
+      },
+      {
+        "name": "?Uninit@IlinkContextNoPB@zidl_export@ilink@@QEAAXXZ",
+        "rva": "0x942b0"
+      },
+      {
+        "name": "?UnsubscribeNotify@NetworkManager@zidl_export@ilink@@QEAAXAEBV?$vector@IV?$allocator@I@std@@@std@@@Z",
+        "rva": "0xaec30"
+      },
+      {
+        "name": "?UnsubscribeNotify@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$vector@IV?$allocator@I@std@@@std@@@Z",
+        "rva": "0x94350"
+      },
+      {
+        "name": "?UnsubscribeSyncMessage@NetworkManager@zidl_export@ilink@@QEAAXAEBV?$vector@IV?$allocator@I@std@@@std@@@Z",
+        "rva": "0xaece0"
+      },
+      {
+        "name": "?UnsubscribeSyncMessage@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$vector@IV?$allocator@I@std@@@std@@@Z",
+        "rva": "0x94400"
+      },
+      {
+        "name": "?UpdateAppSession@NetworkManager@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@W4IlinkAppSessionType@pb_export@3@@Z",
+        "rva": "0xaed90"
+      },
+      {
+        "name": "?UpdateAppSession@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@Z",
+        "rva": "0x944b0"
+      },
+      {
+        "name": "?UpdateIlinkToken@AuthManager@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xaee40"
+      },
+      {
+        "name": "?UpdateIlinkToken@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x94560"
+      },
+      {
+        "name": "?UpdatePushToken@NetworkManager@zidl_export@ilink@@QEAA?AUUpdatePushTokenRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xaeef0"
+      },
+      {
+        "name": "?UpdatePushToken@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AUUpdatePushTokenRet@123@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x94610"
+      },
+      {
+        "name": "?UpdatePushTokenAsync@NetworkManager@zidl_export@ilink@@QEAA?AV?$promise2@UUpdatePushTokenRet@NetworkManager@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xaef70"
+      },
+      {
+        "name": "?UpdatePushTokenAsync@NetworkManager@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@I@Z@5@@Z",
+        "rva": "0xaf0c0"
+      },
+      {
+        "name": "?UpdatePushTokenAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAA?AV?$promise2@UUpdatePushTokenRet@NetworkManagerNoPB@zidl_export@ilink@@@v9@owl@@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x94690"
+      },
+      {
+        "name": "?UpdatePushTokenAsync@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@I@Z@5@@Z",
+        "rva": "0x947e0"
+      },
+      {
+        "name": "?UpdateSession@AuthManager@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xaf1d0"
+      },
+      {
+        "name": "?UpdateSession@AuthManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x948f0"
+      },
+      {
+        "name": "?UpdateSession@DeviceSession@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0xaf280"
+      },
+      {
+        "name": "?UpdateSession@DeviceSessionNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x949a0"
+      },
+      {
+        "name": "?UserInfo@AuthManager@zidl_export@ilink@@QEAA?AVIlinkUserInfo@pb_export@3@XZ",
+        "rva": "0xaf330"
+      },
+      {
+        "name": "?UserInfo@AuthManagerNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x94a50"
+      },
+      {
+        "name": "?UserInfo@SingletonSession@zidl_export@ilink@@QEAA?AVIlinkUserInfo@pb_export@3@XZ",
+        "rva": "0xaf4b0"
+      },
+      {
+        "name": "?UserInfo@SingletonSessionNoPB@zidl_export@ilink@@QEAA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ",
+        "rva": "0x94b00"
+      },
+      {
+        "name": "?Write@IlinkLogManager@zidl_export@ilink@@QEAAXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@00H0_K11@Z",
+        "rva": "0xaf630"
+      },
+      {
+        "name": "?Write@IlinkLogManagerNoPB@zidl_export@ilink@@QEAAXHAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@00H0_K11@Z",
+        "rva": "0x94bb0"
+      },
+      {
+        "name": "?WriteKvData@NetworkManager@zidl_export@ilink@@QEAAXAEBVIlinkKvReportInfo@pb_export@3@@Z",
+        "rva": "0xaf730"
+      },
+      {
+        "name": "?WriteKvData@NetworkManagerNoPB@zidl_export@ilink@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+        "rva": "0x94cb0"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xaf870"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x94d60"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xaf930"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x94e20"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xaf9f0"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x94ee0"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xafab0"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x94fa0"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xafb70"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x95060"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xafc30"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x95120"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xafcf0"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x951e0"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplateNoEvent@VAuthManagerDispatcher@ilink@@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x952a0"
+      },
+      {
+        "name": "?ZidlObjToHolder@?$CallerTemplateNoEvent@VIlinkContextDispatcher@ilink@@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x95360"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VAppDeviceSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0xb43e0"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VAppDeviceSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0x99160"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VAppSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0xb4430"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VAppSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0x991b0"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VCloudSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0xb4480"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VCloudSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0x99200"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VDeviceSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0xb44d0"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VDeviceSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0x99250"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VIlinkLogManagerDispatcher@ilink@@@std@@XZ",
+        "rva": "0xb4520"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VIlinkLogManagerDispatcher@ilink@@@std@@XZ",
+        "rva": "0x992a0"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VNetworkManagerDispatcher@ilink@@@std@@XZ",
+        "rva": "0xb4570"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VNetworkManagerDispatcher@ilink@@@std@@XZ",
+        "rva": "0x992f0"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VSingletonSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0xb45c0"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@VSingletonSessionDispatcher@ilink@@@std@@XZ",
+        "rva": "0x99340"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplateNoEvent@VAuthManagerDispatcher@ilink@@@zidl@@QEAA?AV?$shared_ptr@VAuthManagerDispatcher@ilink@@@std@@XZ",
+        "rva": "0x99390"
+      },
+      {
+        "name": "?_z_GetDispatcher@?$CallerTemplateNoEvent@VIlinkContextDispatcher@ilink@@@zidl@@QEAA?AV?$shared_ptr@VIlinkContextDispatcher@ilink@@@std@@XZ",
+        "rva": "0x993e0"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VAppDeviceSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0xb4610"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VAppDeviceSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0x99430"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VAppSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0xb46f0"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionNoPBEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VAppSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0x99510"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VCloudSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0xb47d0"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionNoPBEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VCloudSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0x995f0"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VDeviceSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0xb48b0"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VDeviceSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0x996d0"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VIlinkLogManagerDispatcher@ilink@@@std@@@Z",
+        "rva": "0xb4990"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerNoPBEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VIlinkLogManagerDispatcher@ilink@@@std@@@Z",
+        "rva": "0x997b0"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VNetworkManagerDispatcher@ilink@@@std@@@Z",
+        "rva": "0xb4a70"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerNoPBEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VNetworkManagerDispatcher@ilink@@@std@@@Z",
+        "rva": "0x99890"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VSingletonSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0xb4b50"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionNoPBEvents@zidl_export@2@@zidl@@QEAAXAEBV?$shared_ptr@VSingletonSessionDispatcher@ilink@@@std@@@Z",
+        "rva": "0x99970"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplateNoEvent@VAuthManagerDispatcher@ilink@@@zidl@@QEAAXAEBV?$shared_ptr@VAuthManagerDispatcher@ilink@@@std@@@Z",
+        "rva": "0x99a50"
+      },
+      {
+        "name": "?_z_SetDispatcher@?$CallerTemplateNoEvent@VIlinkContextDispatcher@ilink@@@zidl@@QEAAXAEBV?$shared_ptr@VIlinkContextDispatcher@ilink@@@std@@@Z",
+        "rva": "0x99aa0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xb4c30"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VAppDeviceSessionDispatcher@ilink@@VAppDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x99af0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xb4cf0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VAppSessionDispatcher@ilink@@VAppSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x99bb0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xb4db0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VCloudSessionDispatcher@ilink@@VCloudSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x99c70"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xb4e70"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VDeviceSessionDispatcher@ilink@@VDeviceSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x99d30"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xb4f30"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VIlinkLogManagerDispatcher@ilink@@VIlinkLogManagerNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x99df0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xb4ff0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VNetworkManagerDispatcher@ilink@@VNetworkManagerNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x99eb0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0xb50b0"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplate@VSingletonSessionDispatcher@ilink@@VSingletonSessionNoPBEvents@zidl_export@2@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x99f70"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplateNoEvent@VAuthManagerDispatcher@ilink@@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x9a030"
+      },
+      {
+        "name": "?_z_ZidlObjToHolder@?$CallerTemplateNoEvent@VIlinkContextDispatcher@ilink@@@zidl@@QEAA?AV?$shared_ptr@UObjHolder2@zidl@@@std@@XZ",
+        "rva": "0x9a0f0"
+      },
+      {
+        "name": "CreateIlinkNetwork",
+        "rva": "0x110580"
+      },
+      {
+        "name": "CreateTdiManager",
+        "rva": "0xf79d0"
+      },
+      {
+        "name": "DeleteIlinkNetwork",
+        "rva": "0x110bf0"
+      },
+      {
+        "name": "DestroyTdiManager",
+        "rva": "0xf7ac0"
+      },
+      {
+        "name": "GetIlinkContext",
+        "rva": "0xddfb0"
+      },
+      {
+        "name": "GetIlinkDeviceInterface",
+        "rva": "0x11ba00"
+      },
+      {
+        "name": "GetIlinkLogManager",
+        "rva": "0xdf4a0"
+      },
+      {
+        "name": "GetIlinkXlogInterface",
+        "rva": "0xfb450"
+      },
+      {
+        "name": "SetIlinkGetWifiInfoCallback",
+        "rva": "0x11bb10"
+      }
+    ],
+    "imports": [
+      "owl.dll",
+      "WS2_32.dll",
+      "KERNEL32.dll",
+      "USER32.dll",
+      "ADVAPI32.dll",
+      "CRYPT32.dll",
+      "IPHLPAPI.DLL",
+      "WININET.dll",
+      "bcrypt.dll"
+    ]
+  },
+  {
+    "file": "ilink_wrapper.dll",
+    "bytes": 244776,
+    "sha256": "345233f74ffc490d7dc406e3c17d41e79ba7fa808632d05a2369923dc64e166f",
+    "machine": "0x8664",
+    "image_base": "0x180000000",
+    "exports": [
+      {
+        "name": "CreateNetworkManagerNoPB",
+        "rva": "0xafa0"
+      },
+      {
+        "name": "DestroyContextNoPB",
+        "rva": "0xb160"
+      },
+      {
+        "name": "DestroyIlinkStreamContext",
+        "rva": "0xda10"
+      },
+      {
+        "name": "DestroyLogManagerNoPB",
+        "rva": "0xb190"
+      },
+      {
+        "name": "DestroyNetworkManagerNoPB",
+        "rva": "0xb1c0"
+      },
+      {
+        "name": "GetContextNoPB",
+        "rva": "0xb1f0"
+      },
+      {
+        "name": "GetIlinkStreamContext",
+        "rva": "0xda40"
+      },
+      {
+        "name": "GetLogManagerNoPB",
+        "rva": "0xb2e0"
+      }
+    ],
+    "imports": [
+      "owl.dll",
+      "ilink2.dll",
+      "ilink_stream.dll",
+      "KERNEL32.dll"
+    ]
+  },
+  {
+    "file": "wxpublic.dll",
+    "bytes": 1090096,
+    "sha256": "f607217d674c6ad8f6c7d1caa3d449b5838199860310794e00303b799a27769b",
+    "machine": "0x8664",
+    "image_base": "0x180000000",
+    "exports": [
+      {
+        "name": "GetHandleVerifier",
+        "rva": "0x63f90"
+      },
+      {
+        "name": "WeChatMain",
+        "rva": "0x1f430"
+      }
+    ],
+    "imports": [
+      "KERNEL32.dll",
+      "SHELL32.dll",
+      "WINMM.dll",
+      "ADVAPI32.dll",
+      "USER32.dll"
+    ]
+  },
+  {
+    "file": "WeixinExt.exe",
+    "bytes": 251432,
+    "sha256": "7fdf604ebdb528b60a660827f4ccb0dae5568a01d7a6e1eaf9feea35593372c4",
+    "machine": "0x14c",
+    "image_base": "0x400000",
+    "exports": [],
+    "imports": [
+      "KERNEL32.dll",
+      "SHELL32.dll",
+      "ole32.dll",
+      "OLEAUT32.dll",
+      "SHLWAPI.dll"
+    ]
+  }
+]

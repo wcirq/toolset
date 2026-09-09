@@ -1,0 +1,378 @@
+{
+  "file": "C:\\Program Files\\Tencent\\Weixin\\4.1.13.12\\Weixin.dll",
+  "sha256": "e3240bf8a4d00593a4b3e6ce6c8b6ac26897622c27f410f6655c4eee17cb3b6d",
+  "qt_exports": [],
+  "clues": [
+    {
+      "token": "QApplication",
+      "count": 21,
+      "locations": [
+        {
+          "offset": "0x8a4fb90",
+          "rva": "0x8a50f90"
+        },
+        {
+          "offset": "0x8a4fbb9",
+          "rva": "0x8a50fb9"
+        },
+        {
+          "offset": "0x8a4fc39",
+          "rva": "0x8a51039"
+        },
+        {
+          "offset": "0x8a4ff23",
+          "rva": "0x8a51323"
+        },
+        {
+          "offset": "0x8a4ff7b",
+          "rva": "0x8a5137b"
+        },
+        {
+          "offset": "0x8a4ffc9",
+          "rva": "0x8a513c9"
+        },
+        {
+          "offset": "0x8ae2ac2",
+          "rva": "0x8ae3ec2"
+        },
+        {
+          "offset": "0x8ae2cc9",
+          "rva": "0x8ae40c9"
+        },
+        {
+          "offset": "0x8afa140",
+          "rva": "0x8afb540"
+        },
+        {
+          "offset": "0x8afa28c",
+          "rva": "0x8afb68c"
+        },
+        {
+          "offset": "0x8afa2a0",
+          "rva": "0x8afb6a0"
+        },
+        {
+          "offset": "0x8b22fa3",
+          "rva": "0x8b243a3"
+        }
+      ]
+    },
+    {
+      "token": "QWidget",
+      "count": 139,
+      "locations": [
+        {
+          "offset": "0x80b6af7",
+          "rva": "0x80b7ef7"
+        },
+        {
+          "offset": "0x8a53330",
+          "rva": "0x8a54730"
+        },
+        {
+          "offset": "0x8ad73d4",
+          "rva": "0x8ad87d4"
+        },
+        {
+          "offset": "0x8ae2aa8",
+          "rva": "0x8ae3ea8"
+        },
+        {
+          "offset": "0x8ae2ad8",
+          "rva": "0x8ae3ed8"
+        },
+        {
+          "offset": "0x8ae2ca0",
+          "rva": "0x8ae40a0"
+        },
+        {
+          "offset": "0x8ae2cb9",
+          "rva": "0x8ae40b9"
+        },
+        {
+          "offset": "0x8ae2cd6",
+          "rva": "0x8ae40d6"
+        },
+        {
+          "offset": "0x8ae2d97",
+          "rva": "0x8ae4197"
+        },
+        {
+          "offset": "0x8ae2e15",
+          "rva": "0x8ae4215"
+        },
+        {
+          "offset": "0x8ae2e4a",
+          "rva": "0x8ae424a"
+        },
+        {
+          "offset": "0x8ae2e8f",
+          "rva": "0x8ae428f"
+        }
+      ]
+    },
+    {
+      "token": "QAbstractItemView",
+      "count": 6,
+      "locations": [
+        {
+          "offset": "0x8afa210",
+          "rva": "0x8afb610"
+        },
+        {
+          "offset": "0x8bdac97",
+          "rva": "0x8bdc097"
+        },
+        {
+          "offset": "0x8bdae40",
+          "rva": "0x8bdc240"
+        },
+        {
+          "offset": "0xace41e8",
+          "rva": "0xace59e8"
+        },
+        {
+          "offset": "0xad792a0",
+          "rva": "0xad7aaa0"
+        },
+        {
+          "offset": "0xb17ef2a",
+          "rva": "0xb18072a"
+        }
+      ]
+    },
+    {
+      "token": "QListView",
+      "count": 3,
+      "locations": [
+        {
+          "offset": "0x8d6b3c7",
+          "rva": "0x8d6c7c7"
+        },
+        {
+          "offset": "0xace4218",
+          "rva": "0xace5a18"
+        },
+        {
+          "offset": "0xad84228",
+          "rva": "0xad85a28"
+        }
+      ]
+    },
+    {
+      "token": "QAbstractItemModel",
+      "count": 20,
+      "locations": [
+        {
+          "offset": "0x8ccd3b1",
+          "rva": "0x8cce7b1"
+        },
+        {
+          "offset": "0x8ccd40c",
+          "rva": "0x8cce80c"
+        },
+        {
+          "offset": "0x8ccd463",
+          "rva": "0x8cce863"
+        },
+        {
+          "offset": "0x8ccd4b5",
+          "rva": "0x8cce8b5"
+        },
+        {
+          "offset": "0x8ccf5a7",
+          "rva": "0x8cd09a7"
+        },
+        {
+          "offset": "0x8ccf5fc",
+          "rva": "0x8cd09fc"
+        },
+        {
+          "offset": "0x8cd2170",
+          "rva": "0x8cd3570"
+        },
+        {
+          "offset": "0x8cd21af",
+          "rva": "0x8cd35af"
+        },
+        {
+          "offset": "0x8cd21e1",
+          "rva": "0x8cd35e1"
+        },
+        {
+          "offset": "0x8cd2215",
+          "rva": "0x8cd3615"
+        },
+        {
+          "offset": "0x8cd224c",
+          "rva": "0x8cd364c"
+        },
+        {
+          "offset": "0x8fb497a",
+          "rva": "0x8fb5d7a"
+        }
+      ]
+    },
+    {
+      "token": "session_list",
+      "count": 2,
+      "locations": [
+        {
+          "offset": "0x91ba264",
+          "rva": "0x91bb664"
+        },
+        {
+          "offset": "0x9324970",
+          "rva": "0x9325d70"
+        }
+      ]
+    },
+    {
+      "token": "session_item_",
+      "count": 1,
+      "locations": [
+        {
+          "offset": "0x9327760",
+          "rva": "0x9328b60"
+        }
+      ]
+    },
+    {
+      "token": "chat_message_list",
+      "count": 1,
+      "locations": [
+        {
+          "offset": "0x8e38268",
+          "rva": "0x8e39668"
+        }
+      ]
+    },
+    {
+      "token": "chat_bubble_item_view",
+      "count": 2,
+      "locations": [
+        {
+          "offset": "0x9224580",
+          "rva": "0x9225980"
+        },
+        {
+          "offset": "0x9226de8",
+          "rva": "0x92281e8"
+        }
+      ]
+    },
+    {
+      "token": "chat_input_field",
+      "count": 1,
+      "locations": [
+        {
+          "offset": "0x8b69848",
+          "rva": "0x8b6ac48"
+        }
+      ]
+    },
+    {
+      "token": "QAccessible",
+      "count": 26,
+      "locations": [
+        {
+          "offset": "0x8b28b4b",
+          "rva": "0x8b29f4b"
+        },
+        {
+          "offset": "0x8b28c32",
+          "rva": "0x8b2a032"
+        },
+        {
+          "offset": "0x8b28c4d",
+          "rva": "0x8b2a04d"
+        },
+        {
+          "offset": "0x8b28cb1",
+          "rva": "0x8b2a0b1"
+        },
+        {
+          "offset": "0x8b2902a",
+          "rva": "0x8b2a42a"
+        },
+        {
+          "offset": "0x8b29046",
+          "rva": "0x8b2a446"
+        },
+        {
+          "offset": "0x8e31772",
+          "rva": "0x8e32b72"
+        },
+        {
+          "offset": "0x8e3179a",
+          "rva": "0x8e32b9a"
+        },
+        {
+          "offset": "0x8e317c2",
+          "rva": "0x8e32bc2"
+        },
+        {
+          "offset": "0x8e317ea",
+          "rva": "0x8e32bea"
+        },
+        {
+          "offset": "0x8e3181a",
+          "rva": "0x8e32c1a"
+        },
+        {
+          "offset": "0x8e31842",
+          "rva": "0x8e32c42"
+        }
+      ]
+    },
+    {
+      "token": "QT_ACCESSIBILITY",
+      "count": 0,
+      "locations": []
+    }
+  ],
+  "rtti_classes": [],
+  "reference_candidates": [
+    {
+      "instruction_rva_candidate": "0x9782b8",
+      "string": "chat_input_field",
+      "string_rva": "0x8b6ac48"
+    },
+    {
+      "instruction_rva_candidate": "0x1bd69db",
+      "string": "chat_message_list",
+      "string_rva": "0x8e39668"
+    },
+    {
+      "instruction_rva_candidate": "0x222b4ac",
+      "string": "chat_input_field",
+      "string_rva": "0x8b6ac48"
+    },
+    {
+      "instruction_rva_candidate": "0x3cbbbc8",
+      "string": "chat_bubble_item_view",
+      "string_rva": "0x9225980"
+    },
+    {
+      "instruction_rva_candidate": "0x3cce77d",
+      "string": "chat_bubble_item_view",
+      "string_rva": "0x92281e8"
+    },
+    {
+      "instruction_rva_candidate": "0x454ac37",
+      "string": "session_list",
+      "string_rva": "0x9325d70"
+    },
+    {
+      "instruction_rva_candidate": "0x4564f27",
+      "string": "session_item_",
+      "string_rva": "0x9328b60"
+    },
+    {
+      "instruction_rva_candidate": "0x4571c9d",
+      "string": "session_list",
+      "string_rva": "0x9325d70"
+    }
+  ],
+  "note": "String RVAs are data locations, not callable function addresses."
+}

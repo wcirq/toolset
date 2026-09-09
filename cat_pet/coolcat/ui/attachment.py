@@ -152,6 +152,9 @@ class WindowAttachment(QObject):
         super().__init__(pet)
         self.pet = pet
         self.backend = backend or NativeWindows()
+        from .chat_anchor import ChatAnchor
+        self.chat_anchor = ChatAnchor(self)
+        self.candidate_session = None
         self.preview = AttachmentPreview()
         self.target = None
         self.target_executable = ''
@@ -309,6 +312,21 @@ class WindowAttachment(QObject):
         if candidate is None:
             candidate = next((t for t in targets if t.rect.adjusted(-40, -40, 40, 40).contains(cursor)), None)
         self.candidate = candidate
+        self.candidate_session = None
+        if candidate and is_wechat_window(candidate.title, candidate.kind,
+                getattr(self.backend, 'process_executable', lambda _pid: '')(candidate.pid)):
+            hit = self.chat_anchor.hit(candidate, cursor)
+            # A missing accessibility list must not disable window-edge
+            # attachment. The diagnostic remains available in the menu.
+            if hit:
+                from dataclasses import replace
+                self.candidate_session = hit[0]
+                self.candidate_corner = self.candidate_placement = None
+                self.intent_mode = 'software'
+                self.preview.display(replace(candidate, rect=hit[1],
+                                             title='聊天：' + hit[0].name),
+                                     self.pet.size(), None, None)
+                return
         corner = placement = None
         edge_ratio = None
         if candidate:
@@ -363,6 +381,13 @@ class WindowAttachment(QObject):
             self.update_drag(force=True)
         self.dragging = False
         self.preview.hide()
+        if distance >= 8 and self.candidate and self.candidate_session:
+            session = self.candidate_session
+            if self.attach(self.candidate, 'right'):
+                self.chat_anchor.session = session
+                self.pet.setToolTip('绑定聊天：' + session.name + '\n列表项不可见时暂时隐藏')
+                self.tick()
+                return True
         if distance >= 8 and self.intent_mode == 'screen' and self.intent_edge:
             self.release_screen_edge = self.intent_edge
             self.dragging = False
@@ -418,6 +443,7 @@ class WindowAttachment(QObject):
         current = self.backend.get(target.hwnd)
         if not current or current.pid != target.pid or not current.visible:
             return False
+        self.chat_anchor.session = None
         changed_target = (not self.target or
                           (current.hwnd, current.pid) != (self.target.hwnd, self.target.pid))
         if changed_target:
@@ -445,6 +471,7 @@ class WindowAttachment(QObject):
         return True
 
     def detach(self, reveal=True):
+        self.chat_anchor.clear()
         self.close_guard.uninstall()
         self.unlock_folder(notify=False)
         self._reset_focus_behavior()
@@ -613,6 +640,11 @@ class WindowAttachment(QObject):
         self._sync_close_guard()
         self._sync_tab_behavior()
         self._sync_focus_behavior(self.backend.active(current))
+        # Warm the UIA row cache before the user starts dragging.  Row
+        # discovery is asynchronous so the first drag must not race it.
+        if is_wechat_window(current.title, current.kind,
+                            getattr(self.backend, 'process_executable', lambda _pid: '')(current.pid)):
+            self.chat_anchor.refresh(current)
         visible = (current.visible and not self._focus_hidden
                    and not self.manual_hidden and not self._tab_hidden)
         if not visible:
@@ -625,7 +657,15 @@ class WindowAttachment(QObject):
                 self.auto_hidden = not self.manual_hidden
             return
         self.target_background = False
-        self.pet.move(self._activity_position(current, time.monotonic()))
+        if self.chat_anchor.session is not None:
+            position = self.chat_anchor.position(current)
+            if position is None:
+                self.pet.hide()
+                self.auto_hidden = True
+                return
+            self.pet.move(position)
+        else:
+            self.pet.move(self._activity_position(current, time.monotonic()))
         if self.auto_hidden:
             self.pet.show()  # WA_ShowWithoutActivating: don't steal target focus.
             self.auto_hidden = False
@@ -910,6 +950,10 @@ class WindowAttachment(QObject):
         if self._is_wechat_target():
             menu.addSeparator()
             assistant = menu.addMenu('微信聊天助手（实验性）')
+            assistant.addAction('绑定会话 / 轮流切换 / 填写回复', self.open_chat_sessions)
+            assistant.addAction('聊天行吸附：UIA / 当前版本 Qt 内存只读定位').setEnabled(False)
+            if self.chat_anchor.error:
+                assistant.addAction('聊天行定位失败：' + self.chat_anchor.error.replace('&', '&&')).setEnabled(False)
             guard_action = assistant.addAction('发送前检查（回车 / 鼠标）')
             guard_action.setCheckable(True)
             guard_action.setChecked(self.send_review.enabled)
@@ -924,12 +968,33 @@ class WindowAttachment(QObject):
             assistant.addAction('鼠标发送按钮：' + ('已定位' if mouse_ready else '未定位或已过期')).setEnabled(False)
             assistant.addAction('查看当前读取内容（无需 AI）',
                                 lambda: self.analyze_wechat('read'))
+            assistant.addAction('向上滚动读取历史（无需 AI）',
+                                lambda: self.analyze_wechat('history'))
+            if self.wechat_worker and self.wechat_worker.isRunning():
+                assistant.addAction('停止当前历史读取', self.wechat_worker.requestInterruption)
             assistant.addAction('分析当前聊天并建议回复',
                                 lambda: self.analyze_wechat('conversation'))
             assistant.addAction('检查输入框待发送内容',
                                 lambda: self.analyze_wechat('draft'))
             privacy = assistant.addAction('仅读取当前窗口，不读取数据库、不自动发送')
             privacy.setEnabled(False)
+
+    def open_chat_sessions(self):
+        from .chat_sessions import ChatSessionsDialog
+        dialog = getattr(self, '_chat_sessions_dialog', None)
+        if dialog is None or not dialog.isVisible():
+            self._chat_sessions_dialog = ChatSessionsDialog(self)
+        self._chat_sessions_dialog.show()
+        self._chat_sessions_dialog.raise_()
+
+    def bind_chat_session(self, session):
+        if not self._is_wechat_target():
+            raise RuntimeError('请先吸附到微信窗口。')
+        self.chat_anchor.session = session
+        self.chat_anchor.at = 0
+        self.chat_anchor.refresh(self.target)
+        self.pet.setToolTip('绑定聊天：' + session.name + '\n列表项不可见时暂时隐藏')
+        self.tick()
 
     def _toggle_send_review(self, enabled):
         self.send_review.enabled = enabled
@@ -967,7 +1032,7 @@ class WindowAttachment(QObject):
             StyledMessageDialog('微信聊天助手', text,
                                 [('知道了', 'ok', 'primary')], self.pet, '!').exec_()
             return
-        title = ('微信读取内容' if mode == 'read' else
+        title = ('微信读取内容' if mode in ('read', 'history') else
                  '发送前内容建议' if mode == 'draft' else '微信回复建议')
         dialog = WeChatSuggestionDialog(title, text, snapshot, self.pet)
         self.wechat_dialogs.append(dialog)

@@ -54,7 +54,9 @@ DEFAULT_CONFIG = {
     "wechat_ai_endpoint": "",  # 微信聊天助手独立 OpenAI-compatible 接口
     "wechat_ai_api_key": "",
     "wechat_ai_model": "",
+    "wechat_backend": "uia",  # uia / native（尚未完成客户端收发适配）
     "wechat_history_pages": 5,  # 主动读取最近聊天时最多向上翻页数
+    "wechat_history_messages": 100,  # 向上读取历史的消息条数上限（不计时间标签）
     "chat_enabled": False,     # 聊天输入功能 (暂时禁用)
     "debug_save": False,       # 调试: 满足切换条件时保存标注检测图片到 debug_shots/
     "auto_pause_fullscreen": False,  # 全屏游戏/会议/演示时自动暂停监控
