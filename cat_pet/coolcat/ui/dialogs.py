@@ -570,6 +570,8 @@ class SettingsDialog(QDialog):
         self.cooldown_spin.setToolTip("自动触发切换后, 在该时间内忽略新的多人触发")
         f2.addRow("触发冷却时间:", self.cooldown_spin)
 
+        self.monitor_on_startup_check = QCheckBox('软件启动后自动启用摄像头监控（下次启动生效）')
+        f2.addRow('', self.monitor_on_startup_check)
         self.auto_pause_fullscreen_check = QCheckBox(
             "全屏游戏、会议、演示时自动暂停监控")
         self.auto_pause_fullscreen_check.setToolTip(
@@ -1024,6 +1026,11 @@ class SettingsDialog(QDialog):
         self.wechat_history_messages_spin.setToolTip(
             '从当前阅读位置向上读取，达到指定消息条数或连续无法取得更早消息时停止；时间标签不计数。')
         wechat_form.addRow('历史消息数量上限:', self.wechat_history_messages_spin)
+        self.wechat_scroll_speed_spin = QSpinBox()
+        self.wechat_scroll_speed_spin.setRange(1, 100)
+        self.wechat_scroll_speed_spin.setSuffix(' 刻度/秒')
+        self.wechat_scroll_speed_spin.setToolTip('向上读取时每次滚动一个刻度，按此目标节奏执行；客户端加载或读取较慢时自动放慢，避免漏读。快速返回底部不受此设置影响。')
+        wechat_form.addRow('匀速上翻目标速度:', self.wechat_scroll_speed_spin)
         self.wechat_ai_test_input = QLineEdit()
         self.wechat_ai_test_input.setPlaceholderText("输入一段测试消息")
         self.wechat_ai_test_input.setText("好的，我明天下午三点参加")
@@ -1106,6 +1113,7 @@ class SettingsDialog(QDialog):
         self.cooldown_spin.setValue(cfg.get("trigger_cooldown_sec", 10.0))
         self.auto_pause_fullscreen_check.setChecked(
             bool(cfg.get("auto_pause_fullscreen", False)))
+        self.monitor_on_startup_check.setChecked(bool(cfg.get('monitor_on_startup', False)))
         self.dedup_spin.setValue(cfg.get("dedup_iou", 0.55))
         self.scale_slider.setValue(int(cfg["cat_scale"] * 100))
         behavior_index = self.locked_tab_behavior_combo.findData(cfg.get("locked_tab_behavior", "emotion"))
@@ -1259,6 +1267,7 @@ class SettingsDialog(QDialog):
             max(2, min(20, int(cfg.get("wechat_history_pages", 5)))))
         self.wechat_history_messages_spin.setValue(
             max(1, min(1000, int(cfg.get('wechat_history_messages', 100)))))
+        self.wechat_scroll_speed_spin.setValue(max(1, min(100, int(cfg.get('wechat_scroll_speed', 4)))))
 
         self.character_category_combo.currentIndexChanged.connect(
             self._update_character_styles)
@@ -1523,6 +1532,7 @@ class SettingsDialog(QDialog):
             self.target_combo.blockSignals(False)
 
     def _reset(self):
+        self.wechat_scroll_speed_spin.setValue(DEFAULT_CONFIG['wechat_scroll_speed'])
         self.model_combo.setCurrentIndex(0)
         self.yolo_model_combo.setCurrentText(DEFAULT_CONFIG["yolo_model"])
         self.conf_spin.setValue(DEFAULT_CONFIG["yolo_conf"])
@@ -1532,6 +1542,7 @@ class SettingsDialog(QDialog):
         self.cooldown_spin.setValue(DEFAULT_CONFIG["trigger_cooldown_sec"])
         self.auto_pause_fullscreen_check.setChecked(
             DEFAULT_CONFIG["auto_pause_fullscreen"])
+        self.monitor_on_startup_check.setChecked(DEFAULT_CONFIG['monitor_on_startup'])
         self.dedup_spin.setValue(DEFAULT_CONFIG["dedup_iou"])
         self.scale_slider.setValue(100)
         self.locked_tab_behavior_combo.setCurrentIndex(0)
@@ -1655,6 +1666,7 @@ class SettingsDialog(QDialog):
             "sustain_sec": round(self.sustain_spin.value(), 1),
             "trigger_cooldown_sec": round(self.cooldown_spin.value(), 1),
             "auto_pause_fullscreen": self.auto_pause_fullscreen_check.isChecked(),
+            "monitor_on_startup": self.monitor_on_startup_check.isChecked(),
             "dedup_iou": round(self.dedup_spin.value(), 2),
             "cat_scale": self.scale_slider.value() / 100.0,
             "locked_tab_behavior": self.locked_tab_behavior_combo.currentData(),
@@ -1725,6 +1737,7 @@ class SettingsDialog(QDialog):
             "wechat_backend": self.wechat_backend_combo.currentData(),
             "wechat_history_pages": self.wechat_history_pages_spin.value(),
             "wechat_history_messages": self.wechat_history_messages_spin.value(),
+            "wechat_scroll_speed": self.wechat_scroll_speed_spin.value(),
             "chat_enabled": False,   # 聊天输入功能暂时禁用
             "debug_save": self.debug_check.isChecked(),
             # 非 UI 项原样保留 (预览窗口缩放等由滚轮实时修改)

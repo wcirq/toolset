@@ -192,6 +192,7 @@ class WindowAttachment(QObject):
         self._confirming_close = False
         self._close_guard_notice_shown = False
         self.wechat_worker = None
+        self.wechat_cache = {}
         self.wechat_dialogs = []
         self.send_review = SendReview(self)
         self._tab_away = False
@@ -970,6 +971,9 @@ class WindowAttachment(QObject):
                                 lambda: self.analyze_wechat('read'))
             assistant.addAction('向上滚动读取历史（无需 AI）',
                                 lambda: self.analyze_wechat('history'))
+            assistant.addAction('补读新增消息（本次运行缓存）', lambda: self.analyze_wechat('updates'))
+            assistant.addAction('总结缓存 / 提取待办（AI）', lambda: self.analyze_wechat('summary'))
+            assistant.addAction('清空本次运行聊天缓存', self.wechat_cache.clear)
             if self.wechat_worker and self.wechat_worker.isRunning():
                 assistant.addAction('停止当前历史读取', self.wechat_worker.requestInterruption)
             assistant.addAction('分析当前聊天并建议回复',
@@ -1018,7 +1022,7 @@ class WindowAttachment(QObject):
         self.pet._say('正在读取当前聊天文本…', 120)
         worker = WeChatAnalysisWorker(
             self.target.hwnd, getattr(self.pet, 'config', {}), mode, self,
-            session=self.chat_anchor.session)
+            session=self.chat_anchor.session, cache=self.wechat_cache)
         self.wechat_worker = worker
         from .message_overlay import MessageReadOverlay
         overlay = MessageReadOverlay(self.backend, self.target.hwnd, self.pet)
@@ -1040,7 +1044,8 @@ class WindowAttachment(QObject):
             StyledMessageDialog('微信聊天助手', text,
                                 [('知道了', 'ok', 'primary')], self.pet, '!').exec_()
             return
-        title = ('微信读取内容' if mode in ('read', 'history') else
+        title = ('微信读取内容' if mode in ('read', 'history', 'updates') else
+                 '聊天摘要与待办' if mode == 'summary' else
                  '发送前内容建议' if mode == 'draft' else '微信回复建议')
         dialog = WeChatSuggestionDialog(title, text, snapshot, self.pet)
         self.wechat_dialogs.append(dialog)

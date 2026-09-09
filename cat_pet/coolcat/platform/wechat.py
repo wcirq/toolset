@@ -1,5 +1,5 @@
 """Read current Weixin text through UI Automation; never capture pixels."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -11,6 +11,7 @@ class WeChatSnapshot:
     pages_read: int = 1
     warning: str = ''
     messages_read: int = 0
+    messages: list = field(default_factory=list)
 
 
 def is_wechat_window(title='', kind='', executable=''):

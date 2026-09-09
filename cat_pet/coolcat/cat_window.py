@@ -27,7 +27,7 @@ class CatWindow(QWidget):
         self.config = load_config()
         # 仅保留 1% 的技术保护值，避免零尺寸窗口和除零；不再限制为至少 60%。
         self.cat_scale = max(0.01, min(2.0, float(self.config["cat_scale"])))
-        self._monitoring_requested = True       # 每次启动默认启用监控
+        self._monitoring_requested = bool(self.config.get('monitor_on_startup', False))
         self._monitor_auto_paused = False
         self._last_monitor_hotkey_at = 0.0       # 软件防抖，避免一次按键切换两次
         self.camera_thread = None

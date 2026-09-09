@@ -80,6 +80,7 @@ class MessageReadOverlay(QWidget):
             painter.setPen(QColor('white'))
             painter.drawText(badge, Qt.AlignCenter, str(number).zfill(2))
         styles = {'avatar': ('#a78bfa', 2, Qt.SolidLine, '头像'),
+                  'image': ('#fb923c', 2, Qt.SolidLine, '图片区域'),
                   'time': ('#fbbf24', 1, Qt.DashLine, '时间'),
                   'link': ('#60a5fa', 2, Qt.DashLine, '链接'),
                   'text': ('#67e8f9', 1, Qt.DotLine, '文本')}

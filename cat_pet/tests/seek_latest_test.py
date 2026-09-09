@@ -16,7 +16,9 @@ class SeekTests(unittest.TestCase):
         reader.read.return_value = page(0)
         result = seek_latest(window, reader, page(0), lambda: None)
         self.assertEqual(result, page(0))
-        window.wheel.assert_called_once_with((0, 0, 100, 100), -120)
+        self.assertEqual(window.wheel.call_count, 1)
+        self.assertEqual(window.wheel.call_args.args, ((0, 0, 100, 100), -14400))
+        self.assertTrue(callable(window.wheel.call_args.kwargs['before_batch']))
 
     @patch('coolcat.platform.qt_history.time.sleep')
     def test_previously_scrolled_history_returns_to_bottom(self, sleep):
@@ -25,7 +27,7 @@ class SeekTests(unittest.TestCase):
         result = seek_latest(window, reader, page(0), lambda: None)
         self.assertEqual(result, page(-60))
         self.assertEqual(window.wheel.call_count, 3)
-        self.assertTrue(all(call.args[1] < 0 for call in window.wheel.call_args_list))
+        self.assertTrue(all(call.args[1] == -14400 for call in window.wheel.call_args_list))
 
     @patch('coolcat.platform.qt_history.time.sleep')
     def test_switch_during_seek_aborts(self, sleep):

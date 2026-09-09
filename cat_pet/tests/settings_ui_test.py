@@ -27,6 +27,15 @@ StyledMessageDialog.warning = staticmethod(
 # ---------- 1. 对话框构造 + 分页 ----------
 cfg = dict(m.DEFAULT_CONFIG)
 dlg = m.SettingsDialog(cfg, yolo_available=False)
+check('上翻速度默认每秒4刻度', dlg.wechat_scroll_speed_spin.value() == 4)
+dlg.wechat_scroll_speed_spin.setValue(7)
+check('上翻速度可保存', dlg.get_config()['wechat_scroll_speed'] == 7)
+dlg.wechat_scroll_speed_spin.setValue(4)
+check('启动监控默认关闭', not dlg.monitor_on_startup_check.isChecked() and
+      m.DEFAULT_CONFIG['monitor_on_startup'] is False)
+dlg.monitor_on_startup_check.setChecked(True)
+check('启动监控设置可保存', dlg.get_config()['monitor_on_startup'] is True)
+dlg.monitor_on_startup_check.setChecked(False)
 check("共 6 个分页", dlg.tabs.count() == 6)
 check("默认使用 YOLO 姿态模型",
       cfg["model"] == "yolo" and

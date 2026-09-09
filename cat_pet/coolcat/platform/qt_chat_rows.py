@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 from .chat_backend import Session
+from .message_details import describe_message
 
 
 FINGERPRINT = 'e3240bf8a4d00593a4b3e6ce6c8b6ac26897622c27f410f6655c4eee17cb3b6d'
@@ -192,8 +193,18 @@ class QtChatRows:
                         records.append(record)
                         keys.append(token)
                         rects.append(box)
+                parts = []
+                for part in page.get('annotations', []):
+                    obj = part.get('object')
+                    if not obj:
+                        continue
+                    box = geometry(obj)
+                    prior = part['rect']
+                    if (box and clip_rect(box, clip) and
+                            (box[2]-box[0], box[3]-box[1]) == (prior[2]-prior[0], prior[3]-prior[1])):
+                        parts.append(dict(part, rect=box))
                 return {'identity': page['identity'], 'rect': clip, 'records': records,
-                        'record_keys': keys, 'record_rects': rects, 'annotations': []}
+                        'record_keys': keys, 'record_rects': rects, 'annotations': parts}
 
             if time.monotonic() >= self.next_scan:
                 self.candidates = []
@@ -244,7 +255,7 @@ class QtChatRows:
                     if box:
                         box = clip_rect(box, clip)
                     if box and name(obj) == identity and geometry(obj) == original:
-                        rows.append((Session(identity, key + (listing, obj), identity[13:]), box))
+                        rows.append((Session(identity, key + (listing, obj), identity[13:], source='qt'), box))
                 children = ptr(private + 0x18)
                 header = read(children, 16)
                 if header:
@@ -290,7 +301,11 @@ class QtChatRows:
             meta = (method + index + 7 + struct.unpack_from('<i', code, index + 3)[0]
                     if 0 <= index <= 24 else 0)
             if box and clip_rect(box, clip) and meta == base + 0x8b38e48:
-                annotations.append({'kind': 'avatar', 'rect': box})
+                annotations.append({'kind': 'avatar', 'rect': box, 'object': obj})
+                if bubble in groups:
+                    groups[bubble].setdefault('avatars', []).append(box)
+            if box and clip_rect(box, clip) and meta == base + 0x8b55e38:
+                annotations.append({'kind': 'image', 'rect': box, 'object': obj})
             if box and (bubble in groups or clip_rect(box, clip)) and meta == base + 0x8b54db8:
                 engine = ptr(ptr(obj + 0x3e0))
                 if engine and ptr(ptr(engine) + 0x150) == base + 0x2370fe0:
@@ -309,7 +324,7 @@ class QtChatRows:
                                     kind = 'time'
                                 elif re.fullmatch(r'https?://\S+', value):
                                     kind = 'link'
-                                annotations.append({'kind': kind, 'rect': box})
+                                annotations.append({'kind': kind, 'rect': box, 'object': obj})
                                 group = bubble if bubble in groups else obj
                                 entry = groups.setdefault(group, {'rect': box, 'parts': [], 'kind': 'label'})
                                 entry['parts'].append((box[1], box[0], value))
@@ -327,7 +342,7 @@ class QtChatRows:
             raise RuntimeError('消息页面%s（已检查 %d 个控件），请稍后重试' % (reason, len(visited)))
         if not valid(listing) or geometry(listing) != clip:
             raise RuntimeError('消息列表读取期间发生变化')
-        records, record_keys, record_rects = [], [], []
+        records, record_keys, record_rects, details = [], [], [], []
         for obj, group in sorted(groups.items(), key=lambda item: (item[1]['rect'][1], item[1]['rect'][0])):
             if geometry(obj) != group['rect']:
                 raise RuntimeError('消息位置读取期间发生变化')
@@ -337,6 +352,8 @@ class QtChatRows:
             # is checked against full text by the adjacent-page merger.
             record_keys.append(key + (listing, obj))
             record_rects.append(group['rect'])
+            details.append(describe_message(text, group['rect'], group.get('avatars', []))
+                           if group['kind'] == 'message' else None)
         return {'identity': key + (listing,), 'rect': clip, 'records': records,
                 'record_keys': record_keys, 'record_rects': record_rects,
-                'annotations': annotations}
+                'annotations': annotations, 'record_details': details}

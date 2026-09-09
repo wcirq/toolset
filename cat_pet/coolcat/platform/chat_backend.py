@@ -9,6 +9,7 @@ class Session:
     automation_id: str
     runtime_id: tuple
     name: str
+    source: str = 'uia'
 
 
 def require_backend(config):
@@ -46,12 +47,22 @@ def require_selected_session(hwnd, session):
         if len(matches) != 1:
             raise RuntimeError('无法确认吸附会话，请打开绑定的聊天后重试。')
         current, item = matches[0]
+        if session.source == 'uia' and current.runtime_id != session.runtime_id:
+            raise RuntimeError('绑定的会话控件已重建，请重新绑定，避免同名会话混用。')
         pattern = item.GetCurrentPattern(10010).QueryInterface(uia.IUIAutomationSelectionItemPattern)
         if not pattern.CurrentIsSelected:
             raise RuntimeError('当前打开的聊天不是吸附会话，请切回「%s」后重试。' % session.name)
-        identity = _draft_identity(automation, uia, hwnd)[2]
+        # Reading a conversation must not require reading its draft. Some
+        # clients expose the editor's identity but no text/value pattern.
+        root = automation.ElementFromHandle(int(hwnd))
+        field = root.FindFirst(4, automation.CreatePropertyCondition(30011, 'chat_input_field'))
+        if not field:
+            raise RuntimeError('当前会话输入框身份不可用')
+        identity = (tuple(root.GetRuntimeId()), tuple(field.GetRuntimeId()), str(field.CurrentName or ''))
         if identity[2] != session.name:
             raise RuntimeError('聊天标题与吸附会话不一致，已停止读取。')
+        if not pattern.CurrentIsSelected or tuple(item.GetRuntimeId()) != current.runtime_id:
+            raise RuntimeError('会话选中状态在校验期间变化，已停止读取。')
         return current.runtime_id, identity
     try:
         return _with_uia(check)

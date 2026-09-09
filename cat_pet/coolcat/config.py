@@ -28,6 +28,7 @@ DEFAULT_CONFIG = {
     "hotkey_enabled": True,    # 是否启用全局快捷键
     "monitor_hotkey": "Ctrl+Alt+M",  # 启用/禁用监控
     "monitor_hotkey_enabled": True,
+    "monitor_on_startup": False,  # 软件启动时启用摄像头监控
     "monitor_effect_size": 220,  # 左上角渐变闪烁范围 (px)
     "screenshot_hotkey": "Alt+A",  # 区域截图/OCR/翻译/贴图
     "screenshot_hotkey_enabled": True,
@@ -57,6 +58,7 @@ DEFAULT_CONFIG = {
     "wechat_backend": "uia",  # uia / native（尚未完成客户端收发适配）
     "wechat_history_pages": 5,  # 主动读取最近聊天时最多向上翻页数
     "wechat_history_messages": 100,  # 向上读取历史的消息条数上限（不计时间标签）
+    "wechat_scroll_speed": 4,  # 匀速上翻目标：滚轮刻度/秒
     "chat_enabled": False,     # 聊天输入功能 (暂时禁用)
     "debug_save": False,       # 调试: 满足切换条件时保存标注检测图片到 debug_shots/
     "auto_pause_fullscreen": False,  # 全屏游戏/会议/演示时自动暂停监控
