@@ -15,10 +15,10 @@ def merge_older(older, accumulated):
         old_messages = [record for record in older if record[0] == 'message']
         new_positions = [i for i, record in enumerate(accumulated) if record[0] == 'message']
         new_messages = [accumulated[i] for i in new_positions]
-        matches = [n for n in range(2, min(len(old_messages), len(new_messages)) + 1)
+        matches = [n for n in range(1, min(len(old_messages), len(new_messages)) + 1)
                    if old_messages[-n:] == new_messages[:n] and
                    sum(record[1] != '[非文本消息或暂不支持的消息类型]'
-                       for record in new_messages[:n]) >= 2]
+                       for record in new_messages[:n]) >= 1]
         if len(matches) != 1:
             return None
         return older + accumulated[new_positions[matches[0] - 1] + 1:]
@@ -148,7 +148,7 @@ class HistoryWindow:
             raise RuntimeError('无法核对用户操作状态')
         return value.tick
 
-    def annotation(self, page, numbers=None):
+    def annotation(self, page, numbers=None, provisional=False):
         old = self.api.SetThreadDpiAwarenessContext(c.c_void_p(-4))
         if not old:
             return None
@@ -161,6 +161,7 @@ class HistoryWindow:
                 return tuple(round(v * scale) + (origin.x if i % 2 == 0 else origin.y)
                              for i, v in enumerate(rect))
             return {'clip': physical(page['rect']), 'numbers': numbers or [],
+                    'provisional': bool(provisional),
                     'parts': [{'kind': part['kind'], 'rect': physical(part['rect'])}
                               for part in page.get('annotations', [])],
                     'boxes': [physical(rect)
@@ -169,7 +170,7 @@ class HistoryWindow:
         finally:
             self.api.SetThreadDpiAwarenessContext(old)
 
-    def wheel(self, rect, delta=120, after_step=None, before_batch=None):
+    def wheel(self, rect, delta=120, after_step=None, before_batch=None, pace=0):
         old = self.api.SetThreadDpiAwarenessContext(c.c_void_p(-4))
         if not old:
             raise RuntimeError('无法核对屏幕坐标')
@@ -211,6 +212,8 @@ class HistoryWindow:
                     raise RuntimeError('滚动未确认，已停止，未重试')
                 if after_step:
                     after_step()
+                if pace and step + 1 < min(cap, abs(int(delta)) // 120):
+                    time.sleep(pace)
         finally:
             self.api.SetThreadDpiAwarenessContext(old)
 
@@ -317,9 +320,29 @@ def seek_latest(window, reader, page, check, progress=None):
 
 
 def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, validate_session=None, progress=None, start_latest=False, known_messages=None, scroll_speed=None):
+    if progress is None:
+        return _read_qt_history(hwnd, pages, cancelled, max_messages, validate_session,
+                                progress, start_latest, known_messages, scroll_speed)
+    from .history_tracking import HistoryTracking
+    tracker = HistoryTracking(hwnd, progress, lambda: QtChatRows(messages=True), HistoryWindow)
+    tracker.thread.start()
+    try:
+        return _read_qt_history(hwnd, pages, cancelled, max_messages, validate_session,
+                                progress, start_latest, known_messages, scroll_speed, tracker)
+    finally:
+        tracker.close()
+
+
+def _read_qt_history(hwnd, pages, cancelled, max_messages, validate_session,
+                     progress, start_latest, known_messages, scroll_speed, tracker=None):
     limit = max(1, min(1000, int(max_messages))) if max_messages is not None else None
     window, reader = HistoryWindow(hwnd), QtChatRows(messages=True)
     session_error = None
+    def display_page(current, numbers):
+        if tracker:
+            tracker.publish(current, numbers)
+        elif progress:
+            progress(window.annotation(current, numbers))
     def check():
         nonlocal session_error
         if validate_session:
@@ -332,6 +355,11 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
             raise RuntimeError('已取消历史读取')
     check()
     page = reader.read(hwnd, window.pid)
+    title_candidate = page.get('title_candidate') or ''
+    # The header does not scroll. Its bounded subtree scan can take 300 ms;
+    # repeating it for every stability poll only delays the next wheel event.
+    # Bound-session validation remains active independently of this candidate.
+    reader.read_title = False
     check()
     if start_latest:
         page = seek_latest(window, reader, page, check, progress)
@@ -339,7 +367,7 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
     numbering = ReadNumbers()
     numbering.page(page, commit=True)
     if progress:
-        progress(window.annotation(page, numbering.page(page)))
+        display_page(page, numbering.page(page))
     records, count, note = page['records'], 1, '仅包含当前消息区域的可见文本；发送人和稳定消息 ID 尚未解析。'
     keys = page.get('record_keys', [])
     details_by_token = {}
@@ -381,13 +409,19 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
             def follow_boxes():
                 if cancelled():
                     raise RuntimeError('已取消历史读取')
+                if tracker:
+                    return  # Independent geometry worker follows during text reads too.
                 try:
                     tracked = reader.track(hwnd, window.pid, page)
                     progress(window.annotation(tracked, numbering.page(tracked)))
                 except Exception:
                     progress(None)
             if interval:
-                delta = 120
+                # Keep a small, evenly paced burst in the client. The old
+                # one-notch call forced a full page read between every notch.
+                # Three notches keep the motion continuous while ensuring a
+                # fresh page sample before Weixin can recycle several bubbles.
+                delta = 120 * (3 if progress else 1)
                 while time.monotonic() < next_step:
                     if cancelled():
                         raise RuntimeError('已取消历史读取')
@@ -397,7 +431,8 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
                 # Do not catch up with a burst after a slow client read.
                 next_step = time.monotonic() + interval
             if progress:
-                window.wheel(page['rect'], delta, after_step=follow_boxes)
+                window.wheel(page['rect'], delta, after_step=follow_boxes,
+                             pace=interval if progress else 0)
             else:
                 window.wheel(page['rect'], delta)
             previous = page
@@ -406,10 +441,15 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
             # Compare the viewport after one scroll, then confirm once after
             # a short loading grace period. Geometry is part of page_state:
             # unchanged text in a moving tall bubble cannot signal the end.
-            for poll in range(8):
-                delay = (.02 if poll == 0 else .04) if interval else (.075 if poll == 0 else .3)
+            # In paced mode geometry tracking already follows the animation.
+            # Do not perform eight expensive full-tree reads after every small
+            # burst; one short grace sample is enough before text extraction.
+            poll_limit = 3 if interval else 8
+            for poll in range(poll_limit):
+                delay = ((.02, .04, .08)[min(poll, 2)] if interval else
+                         (.075 if poll == 0 else .3))
                 if candidate and page_state(candidate) == page_state(previous):
-                    delay = .3  # Keep the loading grace before declaring an end.
+                    delay = .08 if interval else .3
                 if progress:
                     until = time.monotonic() + delay
                     while time.monotonic() < until:
@@ -429,7 +469,7 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
                 if current['identity'] != identity:
                     raise RuntimeError('消息列表身份变化，已停止读取')
                 if progress:
-                    progress(window.annotation(current, numbering.page(current)))
+                    display_page(current, numbering.page(current))
                 stable = stable + 1 if candidate and page_state(candidate) == page_state(current) else 0
                 candidate = current
                 if stable >= 1:
@@ -437,7 +477,7 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
             if stable < 1:
                 raise RuntimeError('页面尚未稳定，已停止读取')
             if progress:
-                progress(window.annotation(candidate, numbering.page(candidate)))
+                display_page(candidate, numbering.page(candidate))
             if page_state(candidate) == page_state(previous):
                 note += ' 向上滚动后，消息控件位置和内容经复核仍未变化，已结束读取；若历史延迟加载，可再次读取。'
                 break
@@ -478,7 +518,7 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
             remember_details(page)
             numbering.page(page, commit=True)
             if progress:
-                progress(window.annotation(page, numbering.page(page)))
+                display_page(page, numbering.page(page))
         except Exception as exc:
             note += ' ' + str(exc)
             break
@@ -508,4 +548,5 @@ def read_qt_history(hwnd, pages=1, cancelled=lambda: False, max_messages=None, v
     messages = enrich_messages(records, messages)
     return WeChatSnapshot(conversation=content, readable=bool(content), pages_read=count,
                           warning=note + (' 页面停留在本次读取位置。' if limit or pages > 1 else ''),
-                          messages_read=message_count(records), messages=messages)
+                          messages_read=message_count(records), messages=messages,
+                          conversation_title_candidate=page.get('title_candidate') or title_candidate)

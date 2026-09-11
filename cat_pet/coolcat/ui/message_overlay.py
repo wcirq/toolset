@@ -17,6 +17,7 @@ class MessageReadOverlay(QWidget):
         self.backend, self.hwnd = backend, hwnd
         self.boxes = []
         self.numbers, self.parts = [], []
+        self.provisional = False
         self.expires = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.expire)
@@ -43,9 +44,11 @@ class MessageReadOverlay(QWidget):
         clip = logical(data['clip'])
         if clip.isEmpty():
             return
-        self.setGeometry(clip)
+        if self.geometry() != clip:
+            self.setGeometry(clip)
         self.boxes = []
         self.numbers, self.parts = [], []
+        self.provisional = bool(data.get('provisional', False))
         for index, box in enumerate(data['boxes']):
             rect = logical(box).intersected(clip)
             if not rect.isEmpty():
@@ -68,7 +71,8 @@ class MessageReadOverlay(QWidget):
         painter.setFont(QFont('Segoe UI', 9, QFont.Bold))
         for number, box in zip(self.numbers, self.boxes):
             rect = box.adjusted(2, 2, -2, -2)
-            painter.setPen(QPen(QColor(70, 215, 195, 210), 1.5))
+            alpha = 145 if self.provisional else 210
+            painter.setPen(QPen(QColor(70, 215, 195, alpha), 1.5))
             painter.setBrush(QColor(70, 215, 195, 15))
             painter.drawRoundedRect(rect, 9, 9)
             if number is None:
@@ -80,6 +84,7 @@ class MessageReadOverlay(QWidget):
             painter.setPen(QColor('white'))
             painter.drawText(badge, Qt.AlignCenter, str(number).zfill(2))
         styles = {'avatar': ('#a78bfa', 2, Qt.SolidLine, '头像'),
+                  'nickname': ('#f472b6', 1.5, Qt.DashLine, '昵称候选'),
                   'image': ('#fb923c', 2, Qt.SolidLine, '图片区域'),
                   'time': ('#fbbf24', 1, Qt.DashLine, '时间'),
                   'link': ('#60a5fa', 2, Qt.DashLine, '链接'),

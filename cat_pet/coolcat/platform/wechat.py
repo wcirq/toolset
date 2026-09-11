@@ -12,6 +12,7 @@ class WeChatSnapshot:
     warning: str = ''
     messages_read: int = 0
     messages: list = field(default_factory=list)
+    conversation_title_candidate: str = ''
 
 
 def is_wechat_window(title='', kind='', executable=''):

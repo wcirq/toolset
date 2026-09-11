@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 
 from .chat_backend import Session
-from .message_details import describe_message
+from .message_details import describe_message, nickname_candidate
 
 
 FINGERPRINT = 'e3240bf8a4d00593a4b3e6ce6c8b6ac26897622c27f410f6655c4eee17cb3b6d'
@@ -37,6 +37,7 @@ class QtChatRows:
         self.next_scan = 0
         self.verified_file = None
         self.tracking_page = None
+        self.title_diagnostics = {}
 
     def track(self, hwnd, pid, page):
         """Read only known bubble geometry; never use this for message merging."""
@@ -238,7 +239,10 @@ class QtChatRows:
                 raise RuntimeError('无法唯一定位当前可见聊天列表')
             listing, clip = lists[0]
             if self.messages:
-                return self._messages(read, ptr, name, geometry, valid, base, key, listing, clip)
+                page = self._messages(read, ptr, name, geometry, valid, base, key, listing, clip)
+                if getattr(self, 'read_title', True):
+                    page['title_candidate'] = self._title(read, ptr, geometry, base, listing, clip, self.title_diagnostics)
+                return page
             rows, stack, visited = [], [listing], set()
             while stack and len(visited) < 500:
                 obj = stack.pop()
@@ -270,6 +274,63 @@ class QtChatRows:
             return [row for row in rows if sum(s.automation_id == row[0].automation_id for s, _ in rows) == 1]
         finally:
             api.CloseHandle(handle)
+
+    @staticmethod
+    def _title(read, ptr, geometry, base, listing, clip, diagnostics=None):
+        """Optional header text, spatially separate from the message tree."""
+        root, seen = listing, set()
+        for _ in range(32):
+            if root in seen:
+                return None
+            seen.add(root)
+            parent = ptr(ptr(root+8)+0x10)
+            if not parent:
+                break
+            root = parent
+        area = (clip[0], max(0, clip[1]-100), clip[0]+min(400, (clip[2]-clip[0])*.6), clip[1])
+        stack, visited, matches = [root], set(), []
+        deadline = time.monotonic()+.3
+        while stack and len(visited) < 250 and time.monotonic() < deadline:
+            obj = stack.pop()
+            if obj in visited or obj == listing:
+                continue
+            visited.add(obj)
+            box = geometry(obj)
+            if not box or not clip_rect(box, area):
+                continue
+            method = ptr(ptr(obj))
+            code = read(method, 32)
+            index = code.find(b'\x48\x8d\x05')
+            meta = method+index+7+struct.unpack_from('<i', code, index+3)[0] if 0 <= index <= 24 else 0
+            if meta == base+0x8b54db8 and box[1] >= area[1] and box[3] <= area[3] and box[0] >= area[0]:
+                engine = ptr(ptr(obj+0x3e0))
+                if ptr(ptr(engine)+0x150) == base+0x2370fe0:
+                    header = read(engine+0x90, 32)
+                    if len(header) == 32:
+                        size, capacity = struct.unpack_from('<2Q', header, 16)
+                        if 0 < size <= 512 and size <= capacity <= 1048576:
+                            source = engine+0x90 if capacity < 16 else struct.unpack_from('<Q', header)[0]
+                            raw = read(source, size)
+                            if len(raw) == size and read(engine+0x90, 32) == header and geometry(obj) == box:
+                                text = raw.decode('utf-8', 'replace').strip()
+                                if text:
+                                    matches.append(text)
+            private = ptr(obj+8)
+            if ptr(private+8) != obj:
+                continue
+            children = ptr(private+0x18)
+            header = read(children, 16)
+            if len(header) == 16:
+                _, allocated, begin, end = struct.unpack('<4i', header)
+                if 0 <= begin <= end <= allocated <= 4096:
+                    for i in range(begin, end):
+                        child = ptr(children+16+8*i)
+                        if ptr(ptr(child+8)+0x10) == obj:
+                            stack.append(child)
+        if diagnostics is not None:
+            diagnostics.update(visited=len(visited), unfinished=len(stack), matches=len(matches),
+                               lengths=[len(text) for text in matches])
+        return matches[0] if not stack and len(matches) == 1 else None
 
     @staticmethod
     def _messages(read, ptr, name, geometry, valid, base, key, listing, clip):
@@ -306,6 +367,8 @@ class QtChatRows:
                     groups[bubble].setdefault('avatars', []).append(box)
             if box and clip_rect(box, clip) and meta == base + 0x8b55e38:
                 annotations.append({'kind': 'image', 'rect': box, 'object': obj})
+                if bubble in groups:
+                    groups[bubble].setdefault('content_rects', []).append(box)
             if box and (bubble in groups or clip_rect(box, clip)) and meta == base + 0x8b54db8:
                 engine = ptr(ptr(obj + 0x3e0))
                 if engine and ptr(ptr(engine) + 0x150) == base + 0x2370fe0:
@@ -328,6 +391,7 @@ class QtChatRows:
                                 group = bubble if bubble in groups else obj
                                 entry = groups.setdefault(group, {'rect': box, 'parts': [], 'kind': 'label'})
                                 entry['parts'].append((box[1], box[0], value))
+                                entry.setdefault('text_controls', []).append({'text': value, 'rect': box, 'object': obj})
             children = ptr(private + 0x18)
             header = read(children, 16)
             if header:
@@ -354,6 +418,14 @@ class QtChatRows:
             record_rects.append(group['rect'])
             details.append(describe_message(text, group['rect'], group.get('avatars', []))
                            if group['kind'] == 'message' else None)
+            if details[-1]:
+                candidate = nickname_candidate(group['rect'], group.get('avatars', []), group.get('text_controls', []), group.get('content_rects', []))
+                if candidate:
+                    details[-1]['sender_name_candidate'] = candidate['text']
+                    details[-1]['sender_name_basis'] = 'avatar_adjacent_layout'
+                    for part in annotations:
+                        if part.get('object') in candidate.get('objects', [candidate['object']]):
+                            part['kind'] = 'nickname'
         return {'identity': key + (listing,), 'rect': clip, 'records': records,
                 'record_keys': record_keys, 'record_rects': record_rects,
                 'annotations': annotations, 'record_details': details}

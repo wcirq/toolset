@@ -104,6 +104,7 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(self.review.dialog.advice.toPlainText(), 'advice')
 
     def test_mouse_region_is_armed_without_keyboard_focus(self):
+        self.review.pending = False
         import time
         region, frame = (30, 30, 60, 60), (0, 0, 100, 100)
         self.review._focused(self.generation, (False, region, frame), time.monotonic())
@@ -111,6 +112,7 @@ class ReviewTests(unittest.TestCase):
         self.review.guard.mouse_region.assert_called_with(region, frame)
 
     def test_slow_probe_disarms_both_input_paths(self):
+        self.review.pending = False
         import time
         self.review._focused(self.generation, (True, (1, 1, 2, 2), (0, 0, 3, 3)), time.monotonic() - 2)
         self.review.guard.pulse.assert_called_with(False, False)
@@ -123,6 +125,27 @@ class ReviewTests(unittest.TestCase):
         self.review._send()
         self.assertEqual(self.thread.call_count, 2)  # capture + one send
         self.assertFalse(self.review.dialog.send.isEnabled())
+        self.review.guard.pulse.assert_called_with(False, False)
+        self.review.guard.mouse_region.assert_called_with()
+        self.review.guard.cancel_close.assert_called_once()
+
+    def test_other_bound_chat_disarms_both_paths(self):
+        self.review.pending = False
+        self.review.sync = Mock()
+        self.review.bound_session = object()
+        with patch('coolcat.platform.chat_backend.require_selected_session', side_effect=RuntimeError('other chat')):
+            with patch('coolcat.ui.send_review.send_guard_state') as probe:
+                self.review._poll()
+                self.thread.call_args.kwargs['target']()
+        probe.assert_not_called()
+        self.review.guard.pulse.assert_called_with(False, False)
+        self.review.guard.mouse_region.assert_called_with(None, None)
+
+    def test_pending_dialog_does_not_rearm(self):
+        import time
+        self.review.guard.mouse_region.reset_mock()
+        self.review._focused(self.generation, (True, (1, 1, 2, 2), (0, 0, 3, 3)), time.monotonic())
+        self.review.guard.mouse_region.assert_not_called()
 
     def test_stale_model_reply_after_cancel_is_ignored(self):
         self.review._dismiss(self.generation)

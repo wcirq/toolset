@@ -28,6 +28,7 @@ class SendReview(QObject):
         self.probed_at = 0.0
         self.pending = False
         self.closed = False
+        self.bound_session = None
         self.focus_ready.connect(self._focused)
         self.result_ready.connect(self._result)
         self.sent_ready.connect(self._sent)
@@ -40,8 +41,10 @@ class SendReview(QObject):
         target = attachment.target
         hwnd = target.hwnd if self.enabled and attachment._is_wechat_target() else 0
         pid = target.pid if hwnd else 0
-        if (hwnd, pid) == (self.hwnd, self.pid):
+        session = getattr(getattr(attachment, 'chat_anchor', None), 'session', None)
+        if (hwnd, pid, session) == (self.hwnd, self.pid, self.bound_session):
             return
+        self.bound_session = session
         self.generation += 1
         self.guard.uninstall()
         self.hwnd, self.pid = hwnd, pid
@@ -58,20 +61,33 @@ class SendReview(QObject):
         if self.closed:
             return
         self.sync()
+        if self.pending:
+            self.guard.pulse(False, self.ctrl)
+            self.guard.mouse_region()
+            return
         if not self.hwnd or not self.guard._hook or self.checking:
             return
         self.checking = True
         hwnd, generation = self.hwnd, self.generation
+        session = self.bound_session
         started = time.monotonic()
         def run():
-            state = send_guard_state(hwnd)
+            try:
+                if session:
+                    from ..platform.chat_backend import require_selected_session
+                    require_selected_session(hwnd, session)
+                state = send_guard_state(hwnd)
+                if session:
+                    require_selected_session(hwnd, session)
+            except Exception:
+                state = (False, None, None)
             if not self.closed:
                 self.focus_ready.emit(generation, state, started)
         threading.Thread(target=run, daemon=True).start()
 
     def _focused(self, generation, state, started):
         self.checking = False
-        if generation == self.generation and not self.closed:
+        if generation == self.generation and not self.closed and not self.pending:
             focused, bounds, frame = state
             fresh = time.monotonic() - started < .3
             self.guard.pulse(focused and fresh, self.ctrl)
@@ -85,6 +101,9 @@ class SendReview(QObject):
         self.pending = True
         self.generation += 1
         generation = self.generation
+        session = self.bound_session
+        self.guard.pulse(False, self.ctrl)
+        self.guard.mouse_region()
         config = dict(getattr(self.attachment.pet, 'config', {}))
         dialog = QDialog(self.attachment.pet)
         dialog.setWindowTitle('发送前检查 · 发送已拦截')
@@ -121,6 +140,9 @@ class SendReview(QObject):
         def run():
             identity, draft, advice, error = None, '', '', ''
             try:
+                if session:
+                    from ..platform.chat_backend import require_selected_session
+                    require_selected_session(hwnd, session)
                 if source == 'keyboard' and not focused_chat_input(hwnd):
                     raise RuntimeError('输入焦点已变化，本次未发送；请返回输入框重试')
                 identity, draft = capture_send_draft(hwnd)
@@ -158,14 +180,25 @@ class SendReview(QObject):
         dialog.submitted = True
         hwnd, generation = self.hwnd, self.generation
         identity, draft = dialog.identity, dialog.original
+        session = self.bound_session
         # GUI state cannot change between these checks and spawning the worker.
-        if not self.enabled or not self.attachment.target or self.attachment.target.hwnd != hwnd:
+        current_session = getattr(getattr(self.attachment, 'chat_anchor', None), 'session', None)
+        if (not self.enabled or not self.attachment.target or self.attachment.target.hwnd != hwnd
+                or current_session != session):
             dialog.status.setText('绑定已变化，本次未发送')
             return
         dialog.status.setText('正在提交一次发送请求…')
+        # Release the intercepted input state and disarm before Invoke can
+        # synthesize a click; polling remains disarmed while pending.
+        self.guard.pulse(False, self.ctrl)
+        self.guard.mouse_region()
+        self.guard.cancel_close()
         def run():
             error = ''
             try:
+                if session:
+                    from ..platform.chat_backend import require_selected_session
+                    require_selected_session(hwnd, session)
                 send_original_draft(hwnd, identity, draft)
             except Exception as exc:
                 error = '发送未完成或结果未知，请在客户端核对，勿重复提交：' + str(exc)

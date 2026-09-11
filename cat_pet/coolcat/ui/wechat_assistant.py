@@ -32,14 +32,14 @@ def analyze_wechat_text(config, conversation, draft='', mode='conversation', mes
     if messages:
         # Include context only for the latest messages and cap the payload.
         metadata = [{key: message.get(key) for key in
-                     ('number', 'layout_side', 'direction', 'displayed_time', 'content_kind')}
+                     ('number', 'layout_side', 'direction', 'displayed_time', 'content_kind', 'sender_name_candidate')}
                     for message in messages[-30:]]
-        content += '\n\n消息辅助信息（编号1最新；左右位置不代表已确认的发送人；显示时间不是精确时间戳）：\n'
+        content += '\n\n消息辅助信息（编号1最新；incoming/outgoing依据用户确认的左收右发布局；成员身份未知；显示时间不是精确时间戳）：\n'
         content += json.dumps(metadata, ensure_ascii=False)
     payload = json.dumps({
         'model': model,
         'messages': [
-            {'role': 'system', 'content': '你是谨慎的中文沟通助手。当前读取未确认发送人及收发方向，不要仅凭文字顺序或左右位置认定是谁说的；身份影响建议时说明不确定。' + instruction},
+            {'role': 'system', 'content': '你是谨慎的中文沟通助手。辅助信息中的收发方向来自用户确认的客户端布局规则；没有方向信息时不要猜测。具体成员身份未解析，不要把群名称当作发送人。' + instruction},
             {'role': 'user', 'content': content},
         ],
         'temperature': 0.3,
@@ -135,6 +135,8 @@ class WeChatAnalysisWorker(QThread):
                 len(combined), '增量确认' if cached and self.mode == 'updates' else '建立基线', added)
         if self.mode in ('read', 'history', 'updates'):
             parts = []
+            if snapshot.conversation_title_candidate:
+                parts.append('【顶部会话标题候选】\n' + snapshot.conversation_title_candidate)
             if snapshot.warning:
                 parts.append('【读取范围：%d 个页面】\n%s' % (snapshot.pages_read, snapshot.warning))
             if snapshot.conversation:
